@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Custom gradient backgrounds */
+.bg-gradient-green {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+.bg-gradient-pinkpurple {
+  background: linear-gradient(135deg, #ff6fd8 0%, #3813c2 100%);
+}
