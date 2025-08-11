@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaHeart, FaHandsHelping, FaUsers, FaShieldAlt, FaArrowRight } from "react-icons/fa";
+import Link from "next/link";
 
 const Hero = () => {
   const [currentStat, setCurrentStat] = useState(0);
@@ -42,12 +43,17 @@ const Hero = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
           >
-            <button className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer">
-              Start Donating <FaArrowRight className="ml-2" />
-            </button>
-            <button className="px-8 py-4 bg-white/80 backdrop-blur-md text-emerald-700 font-bold rounded-xl border border-emerald-200 hover:bg-white hover:scale-105 transition-all duration-200 cursor-pointer">
-              Find Support
-            </button>
+            <Link href="/auth/signup">
+              <button className="px-8 py-4 bg-gradient-to-r from-teal-500 to-teal-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center justify-center cursor-pointer">
+                Start Donating <FaArrowRight className="ml-2" />
+              </button>
+            </Link>
+
+            <Link href="/auth/signup">
+              <button className="px-8 py-4 bg-white/80 backdrop-blur-md text-teal-700 font-bold rounded-xl border border-emerald-200 hover:bg-white hover:scale-105 transition-all duration-200 cursor-pointer">
+                Find Support
+              </button>
+            </Link>
           </motion.div>
 
           {/* Animated Stats */}
