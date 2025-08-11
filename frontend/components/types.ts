@@ -5,6 +5,8 @@ export interface User {
     avatar: string;
     verified: boolean;
     joinedDate: string; // Format: "Month YYYY"
+    type: string; // "recipient" | "donor"
+    location?: string;
 }
 
 export interface sidebarProps {
@@ -16,7 +18,7 @@ export interface sidebarProps {
 export interface Post {
     id: number;
     title: string;
-    category: string; // "organs", "funding", "medicines"
+    category: string; // "organs" | "funding" | "medicines"
     content: string;
     createdAt: string; // ISO date string
     status: string;
@@ -26,6 +28,11 @@ export interface Post {
         likes: number;
         comments: number;
         shares: number;
+    };
+    user: User;
+    contact?: {
+        phone?: string;
+        email?: string;
     };
 }
 
@@ -38,4 +45,60 @@ export interface filterbarProps {
 export interface PostGridProps {
     posts: Array<Post>;
     filterCategory: string;
+}
+
+export interface BloodCamp {
+    id: number;
+    name: string;
+    location: string;
+    coordinates: Array<number>; // [latitude, longitude]
+    date: string; // ISO date string
+    time: string; // Time in HH:MM format
+    status: string;
+    organizer: string;
+    contact: string; // Phone number or email
+    capacity: number; // Number of donors expected
+    bloodTypes: Array<string>; // e.g., "A+", "O-", etc.
+}
+
+export interface SriLankaMapProps {
+    bloodCamps: Array<BloodCamp>;
+    setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
+}
+
+export interface ProfileHeaderProps {
+    user: User;
+}
+
+export interface TabNavigationProps {
+    activeTab: string;
+    setActiveTab: React.Dispatch<React.SetStateAction<string>>;
+}
+
+export interface FilterSectionProps {
+    filterCategory: string;
+    setFilterCategory: React.Dispatch<React.SetStateAction<string>>;
+    filterUrgency: string;
+    setFilterUrgency: React.Dispatch<React.SetStateAction<string>>;
+    filteredPosts: Array<Post>;
+}
+
+export interface PostsGridProps {
+    filteredPosts: Array<Post>;
+}
+
+export interface MapSectionProps {
+    bloodCamps: Array<BloodCamp>;
+    setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
+}
+
+export interface CampsListProps {
+    bloodCamps: Array<BloodCamp>;
+    setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
+    selectedCamp: BloodCamp | null;
+}
+
+export interface CampDetailsModalProps {
+    selectedCamp: BloodCamp | null;
+    setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
 }

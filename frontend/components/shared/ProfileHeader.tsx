@@ -2,15 +2,9 @@ import Link from 'next/link'
 import React from 'react'
 import { FaBell } from 'react-icons/fa'
 import { MdVerified } from 'react-icons/md';
+import { ProfileHeaderProps } from '../types';
 
-const ProfileHeader = () => {
-  // Mock user data
-  const user = {
-    name: "Sarah Chen",
-    avatar: "SC",
-    verified: true,
-    joinedDate: "March 2024"
-  };
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({user}) => {
 
   return (
     <div>
@@ -23,8 +17,8 @@ const ProfileHeader = () => {
                   Vytal
                 </h1>
               </Link>
-              <span className="text-gray-400">|</span>
-              <span className="text-emerald-700 font-semibold">Recipient Dashboard</span>
+              {/* <span className="text-gray-400">|</span>
+              <span className="text-emerald-700 font-semibold">Dashboard</span> */}
             </div>
             
             <div className="flex items-center space-x-6">
@@ -37,18 +31,20 @@ const ProfileHeader = () => {
                 />
               </div> */}
               <FaBell className="text-2xl text-emerald-600 hover:text-emerald-500 cursor-pointer" />
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold">
-                  {user.avatar}
-                </div>
-                <div>
-                  <div className="flex items-center space-x-1">
-                    <span className="font-semibold text-emerald-700">{user.name}</span>
-                    {user.verified && <MdVerified className="text-emerald-500 text-sm" />}
+              <Link href="/me">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold">
+                    {user.avatar}
                   </div>
-                  <span className="text-sm text-gray-600">Recipient</span>
+                  <div>
+                    <div className="flex items-center space-x-1">
+                      <span className="font-semibold text-emerald-700">{user.name}</span>
+                      {user.verified && <MdVerified className="text-emerald-500 text-sm" />}
+                    </div>
+                    {/* <span className="text-sm text-gray-600">Recipient</span> */}
+                  </div>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
