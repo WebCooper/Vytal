@@ -25,7 +25,11 @@ export const myPosts = [
       createdAt: "2024-01-15T10:30:00Z",
       urgency: "high",
       engagement: { likes: 23, comments: 8, shares: 12, views: 150 },
-      contact: "phone: +94771234567, email: sarah.chen@email.com"
+      contact: "phone: +94771234567, email: sarah.chen@email.com",
+      fundraiserDetails: {
+      goal: 1000000,
+      received: 250000 // Starts at 0 when created
+    }
     },
     {
       id: 2,
