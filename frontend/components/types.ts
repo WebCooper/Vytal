@@ -17,9 +17,9 @@ export enum UserType {
 }
 
 export interface SidebarProps {
-  user: User;
-  activeTab: string;
-  setActiveTab: React.Dispatch<React.SetStateAction<string>>;
+    user: User;
+    activeTab: string;
+    setActiveTab: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export interface Post {
@@ -39,6 +39,8 @@ export interface Post {
     user: User;
     contact: string;
     fundraiserDetails?: FundraiserDetails; // Optional, only for fundraiser posts
+    location: string; // New property
+    distance: string; // New property (e.g., "2km")
 }
 
 export enum PostCategory {
@@ -61,6 +63,7 @@ export interface FilterbarProps {
 export interface PostGridProps {
     posts: Array<Post>;
     filterCategory: string;
+    setFilterCategory: (category: string) => void;
 }
 
 export interface BloodCamp {
