@@ -118,3 +118,9 @@ export interface CampDetailsModalProps {
     selectedCamp: BloodCamp | null;
     setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
 }
+export enum DonorPostStatus {
+    AVAILABLE = "available",    // Ready to help
+    COMMITTED = "committed",    // Committed to help someone specific
+    COMPLETED = "completed",    // Already helped
+    PAUSED = "paused"          // Temporarily unavailable
+}
