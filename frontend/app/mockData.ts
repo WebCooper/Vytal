@@ -219,3 +219,49 @@ export const bloodCamps = [
       bloodTypes: ["All Types"]
     }
 ];
+export const donationOpportunities = [
+  {
+    id: 1,
+    user: user,
+    title: "Kidney Transplant Required Urgently",
+    status: "open",
+    category: PostCategory.ORGANS,
+    content: "Patient requires a kidney transplant. Blood group O+. All medical reports available on request.",
+    location: "City Hospital, 3km away",
+    createdAt: "2024-02-05T09:00:00Z",
+    urgency: "high",
+    engagement: { likes: 12, comments: 3, shares: 5, views: 0 },
+    contact: "phone: +94770000001, email: organrequests@cityhospital.org"
+  },
+  {
+    id: 2,
+    user: user,
+    title: "Fundraiser for Cancer Treatment",
+    status: "open",
+    category: PostCategory.FUNDRAISER,
+    content: "We are raising funds for a 12-year-old undergoing chemotherapy. All contributions will directly help cover medical expenses.",
+    location: "Northside Community Center, 5km away",
+    createdAt: "2024-02-04T15:30:00Z",
+    urgency: "medium",
+    engagement: { likes: 5, comments: 1, shares: 2, views: 2 },
+    contact: "phone: +94770000002, email: fundraiser@northside.org"
+  }
+];
+
+export const myDonations = [
+  {
+    id: 1,
+    user: user,
+    title: "Medicine Donation for Rural Clinic",
+    status: "completed",
+    category: PostCategory.MEDICINES,
+    content: "Donated essential antibiotics and pain relief medication to the rural clinic serving over 500 families.",
+    location: "Rural Health Clinic",
+    createdAt: "2023-08-10T10:00:00Z",
+    urgency: "low",
+    engagement: { likes: 8, comments: 0, shares: 1, views: 20 },
+    contact: "phone: +94770000003, email: ruralclinic@health.org"
+  }
+];
+
+
