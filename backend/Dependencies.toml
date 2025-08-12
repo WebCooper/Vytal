@@ -337,6 +337,13 @@ dependencies = [
 	{org = "ballerinai", name = "observe"}
 ]
 modules = [
-	{org = "cooper", packageName = "backend", moduleName = "backend"}
+	{org = "cooper", packageName = "backend", moduleName = "backend"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.auth"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.handlers"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.services"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.storage"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.token"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.types"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.utils"}
 ]
 
