@@ -44,3 +44,10 @@ export const formatDate = (dateString: string) => {
       year: 'numeric'
     });
   };
+  
+export function getDistanceColor(distance: string) {
+  const km = parseInt(distance);
+  if (km <= 1) return "bg-red-100 text-red-800 border-red-200";
+  if (km <= 5) return "bg-orange-100 text-orange-800 border-orange-200";
+  return "bg-green-100 text-green-800 border-green-200";
+}
