@@ -17,8 +17,8 @@ const FilterSection: React.FC<FilterSectionProps> = ({filterCategory, setFilterC
                   className="px-4 py-2 rounded-lg border border-emerald-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 bg-white/80"
                 >
                   <option value="all">All Categories</option>
-                  <option value="blood">Blood</option>
                   <option value="organs">Organs</option>
+                  <option value="fundraiser">Fundraiser</option>
                   <option value="medicines">Medicines</option>
                 </select>
 

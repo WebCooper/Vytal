@@ -4,7 +4,7 @@ import { MdBloodtype, MdLocalHospital, MdMedication } from "react-icons/md";
 export const getCategoryIcon = (category: string) => {
     switch (category) {
       case "organs": return MdBloodtype;
-      case "funding": return MdLocalHospital;
+      case "fundraiser": return MdLocalHospital;
       case "medicines": return MdMedication;
       default: return FaHeart;
     }
@@ -13,7 +13,7 @@ export const getCategoryIcon = (category: string) => {
 export const getCategoryColor = (category: string) => {
     switch (category) {
       case "organs": return "from-red-400 to-red-600";
-      case "funding": return "from-blue-400 to-blue-600";
+      case "fundraiser": return "from-blue-400 to-blue-600";
       case "medicines": return "from-emerald-400 to-emerald-600";
       default: return "from-gray-400 to-gray-600";
     }

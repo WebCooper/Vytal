@@ -5,8 +5,15 @@ export interface User {
     avatar: string;
     verified: boolean;
     joinedDate: string; // Format: "Month YYYY"
-    type: string; // "recipient" | "donor"
+    type: UserType;
     location?: string;
+}
+
+export enum UserType {
+    RECIPIENT = "recipient",
+    DONOR = "donor",
+    ORGANIZATION = "organization",
+    ADMIN = "admin"
 }
 
 export interface sidebarProps {
@@ -18,7 +25,7 @@ export interface sidebarProps {
 export interface Post {
     id: number;
     title: string;
-    category: string; // "organs" | "funding" | "medicines"
+    category: PostCategory;
     content: string;
     createdAt: string; // ISO date string
     status: string;
@@ -30,16 +37,25 @@ export interface Post {
         shares: number;
     };
     user: User;
-    contact?: {
-        phone?: string;
-        email?: string;
-    };
+    contact: string;
+    fundraiserDetails?: fundraiserDetails; // Optional, only for fundraiser posts
+}
+
+export enum PostCategory {
+    ORGANS = "organs",
+    FUNDRAISER = "fundraiser",
+    MEDICINES = "medicines"
+}
+
+export interface fundraiserDetails {
+    goal: number;
+    received: number;
 }
 
 export interface filterbarProps {
     filterCategory: string;
     setFilterCategory: React.Dispatch<React.SetStateAction<string>>;
-    posts: Array<Post>; // Example post structure
+    posts: Array<Post>;
 }
 
 export interface PostGridProps {

@@ -1,3 +1,5 @@
+import { PostCategory, UserType } from "@/components/types";
+
   // Mock user data (donor)
 export const user = {
     id: "1",
@@ -6,7 +8,7 @@ export const user = {
     avatar: "SC",
     verified: true,
     joinedDate: "March 2024",
-    type: "recipient",
+    type: UserType.RECIPIENT,
     location: "Colombo",
   };
 
@@ -15,54 +17,54 @@ export const myPosts = [
     {
       id: 1,
       user: user,
-      title: "Urgent: Need Type O- Blood for Emergency Surgery",
+      title: "Urgent: Need 1,000,000 LKR for Emergency Surgery",
       status: "open",
-      category: "organs",
+      category: PostCategory.FUNDRAISER,
       content: "Hello everyone, I'm scheduled for an emergency surgery tomorrow and need Type O- blood donors. The surgery is at City General Hospital. Please reach out if you can help or know someone who can.",
       location: "Colombo",
       createdAt: "2024-01-15T10:30:00Z",
       urgency: "high",
       engagement: { likes: 23, comments: 8, shares: 12, views: 150 },
-      contact: { phone: "+94771234567", email: "sarah.chen@email.com" }
+      contact: "phone: +94771234567, email: sarah.chen@email.com"
     },
     {
       id: 2,
       user: user,
       title: "Looking for Kidney Donor - Living Donor Needed",
       status: "open",
-      category: "donations",
+      category: PostCategory.ORGANS,
       content: "Hi, I'm a 34-year-old teacher with end-stage kidney disease. I'm looking for a living kidney donor. I have a great support system and am committed to following all medical protocols.",
       location: "Kandy",
       createdAt: "2024-01-10T14:20:00Z",
       urgency: "high",
       engagement: { likes: 67, comments: 34, shares: 28, views: 150 },
-      contact: { phone: "+94773456789", email: "r.perera@email.com" }
+      contact: "phone: +94773456789, email: r.perera@email.com"
     },
     {
       id: 3,
       user: user,
       title: "Seeking Insulin Donations - Type 1 Diabetic",
       status: "open",
-      category: "medicines",
+      category: PostCategory.MEDICINES,
       content: "I'm a college student with Type 1 diabetes struggling to afford insulin. If anyone has extra supplies or knows of assistance programs, I would be incredibly grateful.",
       location: "Galle",
       createdAt: "2024-01-08T09:15:00Z",
       urgency: "medium",
       engagement: { likes: 89, comments: 23, shares: 15, views: 150 },
-      contact: { phone: "+94775678901", email: "amara.f@email.com" }
+      contact: "phone: +94775678901, email: amara.f@email.com"
     },
     {
       id: 4,
       user: user,
-      title: "Rare Blood Type AB- Needed for Transfusion",
+      title: "Rare Medicine Needed for Skin Disease",
       status: "open",
-      category: "organs",
+      category: PostCategory.MEDICINES,
       content: "My daughter has a rare blood type AB- and needs regular transfusions due to her condition. We're always looking for donors who can help.",
       location: "Negombo",
       createdAt: "2024-01-05T16:45:00Z",
       urgency: "medium",
       engagement: { likes: 45, comments: 19, shares: 22, views: 150 },
-      contact: { phone: "+94777890123", email: "n.jayasinghe@email.com" }
+      contact: "phone: +94777890123, email: n.jayasinghe@email.com"
     }
   ];
 
@@ -71,7 +73,7 @@ export const recipientPosts = [
     {
       id: 1,
       title: "Urgent: Need LKR 1,000,000 for Emergency Surgery",
-      category: "funding",
+      category: PostCategory.FUNDRAISER,
       content: "Hello everyone, I'm scheduled for an emergency surgery and need LKR 1,000,000. The surgery is at City General Hospital. Please reach out if you can help or know someone who can.",
       createdAt: "2024-01-15T10:30:00Z",
       status: "active",
@@ -83,12 +85,16 @@ export const recipientPosts = [
       },
       urgency: "high",
       user: user,
-      contact: { phone: "+94777890123", email: "n.jayasinghe@email.com" }
+      contact: "phone: +94777890123, email: n.jayasinghe@email.com",
+      fundraiserDetails: {
+        goal: 1000000,
+        received: 250000,
+      }
     },
     {
       id: 2,
       title: "Looking for Kidney Donor - Living Donor Needed",
-      category: "organs",
+      category: PostCategory.ORGANS,
       content: "Hi, I'm a 34-year-old teacher with end-stage kidney disease. I'm looking for a living kidney donor. I have a great support system and am committed to following all medical protocols. Please message me if you'd like to learn more about the process.",
       createdAt: "2024-01-10T14:20:00Z",
       status: "active",
@@ -100,12 +106,12 @@ export const recipientPosts = [
       },
       urgency: "high",
       user: user,
-      contact: { phone: "+94777890123", email: "n.jayasinghe@email.com" }
+      contact: "phone: +94777890123, email: n.jayasinghe@email.com"
     },
     {
       id: 3,
       title: "Seeking Insulin Donations - Type 1 Diabetic",
-      category: "medicines",
+      category: PostCategory.MEDICINES,
       content: "I'm a college student with Type 1 diabetes struggling to afford insulin. If anyone has extra supplies or knows of assistance programs, I would be incredibly grateful for any help.",
       createdAt: "2024-01-08T09:15:00Z",
       status: "fulfilled",
@@ -117,12 +123,12 @@ export const recipientPosts = [
       },
       urgency: "medium",
       user: user,
-      contact: { phone: "+94777890123", email: "n.jayasinghe@email.com" }
+      contact: "phone: +94777890123, email: n.jayasinghe@email.com"
     },
     {
       id: 4,
       title: "Looking for Kidney Donor - Living Donor Needed",
-      category: "organs",
+      category: PostCategory.ORGANS,
       content: "My daughter has a rare blood type AB- and needs regular transfusions due to her condition. We're always looking for donors who can help. Located in downtown area.",
       createdAt: "2024-01-05T16:45:00Z",
       status: "active",
@@ -134,7 +140,7 @@ export const recipientPosts = [
       },
       urgency: "medium",
       user: user,
-      contact: { phone: "+94777890123", email: "n.jayasinghe@email.com" }
+      contact: "phone: +94777890123, email: n.jayasinghe@email.com"
     }
   ];
 

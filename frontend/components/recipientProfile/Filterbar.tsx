@@ -28,15 +28,15 @@ const Filterbar: React.FC<filterbarProps> = ({ posts, filterCategory, setFilterC
             Organs
         </button>
         <button
-            onClick={() => setFilterCategory("funding")}
+            onClick={() => setFilterCategory("fundraiser")}
             className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center ${
-            filterCategory === "funding"
+            filterCategory === "fundraiser"
                 ? "bg-blue-500 text-white shadow-md"
                 : "bg-white/80 text-blue-700 border border-blue-200 hover:bg-blue-50"
             }`}
         >
             <MdLocalHospital className="mr-1" />
-            Funding
+            Fundraiser
         </button>
         <button
             onClick={() => setFilterCategory("medicines")}
