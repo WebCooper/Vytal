@@ -1,9 +1,9 @@
 import React from 'react'
 import { motion } from "framer-motion";
 import { MdVerified } from 'react-icons/md';
-import { sidebarProps } from '@/components/types';
+import { SidebarProps } from '@/components/types';
 
-const Sidebar: React.FC<sidebarProps> = ({ user, activeTab, setActiveTab  }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab  }) => {
   return (
     <div>
         <div className="lg:col-span-1">

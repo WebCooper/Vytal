@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaHeart, FaComment, FaShare, FaEye, FaClock, FaTrash, FaUser } from "react-icons/fa";
 import React from 'react'
-import { Post, PostGridProps } from '../types';
+import { Post, PostCategory, PostGridProps } from '../types';
 import Link from 'next/link';
 import { formatDate, getCategoryColor, getCategoryIcon, getUrgencyColor, getStatusColor } from '../utils';
 
@@ -16,6 +16,10 @@ const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
       <div className="space-y-6">
         <AnimatePresence>
         {filteredPosts.map((post: Post, index: number) => {
+          console.log(
+            post.fundraiserDetails?.received,
+            post.fundraiserDetails?.goal,
+          );
             const CategoryIcon = getCategoryIcon(post.category);
             return (
               <Link key={post.id} href={`/post/${post.id}`} className='block'>
@@ -52,6 +56,23 @@ const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
                     </div>
 
                     <p className="text-gray-700 mb-4 leading-relaxed">{post.content}</p>
+
+                    {post.category === PostCategory.FUNDRAISER && (
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">Raised: LKR {post.fundraiserDetails?.received ?? 0}</span>
+                          <span className="text-gray-600">Goal: LKR {post.fundraiserDetails?.goal ?? 0}</span>
+                        </div>
+                        <div className="w-full h-3 bg-gray-200 rounded-full">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                            style={{ 
+                              width: `${Math.min((post.fundraiserDetails?.received ?? 0) / (post.fundraiserDetails?.goal ?? 1) * 100, 100)}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between pt-4 border-t border-emerald-100">
                     <div className="flex items-center space-x-1 text-sm text-gray-600">

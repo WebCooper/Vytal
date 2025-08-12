@@ -68,7 +68,13 @@ export const myPosts = [
     }
   ];
 
-    // Mock posts data
+export const fundraiserDetails = {
+  id: 1,
+  goal: 1000000,
+  received: 250000
+}
+
+// Mock posts data
 export const recipientPosts = [
     {
       id: 1,
@@ -86,10 +92,7 @@ export const recipientPosts = [
       urgency: "high",
       user: user,
       contact: "phone: +94777890123, email: n.jayasinghe@email.com",
-      fundraiserDetails: {
-        goal: 1000000,
-        received: 250000,
-      }
+      fundraiserDetails: fundraiserDetails
     },
     {
       id: 2,

@@ -16,7 +16,7 @@ export enum UserType {
     ADMIN = "admin"
 }
 
-export interface sidebarProps {
+export interface SidebarProps {
   user: User;
   activeTab: string;
   setActiveTab: React.Dispatch<React.SetStateAction<string>>;
@@ -38,7 +38,7 @@ export interface Post {
     };
     user: User;
     contact: string;
-    fundraiserDetails?: fundraiserDetails; // Optional, only for fundraiser posts
+    fundraiserDetails?: FundraiserDetails; // Optional, only for fundraiser posts
 }
 
 export enum PostCategory {
@@ -47,12 +47,12 @@ export enum PostCategory {
     MEDICINES = "medicines"
 }
 
-export interface fundraiserDetails {
+export interface FundraiserDetails {
     goal: number;
     received: number;
 }
 
-export interface filterbarProps {
+export interface FilterbarProps {
     filterCategory: string;
     setFilterCategory: React.Dispatch<React.SetStateAction<string>>;
     posts: Array<Post>;

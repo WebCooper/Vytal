@@ -1,8 +1,8 @@
-import { filterbarProps } from '@/components/types';
 import React from 'react'
+import { FilterbarProps } from '@/components/types';
 import { MdBloodtype, MdLocalHospital, MdMedication } from 'react-icons/md'
 
-const Filterbar: React.FC<filterbarProps> = ({ posts, filterCategory, setFilterCategory}) => {
+const Filterbar: React.FC<FilterbarProps> = ({ posts, filterCategory, setFilterCategory}) => {
   return (
     <div>
         <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-emerald-100">
