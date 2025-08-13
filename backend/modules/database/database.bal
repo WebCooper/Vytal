@@ -1,37 +1,99 @@
 import ballerinax/mysql;
+import ballerinax/mysql.driver as _; // Import MySQL driver
 import ballerina/sql;
 import ballerina/regex;
 import backend.types;
 import backend.storage;
+import ballerina/io;
 
 # Database Client Configuration - optional for development
-configurable types:DatabaseConfig? dbConfig = ();
+configurable types:DatabaseConfig dbConfig = {
+    user: "root",
+    password: "1010",
+    database: "vytal_db",
+    host: "localhost",
+    port: 3306
+};
+configurable boolean useSSL = false;
+configurable string sslMode = "PREFERRED";
+configurable decimal connectTimeout = 30;
 
 # MySQL client instance - with error handling
 isolated mysql:Client? dbClient = ();
 
 # Module initialization - try to connect to database
 function init() {
-    if dbConfig is () {
-        // No database configuration provided, will use in-memory storage
-        return;
+    types:DatabaseConfig config = dbConfig;
+    
+    io:println(string `=== MySQL Connection Test ===`);
+    io:println(string `Host: ${config.host}, Port: ${config.port}, Database: ${config.database}, User: ${config.user}`);
+    io:println(string `===========================`);
+    
+    // Set up MySQL options with connection timeout
+    mysql:Options mysqlOptions = {
+        connectTimeout: connectTimeout
+    };
+    
+    // Configure SSL if enabled
+    if useSSL {
+        mysql:SSLMode sslModeEnum = getSslMode(sslMode);
+        mysqlOptions.ssl = {
+            mode: sslModeEnum
+        };
     }
     
-    types:DatabaseConfig config = <types:DatabaseConfig>dbConfig;
+    // Configure connection pooling
+    sql:ConnectionPool connectionPool = {
+        maxOpenConnections: 15,
+        maxConnectionLifeTime: 1800,
+        minIdleConnections: 5
+    };
+    
+    io:println("Connecting to MySQL database at " + config.host + ":" + config.port.toString());
+    
     mysql:Client|error clientResult = new (
-        user = config.user,
+        host = config.host,
+        user = config.user, 
         password = config.password,
         database = config.database,
-        host = config.host,
-        port = config.port
+        port = config.port,
+        options = mysqlOptions,
+        connectionPool = connectionPool
     );
     
     if clientResult is mysql:Client {
         lock {
             dbClient = clientResult;
         }
+        io:println("Successfully connected to MySQL database");
+    } else {
+        io:println("Failed to connect to MySQL database: " + clientResult.message());
+        io:println("Will use in-memory fallback storage instead");
     }
-    // If connection fails, dbClient remains nil and we'll use fallback storage
+}
+
+# Helper function to convert string SSL mode to enum
+# + mode - SSL mode as string
+# + return - Corresponding mysql:SSLMode enum value
+isolated function getSslMode(string mode) returns mysql:SSLMode {
+    match mode {
+        "DISABLED" => {
+            return mysql:SSL_DISABLED;
+        }
+        "REQUIRED" => {
+            return mysql:SSL_REQUIRED;
+        }
+        "VERIFY_CA" => {
+            return mysql:SSL_VERIFY_CA;
+        }
+        "VERIFY_IDENTITY" => {
+            return mysql:SSL_VERIFY_IDENTITY;
+        }
+        _ => {
+            // Default to PREFERRED
+            return mysql:SSL_PREFERRED;
+        }
+    }
 }
 
 # Get database client with connection check
@@ -234,4 +296,18 @@ public isolated function convertJsonToCategories(string categoriesJson) returns 
     }
     
     return categories;
+}
+
+# Close the database client connection
+# Should be called when the application is shutting down
+# + return - Error if closing fails
+public isolated function closeDbConnection() returns error? {
+    lock {
+        if dbClient is mysql:Client {
+            mysql:Client tempClient = <mysql:Client>dbClient;
+            dbClient = ();
+            return tempClient.close();
+        }
+    }
+    return ();
 }

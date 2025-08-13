@@ -4,12 +4,25 @@ import ballerina/time;
 import backend.types;
 import backend.services as userService;
 import backend.token;
+import backend.database;
+import ballerina/io;
 
 // HTTP service with all authentication endpoints
-service /api/v1 on new http:Listener(9090) {
+service / on new http:Listener(9091) {
 
     // Health check endpoint
     resource function get health() returns json {
+        io:println("Health check endpoint called");
+        return {
+            "status": "healthy",
+            "timestamp": time:utcNow(),
+            "service": "Vytal Authentication API"
+        };
+    }
+
+    // API endpoints
+    resource function get api/v1/health() returns json {
+        io:println("API health endpoint called");
         return {
             "status": "healthy",
             "timestamp": time:utcNow(),
@@ -18,7 +31,7 @@ service /api/v1 on new http:Listener(9090) {
     }
 
     // Registration endpoint
-    isolated resource function post register(types:RegisterRequest request) returns http:Response|error {
+    resource function post api/v1/register(types:RegisterRequest request) returns http:Response|error {
         http:Response response = new;
         
         types:UserResponse|error result = userService:registerUser(request);
@@ -42,7 +55,7 @@ service /api/v1 on new http:Listener(9090) {
     }
 
     // Login endpoint
-    isolated resource function post login(types:LoginRequest request) returns http:Response|error {
+    resource function post api/v1/login(types:LoginRequest request) returns http:Response|error {
         http:Response response = new;
         
         types:LoginResponse|error result = userService:loginUser(request);
@@ -66,7 +79,7 @@ service /api/v1 on new http:Listener(9090) {
     }
 
     // Get profile endpoint
-    isolated resource function get profile(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+    resource function get api/v1/profile(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
         
         string|error email = token:validateToken(authorization);
@@ -100,7 +113,7 @@ service /api/v1 on new http:Listener(9090) {
     }
 
     // Update profile endpoint
-    isolated resource function put profile(@http:Header {name: "Authorization"} string? authorization, types:UserUpdate updatedUser) returns http:Response|error {
+    resource function put api/v1/profile(@http:Header {name: "Authorization"} string? authorization, types:UserUpdate updatedUser) returns http:Response|error {
         http:Response response = new;
         
         string|error email = token:validateToken(authorization);
@@ -148,7 +161,7 @@ service /api/v1 on new http:Listener(9090) {
     }
 
     // Logout endpoint
-    isolated resource function post logout(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+    resource function post api/v1/logout(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
         
         if authorization is () || !authorization.startsWith("Bearer ") {
@@ -179,4 +192,12 @@ service /api/v1 on new http:Listener(9090) {
         
         return response;
     }
+}
+
+// Function to handle shutdown
+function onShutdown() returns error? {
+    io:println("Shutting down gracefully...");
+    check database:closeDbConnection();
+    io:println("Database connections closed");
+    return;
 }
