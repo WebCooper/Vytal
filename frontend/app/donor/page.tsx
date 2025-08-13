@@ -11,6 +11,7 @@ import { sriLankaMapPath } from "@/components/community/sriLankaMapPath";
 import CampDetailsModal from "@/components/community/CampDetailsModal";
 import { BloodCamp } from "@/components/types";
 import DonationCardGenerator from "@/components/shared/MedicalCardGenerator";
+import GamificationDashboard from '@/components/gamification/GamificationDashboard';
 import {
     getCategoryIcon,
     getCategoryColor,
@@ -124,6 +125,15 @@ export default function DonorDashboard() {
                                         }`}
                                 >
                                     Messages
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab("rewards")}
+                                    className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === "rewards"
+                                        ? "bg-teal-500 text-white shadow-lg"
+                                        : "text-teal-700 hover:bg-teal-50"
+                                        }`}
+                                >
+                                    🏆 Rewards & Badges
                                 </button>
                             </nav>
                         </motion.div>
@@ -241,10 +251,7 @@ export default function DonorDashboard() {
                                                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getUrgencyColor(post.urgency)}`}>
                                                                     {post.urgency.toUpperCase()} PRIORITY
                                                                 </span>
-                                                                <div className="flex items-center space-x-1 text-sm text-gray-600">
-                                                                    <FaMapMarkerAlt className="text-emerald-400" />
-                                                                    <span>{post.location}</span>
-                                                                </div>
+                                                                
                                                             </div>
                                                         </div>
                                                     </div>
@@ -656,8 +663,6 @@ export default function DonorDashboard() {
                             </motion.div>
                         )}
 
-                       // Replace the bloodcamps tab section in your donor dashboard with this:
-
                         {activeTab === "bloodcamps" && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
@@ -996,6 +1001,15 @@ export default function DonorDashboard() {
                                     Messages
                                 </h2>
                                 <p className="text-gray-600 text-lg">Coming soon! Communicate directly with recipients.</p>
+                            </motion.div>
+                        )}
+                        {activeTab === "rewards" && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-6"
+                            >
+                                <GamificationDashboard user={donorUser} />
                             </motion.div>
                         )}
                     </div>
