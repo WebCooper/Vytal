@@ -39,6 +39,7 @@ export interface Post {
     user: User;
     contact: string;
     fundraiserDetails?: FundraiserDetails; // Optional, only for fundraiser posts
+    location?: string; // Optional, for posts that have a location
 }
 
 export enum PostCategory {
