@@ -1,8 +1,9 @@
 import backend.types;
-import backend.storage;
+import backend.database;
 import backend.auth;
 import backend.token;
 import backend.utils as validation;
+import backend.storage;
 
 // User service functions
 
@@ -13,16 +14,20 @@ public isolated function registerUser(types:RegisterRequest request) returns typ
         return validationResult;
     }
     
-    // Check if user already exists
-    if storage:userExists(request.email) {
+    // Check if user already exists in database
+    boolean|error userExists = database:userExistsByEmail(request.email);
+    if userExists is error {
+        return error("Database error: " + userExists.message());
+    }
+    if userExists {
         return error("User with this email already exists");
     }
     
     // Hash password
     string hashedPassword = auth:hashPassword(request.password);
     
-    // Create user
-    types:User newUser = {
+    // Create user for database insertion
+    types:UserCreate newUser = {
         name: request.name,
         phone_number: request.phone_number,
         email: request.email,
@@ -31,10 +36,20 @@ public isolated function registerUser(types:RegisterRequest request) returns typ
         categories: request.categories
     };
     
-    // Store user
-    storage:addUser(request.email, newUser);
+    // Insert user into database
+    var result = database:insertUser(newUser);
+    if result is error {
+        return error("Failed to register user: " + result.message());
+    }
     
-    return auth:userToUserResponse(newUser);
+    // Return user response
+    return {
+        name: newUser.name,
+        phone_number: newUser.phone_number,
+        email: newUser.email,
+        role: newUser.role,
+        categories: newUser.categories
+    };
 }
 
 public isolated function loginUser(types:LoginRequest request) returns types:LoginResponse|error {
@@ -44,16 +59,27 @@ public isolated function loginUser(types:LoginRequest request) returns types:Log
         return validationResult;
     }
     
-    // Check if user exists
-    types:User? user = storage:getUser(request.email);
-    if user is () {
+    // Get user from database
+    types:User?|error userResult = database:getUserByEmail(request.email);
+    if userResult is error {
+        return error("Database error: " + userResult.message());
+    }
+    if userResult is () {
         return error("Invalid email or password");
     }
+    
+    types:User user = <types:User>userResult;
     
     // Verify password
     string hashedPassword = auth:hashPassword(request.password);
     if user.password != hashedPassword {
         return error("Invalid email or password");
+    }
+    
+    // Convert categories from JSON string to array
+    types:Category[]|error categoriesResult = database:convertJsonToCategories(user.categories);
+    if categoriesResult is error {
+        return error("Error processing user data");
     }
     
     // Generate token
@@ -62,38 +88,81 @@ public isolated function loginUser(types:LoginRequest request) returns types:Log
     
     return {
         token: tokenValue,
-        user: auth:userToUserResponse(user)
+        user: {
+            name: user.name,
+            phone_number: user.phone_number,
+            email: user.email,
+            role: user.role,
+            categories: categoriesResult
+        }
     };
 }
 
 public isolated function getUserProfile(string email) returns types:UserResponse|error {
-    types:User? user = storage:getUser(email);
-    if user is () {
+    types:User?|error userResult = database:getUserByEmail(email);
+    if userResult is error {
+        return error("Database error: " + userResult.message());
+    }
+    if userResult is () {
         return error("User not found");
     }
     
-    return auth:userToUserResponse(user);
+    types:User user = <types:User>userResult;
+    
+    // Convert categories from JSON string to array
+    types:Category[]|error categoriesResult = database:convertJsonToCategories(user.categories);
+    if categoriesResult is error {
+        return error("Error processing user data");
+    }
+    
+    return {
+        name: user.name,
+        phone_number: user.phone_number,
+        email: user.email,
+        role: user.role,
+        categories: categoriesResult
+    };
 }
 
 public isolated function updateUserProfile(string email, types:User updatedUser) returns types:UserResponse|error {
-    types:User? existingUser = storage:getUser(email);
-    if existingUser is () {
+    // Get existing user from database
+    types:User?|error existingUserResult = database:getUserByEmail(email);
+    if existingUserResult is error {
+        return error("Database error: " + existingUserResult.message());
+    }
+    if existingUserResult is () {
         return error("User not found");
     }
     
-    // Update user (keep the same email and password hash)
-    types:User user = {
+    types:User existingUser = <types:User>existingUserResult;
+    
+    // Convert categories from JSON string to array
+    types:Category[]|error categoriesResult = database:convertJsonToCategories(updatedUser.categories);
+    if categoriesResult is error {
+        return error("Error processing user data");
+    }
+    
+    // Create update record
+    types:UserUpdate updateData = {
         name: updatedUser.name,
         phone_number: updatedUser.phone_number,
-        email: email, // Keep original email
-        password: existingUser.password, // Keep existing password hash
         role: updatedUser.role,
-        categories: updatedUser.categories
+        categories: categoriesResult
     };
     
-    storage:addUser(email, user);
+    // Update user in database
+    var result = database:updateUser(<int>existingUser.id, updateData);
+    if result is error {
+        return error("Failed to update user: " + result.message());
+    }
     
-    return auth:userToUserResponse(user);
+    return {
+        name: updatedUser.name,
+        phone_number: updatedUser.phone_number,
+        email: email,
+        role: updatedUser.role,
+        categories: categoriesResult
+    };
 }
 
 public isolated function logoutUser(string tokenValue) returns error? {
