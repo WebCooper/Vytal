@@ -56,6 +56,8 @@ export interface FilterbarProps {
     filterCategory: string;
     setFilterCategory: React.Dispatch<React.SetStateAction<string>>;
     posts: Array<Post>;
+    urgencyFilter: string;
+    setUrgencyFilter: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export interface PostGridProps {
@@ -108,6 +110,13 @@ export interface MapSectionProps {
     setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
 }
 
+export interface CampsSectionProps {
+    bloodCamps: Array<BloodCamp>;
+    setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
+    showBloodCampForm: boolean;
+    setShowBloodCampForm: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
 export interface CampsListProps {
     bloodCamps: Array<BloodCamp>;
     setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
@@ -118,6 +127,12 @@ export interface CampDetailsModalProps {
     selectedCamp: BloodCamp | null;
     setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
 }
+
+export interface RecipientPostGridProps {
+    posts: Array<Post>;
+    filteredRecipientPosts: Array<Post>;
+}
+
 export enum DonorPostStatus {
     AVAILABLE = "available",    // Ready to help
     COMMITTED = "committed",    // Committed to help someone specific

@@ -1,7 +1,7 @@
 import { Post, PostCategory, UserType } from "@/components/types";
 
   // Mock user data (donor)
-export const user = {
+export const recipientUser = {
     id: "1",
     email: "sarah@mail.com",
     name: "Sarah Chen",
@@ -12,11 +12,23 @@ export const user = {
     location: "Colombo",
   };
 
+  // Mock donor user
+export const donorUser = {
+    id: "2",
+    email: "john.smith@mail.com", 
+    name: "John Smith",
+    avatar: "JS",
+    verified: true,
+    joinedDate: "February 2024",
+    type: UserType.DONOR,
+    location: "Colombo",
+};
+
   // Mock recipient posts
 export const myPosts = [
     {
       id: 1,
-      user: user,
+      user: recipientUser,
       title: "Urgent: Need 1,000,000 LKR for Emergency Surgery",
       status: "open",
       category: PostCategory.FUNDRAISER,
@@ -33,7 +45,7 @@ export const myPosts = [
     },
     {
       id: 2,
-      user: user,
+      user: recipientUser,
       title: "Looking for Kidney Donor - Living Donor Needed",
       status: "open",
       category: PostCategory.ORGANS,
@@ -46,7 +58,7 @@ export const myPosts = [
     },
     {
       id: 3,
-      user: user,
+      user: recipientUser,
       title: "Seeking Insulin Donations - Type 1 Diabetic",
       status: "open",
       category: PostCategory.MEDICINES,
@@ -59,7 +71,7 @@ export const myPosts = [
     },
     {
       id: 4,
-      user: user,
+      user: recipientUser,
       title: "Rare Medicine Needed for Skin Disease",
       status: "open",
       category: PostCategory.MEDICINES,
@@ -94,7 +106,7 @@ export const recipientPosts = [
         shares: 12
       },
       urgency: "high",
-      user: user,
+      user: recipientUser,
       contact: "phone: +94777890123, email: n.jayasinghe@email.com",
       fundraiserDetails: fundraiserDetails
     },
@@ -112,7 +124,7 @@ export const recipientPosts = [
         shares: 28
       },
       urgency: "high",
-      user: user,
+      user: recipientUser,
       contact: "phone: +94777890123, email: n.jayasinghe@email.com"
     },
     {
@@ -129,7 +141,7 @@ export const recipientPosts = [
         shares: 15
       },
       urgency: "medium",
-      user: user,
+      user: recipientUser,
       contact: "phone: +94777890123, email: n.jayasinghe@email.com"
     },
     {
@@ -146,7 +158,7 @@ export const recipientPosts = [
         shares: 22
       },
       urgency: "medium",
-      user: user,
+      user: recipientUser,
       contact: "phone: +94777890123, email: n.jayasinghe@email.com"
     }
   ];
@@ -220,19 +232,7 @@ export const bloodCamps = [
     }
 ];
 
-// Mock donor user
-export const donorUser = {
-    id: "2",
-    email: "john.smith@mail.com", 
-    name: "John Smith",
-    avatar: "JS",
-    verified: true,
-    joinedDate: "February 2024",
-    type: UserType.DONOR,
-    location: "Colombo",
-};
-
-// Mock donor posts - these are OFFERS to help, not requests
+// Mock donor posts
 export const myDonorPosts = [
     {
       id: 5,
@@ -332,8 +332,6 @@ export interface DonorPost extends Omit<Post, 'fundraiserDetails'> {
         availability?: string;
     };
 }
-
-// Add this to your mockData.ts file
 
 // OTHER DONORS' POSTS (offers from other donors - not the current user)
 export const otherDonorPosts = [

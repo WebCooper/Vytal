@@ -1,6 +1,7 @@
 import React from 'react'
 import { motion } from "framer-motion";
 import { FaPhone, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
+import Link from 'next/link';
 
 const Contact = () => {
   return (
@@ -38,9 +39,11 @@ const Contact = () => {
               </div>
             </div>
 
-            <button className="px-12 py-4 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200">
-              Join Vytal Today
-            </button>
+            <Link href="/community" passHref>
+              <button className="px-12 py-4 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200">
+                Join Vytal Today
+              </button>
+            </Link>
           </motion.div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 import React from 'react'
-import SriLankaMap from './SriLankaMap'
 import { MapSectionProps } from '../types'
+import SriLankaMap from '@/components/bloodCamps/SriLankaMap'
 
 const MapSection: React.FC<MapSectionProps> = ({bloodCamps, setSelectedCamp}) => {
   return (

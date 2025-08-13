@@ -2,7 +2,7 @@ import Link from 'next/link'
 import React from 'react'
 import { FaBell } from 'react-icons/fa'
 import { MdVerified } from 'react-icons/md';
-import { ProfileHeaderProps } from '../types';
+import { ProfileHeaderProps, UserType } from '../types';
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({user}) => {
 
@@ -17,8 +17,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({user}) => {
                   Vytal
                 </h1>
               </Link>
-              {/* <span className="text-gray-400">|</span>
-              <span className="text-emerald-700 font-semibold">Dashboard</span> */}
+              <span className="text-gray-400">|</span>
+                <span className="text-emerald-700 font-semibold">
+                {user.type === UserType.RECIPIENT ? 'Recieve' : 'Donate'}
+                </span>
             </div>
             
             <div className="flex items-center space-x-6">

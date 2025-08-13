@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { sriLankaMapPath } from "./sriLankaMapPath";
 import { SriLankaMapProps } from "../types";
+import { sriLankaMapPath } from "./sriLankaMapPath";
 
 function projectSriLanka(lat: number, lng: number): [number, number] {
   const minLat = 5.7;

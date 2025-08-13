@@ -5,20 +5,21 @@ import { FaPlus } from "react-icons/fa";
 import ProfileHeader from "@/components/shared/ProfileHeader";
 import Sidebar from "@/components/recipientProfile/Sidebar";
 import Filterbar from "@/components/recipientProfile/Filterbar";
-import PostsGrid from "@/components/recipientProfile/PostsGrid";
-import { myPosts, user } from "../mockData"; // get myPosts from API
+import PostsGrid from "@/components/shared/PostsGrid";
+import { myPosts, recipientUser } from "../mockData"; // get myPosts from API
 
 export default function RecipientDashboard() {
   const [activeTab, setActiveTab] = useState("posts");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [urgencyFilter, setUrgencyFilter] = useState("all");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
-      <ProfileHeader user={user} />
+      <ProfileHeader user={recipientUser} />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-4 gap-8">
-          <Sidebar user={user} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Sidebar user={recipientUser} activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Main Content */}
           <div className="lg:col-span-3">
@@ -47,6 +48,8 @@ export default function RecipientDashboard() {
                     posts={myPosts} 
                     filterCategory={filterCategory} 
                     setFilterCategory={setFilterCategory}
+                    urgencyFilter={urgencyFilter}
+                    setUrgencyFilter={setUrgencyFilter}
                   />
                 </div>
 
@@ -55,19 +58,6 @@ export default function RecipientDashboard() {
                   filterCategory={filterCategory}
                 />
 
-              </motion.div>
-            )}
-
-            {activeTab === "analytics" && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
-              >
-                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-6">
-                  Analytics Dashboard
-                </h2>
-                <p className="text-gray-600 text-lg">Coming soon! Track your post performance and engagement metrics.</p>
               </motion.div>
             )}
 
