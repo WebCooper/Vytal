@@ -149,6 +149,20 @@ curl -X GET http://localhost:8080/api/v1/auth/profile \
 6. **Environment Configuration**: Use environment variables for secrets
 7. **API Documentation**: Generate OpenAPI/Swagger documentation
 
+## Environment Configuration
+
+Copy `.env.example` to `.env` and configure:
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=vytal_db
+JWT_SECRET=your_jwt_secret
+SERVER_PORT=9090
+```
+
 ## Testing Status
 
 ✅ All endpoints tested and working:
