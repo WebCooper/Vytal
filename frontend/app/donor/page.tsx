@@ -10,6 +10,7 @@ import CreateBloodCamp from "@/components/donorProfile/CreateBloodCamp";
 import { sriLankaMapPath } from "@/components/community/sriLankaMapPath";
 import CampDetailsModal from "@/components/community/CampDetailsModal";
 import { BloodCamp } from "@/components/types";
+import DonationCardGenerator from "@/components/shared/MedicalCardGenerator";
 import {
     getCategoryIcon,
     getCategoryColor,
@@ -44,7 +45,7 @@ export default function DonorDashboard() {
 
     const upcomingCamps = bloodCamps.filter(camp => camp.status === "upcoming");
     const activeCamps = bloodCamps.filter(camp => camp.status === "active");
-
+    const [showCardGenerator, setShowCardGenerator] = useState(false);
     return (
         <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
             <ProfileHeader user={donorUser} />
@@ -958,10 +959,30 @@ export default function DonorDashboard() {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
                             >
-                                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-6">
-                                    My Donations
-                                </h2>
-                                <p className="text-gray-600 text-lg">Coming soon! Track your donation history and impact.</p>
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div>
+                                        <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
+                                            My Donor Posts
+                                        </h2>
+                                        <p className="text-gray-600">Manage your donation offers and track responses</p>
+                                    </div>
+                                    <div className="flex space-x-3">
+                                        <button
+                                            onClick={() => setShowCardGenerator(true)}
+                                            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
+                                        >
+                                            <FaShare className="mr-2" />
+                                            Create Shareable Card
+                                        </button>
+                                        <button
+                                            onClick={() => setShowDonorPostForm(true)}
+                                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
+                                        >
+                                            <FaPlus className="mr-2" />
+                                            Create Donor Post
+                                        </button>
+                                    </div>
+                                </div>
                             </motion.div>
                         )}
 
@@ -1004,6 +1025,12 @@ export default function DonorDashboard() {
             <CampDetailsModal
                 selectedCamp={selectedCamp}
                 setSelectedCamp={setSelectedCamp}
+            />
+            <DonationCardGenerator
+                isOpen={showCardGenerator}
+                onClose={() => setShowCardGenerator(false)}
+                userType="donor"
+                userData={donorUser}
             />
         </div>
     );
