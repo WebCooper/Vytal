@@ -1,16 +1,16 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FaDownload, FaShare, FaTimes, FaHeartbeat, FaMapMarkerAlt, FaPhone, FaCopy, FaWhatsapp, FaQrcode } from 'react-icons/fa';
-import { MdBloodtype, MdLocalHospital, MdMedication, MdVerified, MdEmergency } from 'react-icons/md';
+import { MdBloodtype, MdLocalHospital, MdEmergency } from 'react-icons/md';
 
 interface MedicalCardGeneratorProps {
   isOpen: boolean;
   onClose: () => void;
   userType: 'donor' | 'recipient';
-  userData: any;
+  userData: unknown;
 }
 
-const MedicalCardGenerator: React.FC<MedicalCardGeneratorProps> = ({ isOpen, onClose, userType, userData }) => {
+const MedicalCardGenerator: React.FC<MedicalCardGeneratorProps> = ({ isOpen, onClose }) => {
   const [cardData, setCardData] = useState({
     patientName: 'Rangana Viranin',
     bloodType: 'B+',
@@ -345,38 +345,7 @@ Generated via Vytal - Community Donation Platform`
     };
   };
 
-  const shareCard = async () => {
-    const shareContent = generateShareContent();
-    const cardBlob = await generateCardBlob();
-    
-    if (navigator.share && cardBlob) {
-      try {
-        const file = new File([cardBlob], `medical-card-${cardData.patientName.replace(/\s+/g, '-')}.png`, { 
-          type: 'image/png' 
-        });
-        
-        await navigator.share({
-          title: shareContent.title,
-          text: shareContent.text,
-          files: [file]
-        });
-        return;
-      } catch (error: any) {
-        console.log('Native share with file failed, trying text only:', error);
-        // Fallback to text-only sharing
-        try {
-          await navigator.share(shareContent);
-          return;
-        } catch (textError: any) {
-          if (textError.name !== 'AbortError') {
-            setShowShareMenu(true);
-          }
-        }
-      }
-    } else {
-      setShowShareMenu(true);
-    }
-  };
+  
 
   const copyToClipboard = async () => {
     const shareContent = generateShareContent();
@@ -385,7 +354,7 @@ Generated via Vytal - Community Donation Platform`
       alert('Medical card details copied to clipboard!');
       setShowShareMenu(false);
     } catch (error) {
-      alert('Please copy the details manually');
+      alert(`'Please copy the details manually - ERROR: '${error}`);
       setShowShareMenu(false);
     }
   };
@@ -413,7 +382,7 @@ Generated via Vytal - Community Donation Platform`
         alert(`✅ READY FOR WHATSAPP!\n\n📥 Medical card image downloaded\n📋 Text copied to your clipboard\n\nNow:\n1. Open WhatsApp\n2. Select a chat or group\n3. Paste the text (Ctrl/Cmd+V)\n4. Click the attachment button (📎)\n5. Select the downloaded image\n6. Send both together!\n\nImage name: medical-card-${cardData.patientName.replace(/\s+/g, '-')}.png`);
         
       } catch (error) {
-        alert(`✅ Image downloaded!\n\nImage saved as: medical-card-${cardData.patientName.replace(/\s+/g, '-')}.png\n\nFor WhatsApp:\n1. Copy the text from the form\n2. Open WhatsApp\n3. Paste text and attach the downloaded image`);
+        alert(`✅ Image downloaded!\n\nImage saved as: medical-card-${cardData.patientName.replace(/\s+/g, '-')}.png\n\nFor WhatsApp:\n1. Copy the text from the form\n2. Open WhatsApp\n3. Paste text and attach the downloaded image ERROR : ${error}`);
       }
     } else {
       // Fallback to text only
@@ -477,7 +446,7 @@ Generated via Vytal - Community Donation Platform`
         document.body.appendChild(modal);
         
       } catch (error) {
-        alert('📥 Medical card image downloaded!\n\nCheck your Downloads folder for the image file.\nThen manually copy the text and share both on WhatsApp.');
+        alert(`📥 Medical card image downloaded!\n\nCheck your Downloads folder for the image file.\nThen manually copy the text and share both on WhatsApp. ERROR : ${error}`);
       }
     }
     setShowShareMenu(false);
@@ -496,14 +465,14 @@ Generated via Vytal - Community Donation Platform`
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden max-h-[95vh]"
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden max-h-[95vh] flex flex-col"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-teal-600 to-teal-800 p-6 text-white">
+          <div className="bg-gradient-to-r from-teal-600 to-teal-800 p-4 text-white flex-shrink-0">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold">Medical Donation Card Generator</h2>
-                <p className="text-teal-100">Create professional medical donation request cards</p>
+                <h2 className="text-xl font-bold">Medical Donation Card Generator</h2>
+                <p className="text-teal-100 text-sm">Create professional medical donation request cards</p>
               </div>
               <button
                 onClick={onClose}
@@ -514,31 +483,31 @@ Generated via Vytal - Community Donation Platform`
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row">
+          <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
             {/* Form Section */}
-            <div className="lg:w-2/5 p-6 space-y-4 overflow-y-auto max-h-[70vh]">
-              <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Patient & Contact Details</h3>
+            <div className="lg:w-2/5 p-4 overflow-y-auto border-r border-gray-200">
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Patient & Contact Details</h3>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Patient Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name *</label>
                   <input
                     type="text"
                     value={cardData.patientName}
                     onChange={(e) => setCardData({...cardData, patientName: e.target.value})}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     placeholder="e.g., Rangana Virani"
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Blood Type *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Blood Type *</label>
                     <div className="relative">
                       <select
                         value={cardData.bloodType}
                         onChange={(e) => setCardData({...cardData, bloodType: e.target.value})}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none"
                       >
                         <option value="A+">A+</option>
                         <option value="A-">A-</option>
@@ -550,122 +519,122 @@ Generated via Vytal - Community Donation Platform`
                         <option value="AB-">AB-</option>
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                        <MdBloodtype className="text-xl text-red-500" />
+                        <MdBloodtype className="text-lg text-red-500" />
                       </div>
                     </div>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Units Needed</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Units Needed</label>
                     <input
                       type="text"
                       value={cardData.unitsNeeded}
                       onChange={(e) => setCardData({...cardData, unitsNeeded: e.target.value})}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                       placeholder="e.g., 2"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Medical Condition *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Medical Condition *</label>
                   <textarea
                     value={cardData.condition}
                     onChange={(e) => setCardData({...cardData, condition: e.target.value})}
                     rows={2}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
                     placeholder="e.g., Surgery requiring blood transfusion"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hospital *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hospital *</label>
                   <div className="relative">
                     <input
                       type="text"
                       value={cardData.hospital}
                       onChange={(e) => setCardData({...cardData, hospital: e.target.value})}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pl-10"
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pl-8"
                       placeholder="e.g., Kalutara Base Hospital"
                     />
-                    <MdLocalHospital className="absolute left-3 top-3 text-gray-500 text-xl" />
+                    <MdLocalHospital className="absolute left-2 top-2.5 text-gray-500 text-lg" />
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                     <div className="relative">
                       <input
                         type="text"
                         value={cardData.location}
                         onChange={(e) => setCardData({...cardData, location: e.target.value})}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pl-10"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pl-8"
                         placeholder="e.g., Kalutara"
                       />
-                      <FaMapMarkerAlt className="absolute left-3 top-3 text-gray-500" />
+                      <FaMapMarkerAlt className="absolute left-2 top-2.5 text-gray-500 text-sm" />
                     </div>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Required Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Required Date</label>
                     <input
                       type="text"
                       value={cardData.requiredDate}
                       onChange={(e) => setCardData({...cardData, requiredDate: e.target.value})}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                       placeholder="e.g., ASAP - Today"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Contact Person *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person *</label>
                   <input
                     type="text"
                     value={cardData.contactPerson}
                     onChange={(e) => setCardData({...cardData, contactPerson: e.target.value})}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     placeholder="e.g., Sunil Wijeratne"
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Primary Phone *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Primary Phone *</label>
                     <div className="relative">
                       <input
                         type="tel"
                         value={cardData.primaryPhone}
                         onChange={(e) => setCardData({...cardData, primaryPhone: e.target.value})}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pl-10"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pl-8"
                         placeholder="094-869-624"
                       />
-                      <FaPhone className="absolute left-3 top-3 text-gray-500" />
+                      <FaPhone className="absolute left-2 top-2.5 text-gray-500 text-sm" />
                     </div>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Secondary Phone</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Phone</label>
                     <div className="relative">
                       <input
                         type="tel"
                         value={cardData.secondaryPhone}
                         onChange={(e) => setCardData({...cardData, secondaryPhone: e.target.value})}
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pl-10"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pl-8"
                         placeholder="078-471-7407"
                       />
-                      <FaPhone className="absolute left-3 top-3 text-gray-500" />
+                      <FaPhone className="absolute left-2 top-2.5 text-gray-500 text-sm" />
                     </div>
                   </div>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Relationship</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Relationship</label>
                   <select
                     value={cardData.relationship}
                     onChange={(e) => setCardData({...cardData, relationship: e.target.value})}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   >
                     <option value="Family Member">Family Member</option>
                     <option value="Husband">Husband</option>
@@ -683,169 +652,169 @@ Generated via Vytal - Community Donation Platform`
             </div>
 
             {/* Preview Section */}
-            <div className="lg:w-3/5 p-6 bg-gradient-to-br from-teal-50 to-gray-100 border-l border-gray-200">
-              <div className="flex justify-between items-center mb-4">
+            <div className="lg:w-3/5 p-4 bg-gradient-to-br from-teal-50 to-gray-50 flex flex-col">
+              <div className="flex justify-between items-center mb-3">
                 <h3 className="text-lg font-bold text-gray-800">Professional Medical Card</h3>
                 <div className="text-xs text-gray-500">
                   High-Quality PNG Download
                 </div>
               </div>
               
-              <div className="flex justify-center mb-6">
-                <div 
-                  ref={cardRef}
-                  className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden border-8 border-white transform rotate-1"
-                >
-                  {/* Card Header */}
-                  <div className="bg-gradient-to-r from-teal-600 to-teal-700 p-4 relative">
-                    <div className="absolute top-4 right-4 bg-white/20 p-2 rounded-full">
-                      <MdEmergency className="text-white text-xl" />
-                    </div>
-                    <div className="flex items-center">
-                      <div className="bg-white p-2 rounded-lg mr-3">
-                        <MdLocalHospital className="text-teal-600 text-2xl" />
+              <div className="flex-1 flex flex-col justify-center items-center">
+                <div className="w-full max-w-sm mx-auto mb-4">
+                  <div 
+                    ref={cardRef}
+                    className="bg-white rounded-xl shadow-xl overflow-hidden border-4 border-white transform hover:scale-105 transition-transform duration-300"
+                    style={{ aspectRatio: '4/5' }}
+                  >
+                    {/* Card Header */}
+                    <div className="bg-gradient-to-r from-teal-600 to-teal-700 p-3 relative">
+                      <div className="absolute top-3 right-3 bg-white/20 p-1.5 rounded-full">
+                        <MdEmergency className="text-white text-lg" />
                       </div>
-                      <div>
-                        <h3 className="text-white font-bold text-lg">Medical Donation Request</h3>
-                        <p className="text-teal-100 text-sm">Urgent Blood Donation Needed</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Card Body */}
-                  <div className="p-5 relative">
-                    {/* Watermark */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-5">
-                      <div className="grid grid-cols-3 gap-8">
-                        {[...Array(9)].map((_, i) => (
-                          <MdBloodtype key={i} className="text-5xl text-red-500" />
-                        ))}
+                      <div className="flex items-center">
+                        <div className="bg-white p-1.5 rounded-lg mr-2">
+                          <MdLocalHospital className="text-teal-600 text-xl" />
+                        </div>
+                        <div>
+                          <h3 className="text-white font-bold text-sm">Medical Donation Request</h3>
+                          <p className="text-teal-100 text-xs">Urgent Blood Donation Needed</p>
+                        </div>
                       </div>
                     </div>
                     
-                    {/* Patient Info */}
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h2 className="text-2xl font-bold text-gray-800">{cardData.patientName}</h2>
-                          <p className="text-gray-600">{cardData.condition}</p>
-                        </div>
-                        
-                        {/* Blood Type Badge */}
-                        <div className="bg-red-500 text-white rounded-full w-16 h-16 flex flex-col items-center justify-center">
-                          <span className="text-xs">BLOOD</span>
-                          <span className="text-xl font-bold">{cardData.bloodType}</span>
-                        </div>
+                    {/* Card Body */}
+                    <div className="p-3 relative">
+                      {/* Subtle watermark */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                        <MdBloodtype className="text-6xl text-red-500" />
                       </div>
                       
-                      <div className="mt-4 grid grid-cols-2 gap-4">
-                        <div className="flex items-start">
-                          <MdLocalHospital className="text-teal-600 mt-1 mr-2" />
-                          <div>
-                            <p className="text-sm text-gray-500">Hospital</p>
-                            <p className="font-medium">{cardData.hospital}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start">
-                          <FaMapMarkerAlt className="text-teal-600 mt-1 mr-2" />
-                          <div>
-                            <p className="text-sm text-gray-500">Location</p>
-                            <p className="font-medium">{cardData.location}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start">
-                          <FaHeartbeat className="text-red-500 mt-1 mr-2" />
-                          <div>
-                            <p className="text-sm text-gray-500">Units Needed</p>
-                            <p className="font-medium">{cardData.unitsNeeded} units</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start">
-                          <MdEmergency className="text-red-500 mt-1 mr-2" />
-                          <div>
-                            <p className="text-sm text-gray-500">Required By</p>
-                            <p className="font-medium text-red-600">{cardData.requiredDate}</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Contact Section */}
-                      <div className="mt-6 p-4 bg-teal-50 rounded-lg border border-teal-100">
-                        <h4 className="font-bold text-teal-700 mb-2 flex items-center">
-                          <FaPhone className="mr-2" />
-                          Contact Information
-                        </h4>
-                        
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <p className="text-sm text-gray-600">Contact Person</p>
-                            <p className="font-medium">{cardData.contactPerson}</p>
-                            <p className="text-xs text-gray-500">({cardData.relationship})</p>
+                      {/* Patient Info */}
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1 pr-2">
+                            <h2 className="text-lg font-bold text-gray-800 leading-tight">{cardData.patientName}</h2>
+                            <p className="text-gray-600 text-xs mt-1">{cardData.condition}</p>
                           </div>
                           
-                          <div>
-                            <p className="text-sm text-gray-600">Primary Phone</p>
-                            <p className="font-medium">{cardData.primaryPhone}</p>
+                          {/* Blood Type Badge */}
+                          <div className="bg-red-500 text-white rounded-full w-12 h-12 flex flex-col items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-semibold">BLOOD</span>
+                            <span className="text-sm font-bold">{cardData.bloodType}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                          <div className="flex items-start">
+                            <MdLocalHospital className="text-teal-600 mt-0.5 mr-1 flex-shrink-0" />
+                            <div>
+                              <p className="text-gray-500 font-medium">Hospital</p>
+                              <p className="font-semibold text-gray-800 leading-tight">{cardData.hospital}</p>
+                            </div>
                           </div>
                           
-                          <div>
-                            <p className="text-sm text-gray-600">Secondary Phone</p>
-                            <p className="font-medium">{cardData.secondaryPhone}</p>
+                          <div className="flex items-start">
+                            <FaMapMarkerAlt className="text-teal-600 mt-0.5 mr-1 flex-shrink-0" />
+                            <div>
+                              <p className="text-gray-500 font-medium">Location</p>
+                              <p className="font-semibold text-gray-800 leading-tight">{cardData.location}</p>
+                            </div>
                           </div>
                           
-                          <div className="flex items-end justify-end">
-                            <div className="bg-white p-2 rounded border">
-                              <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16 flex items-center justify-center">
-                                <FaQrcode className="text-gray-400 text-2xl" />
+                          <div className="flex items-start">
+                            <FaHeartbeat className="text-red-500 mt-0.5 mr-1 flex-shrink-0" />
+                            <div>
+                              <p className="text-gray-500 font-medium">Units Needed</p>
+                              <p className="font-semibold text-gray-800">{cardData.unitsNeeded} units</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start">
+                            <MdEmergency className="text-red-500 mt-0.5 mr-1 flex-shrink-0" />
+                            <div>
+                              <p className="text-gray-500 font-medium">Required By</p>
+                              <p className="font-semibold text-red-600">{cardData.requiredDate}</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Contact Section */}
+                        <div className="p-2.5 bg-teal-50 rounded-lg border border-teal-100">
+                          <h4 className="font-bold text-teal-700 mb-2 flex items-center text-sm">
+                            <FaPhone className="mr-1.5 text-xs" />
+                            Contact Information
+                          </h4>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <p className="text-gray-600 font-medium">Contact Person</p>
+                              <p className="font-semibold text-gray-800 leading-tight">{cardData.contactPerson}</p>
+                              <p className="text-gray-500 text-xs">({cardData.relationship})</p>
+                            </div>
+                            
+                            <div>
+                              <p className="text-gray-600 font-medium">Primary Phone</p>
+                              <p className="font-semibold text-gray-800">{cardData.primaryPhone}</p>
+                            </div>
+                            
+                            <div>
+                              <p className="text-gray-600 font-medium">Secondary Phone</p>
+                              <p className="font-semibold text-gray-800">{cardData.secondaryPhone}</p>
+                            </div>
+                            
+                            <div className="flex items-end justify-end">
+                              <div className="bg-white p-1.5 rounded border">
+                                <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded w-10 h-10 flex items-center justify-center">
+                                  <FaQrcode className="text-gray-400 text-lg" />
+                                </div>
+                                <p className="text-xs text-gray-500 mt-0.5 text-center">Scan</p>
                               </div>
-                              <p className="text-xs text-gray-500 mt-1">Scan for contact</p>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Card Footer */}
-                  <div className="bg-gray-50 p-3 border-t border-gray-200 flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="bg-teal-600 text-white rounded w-8 h-8 flex items-center justify-center mr-2">
-                        V
+                    
+                    {/* Card Footer */}
+                    <div className="bg-gray-50 p-2 border-t border-gray-200 flex justify-between items-center text-xs">
+                      <div className="flex items-center">
+                        <div className="bg-teal-600 text-white rounded w-6 h-6 flex items-center justify-center mr-1.5 font-bold">
+                          V
+                        </div>
+                        <p className="text-gray-600 font-medium">Powered by Vytal</p>
                       </div>
-                      <p className="text-sm text-gray-600">Powered by Vytal</p>
+                      <p className="text-gray-500">ID: MED-{Math.floor(Math.random() * 10000)}</p>
                     </div>
-                    <p className="text-xs text-gray-500">ID: MED-{Math.floor(Math.random() * 10000)}</p>
                   </div>
                 </div>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex space-x-3">
-                <button
-                  onClick={generateMedicalCard}
-                  disabled={isGenerating || !cardData.patientName || !cardData.primaryPhone}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <FaDownload className="mr-2" />
-                  {isGenerating ? 'Generating PNG...' : 'Download Medical Card'}
-                </button>
-                <button
-                  onClick={() => setShowShareMenu(true)}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center"
-                >
-                  <FaShare className="mr-2" />
-                  Share Details
-                </button>
-              </div>
-              
-              {/* Instructions */}
-              <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <p className="text-sm text-emerald-800">
-                  <strong>✨ Perfect Match:</strong> The downloaded PNG will look exactly like the preview above - professional, clean, and ready for sharing!
-                </p>
+                
+                {/* Action Buttons */}
+                <div className="w-full max-w-sm mx-auto space-y-2">
+                  <button
+                    onClick={generateMedicalCard}
+                    disabled={isGenerating || !cardData.patientName || !cardData.primaryPhone}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    <FaDownload className="mr-2" />
+                    {isGenerating ? 'Generating PNG...' : 'Download Medical Card'}
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowShareMenu(true)}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center"
+                  >
+                    <FaShare className="mr-2" />
+                    Share Details
+                  </button>
+                </div>
+                
+                {/* Instructions */}
+                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg max-w-sm mx-auto">
+                  <p className="text-sm text-emerald-800 text-center">
+                    <strong>✨ Perfect Match:</strong> The downloaded PNG will look exactly like the preview above - professional, clean, and ready for sharing!
+                  </p>
+                </div>
               </div>
             </div>
           </div>
