@@ -10,7 +10,7 @@ import CreateBloodCamp from "@/components/donorProfile/CreateBloodCamp";
 import { sriLankaMapPath } from "@/components/community/sriLankaMapPath";
 import CampDetailsModal from "@/components/community/CampDetailsModal";
 import { BloodCamp } from "@/components/types";
-import DonationCardGenerator from "@/components/shared/MedicalCardGenerator";
+import DonationCardGenerator from "@/components/shared/DonorCardGenerator";
 import GamificationDashboard from '@/components/gamification/GamificationDashboard';
 import {
     getCategoryIcon,
