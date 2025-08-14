@@ -1,16 +1,53 @@
 "use client";
 import Link from "next/link";
 import React, { useState } from "react";
-import { FaUser, FaLock, FaGoogle, FaFacebookF, FaLinkedinIn, FaPhone } from "react-icons/fa";
+import { FaUser, FaLock, FaGoogle, FaFacebookF, FaLinkedinIn, FaPhone, FaEnvelope } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
 
 export default function SignUp() {
-  const [role, setRole] = useState("");
-  const [category, setCategory] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    password: "",
+    role: "",
+    category: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
   const pathname = usePathname();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setError(""); // Clear error when user types
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await register(formData);
+      if (response.success) {
+        router.push('/dashboard');
+      } else {
+        setError(response.message || 'Registration failed');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div>
       <Header />

@@ -1,0 +1,10 @@
+# Database Configuration for Vytal Backend
+# Copy this file to Config.toml and update with your actual database credentials
+
+[vytal_backend]
+DB_HOST = "localhost"
+DB_PORT = 3306
+DB_NAME = "vytal_db"
+DB_USER = "root"
+DB_PASSWORD = ""
+JWT_SECRET = "your-super-secret-jwt-key-change-in-production-environment"
