@@ -6,3 +6,33 @@ distribution = "2201.12.7"
 
 [build-options]
 observabilityIncluded = true
+
+[[dependency]]
+org = "ballerina"
+name = "sql"
+version = "1.13.0"
+
+[[dependency]]
+org = "ballerinax"
+name = "mysql"
+version = "1.13.0"
+
+[[dependency]]
+org = "ballerinax"
+name = "mysql.driver"
+version = "1.6.0"
+
+[[dependency]]
+org = "ballerina"
+name = "crypto"
+version = "2.7.0"
+
+[[dependency]]
+org = "ballerina"
+name = "jwt"
+version = "2.13.0"
+
+[[dependency]]
+org = "ballerina"
+name = "uuid"
+version = "1.9.0"

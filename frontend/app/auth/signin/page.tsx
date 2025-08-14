@@ -1,12 +1,45 @@
 "use client";
 import Link from "next/link";
-import React from "react";
+import React, { useState } from "react";
 import { FaUser, FaLock, FaGoogle, FaFacebookF, FaLinkedinIn } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 
 export default function SignIn() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signIn, isLoading } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const response = await signIn(formData.email, formData.password);
+      
+      if (response.success) {
+        router.push("/dashboard"); // Redirect to dashboard after successful login
+      } else {
+        setError(response.message || "Sign in failed");
+      }
+    } catch {
+      setError("An unexpected error occurred");
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
   return (
     <div>      
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-white to-emerald-700 px-2" style={{ perspective: 1200 }}>
@@ -61,4 +94,4 @@ export default function SignIn() {
       </div>
     </div>
   );
-} 
+}
