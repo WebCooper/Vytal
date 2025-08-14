@@ -191,4 +191,3 @@ function onShutdown() returns error? {
     io:println("Database connections closed");
     return;
 }
-//hi
