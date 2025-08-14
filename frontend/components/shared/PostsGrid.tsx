@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaHeart, FaComment, FaShare, FaEye, FaClock, FaTrash, FaUser } from "react-icons/fa";
 import React from 'react'
-import { Post, PostCategory, PostGridProps } from '../types';
+import { Post, Category, PostGridProps } from '../types';
 import Link from 'next/link';
 import { formatDate, getCategoryColor, getCategoryIcon, getUrgencyColor, getStatusColor } from '../utils';
 import FundraiserProgressbar from './FundraiserProgressbar';
@@ -70,7 +70,7 @@ const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
 
                   <p className="text-gray-700 mb-4 leading-relaxed">{post.content}</p>
 
-                  {post.category === PostCategory.FUNDRAISER && (
+                  {post.category === Category.FUNDRAISER && (
                     <FundraiserProgressbar {...post} />
                   )}
 

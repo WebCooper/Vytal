@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { FaPlus, FaHeart, FaShare } from "react-icons/fa";
 import ProfileHeader from "@/components/shared/ProfileHeader";
 import { bloodCamps, donorUser, myDonorPosts, recipientPosts } from "../mockData";
-import CreateDonorPost from "@/components/donorProfile/CreateDonorPost";
+import CreateDonorPost from "@/components/donorProfile/donorPost/CreateDonorPost";
 import CampDetailsModal from "@/components/bloodCamps/CampDetailsModal";
 import { BloodCamp } from "@/components/types";
 import Sidebar from "@/components/donorProfile/Sidebar";
@@ -12,7 +12,8 @@ import Filterbar from "@/components/shared/Filterbar";
 import PostsGrid from "@/components/shared/PostsGrid";
 import MapSection from "@/components/bloodCamps/MapSection";
 import CampsSection from "@/components/bloodCamps/CampsSection";
-import GamificationDashboard from "@/components/gamification/GamificationDashboard";
+import GamificationDashboard from "@/components/donorProfile/achievements/GamificationDashboard";
+import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
 
 export default function DonorDashboard() {
     const [activeTab, setActiveTab] = useState("explore");
@@ -21,6 +22,7 @@ export default function DonorDashboard() {
     const [showDonorPostForm, setShowDonorPostForm] = useState(false);
     const [showBloodCampForm, setShowBloodCampForm] = useState(false);
     const [selectedCamp, setSelectedCamp] = useState<BloodCamp | null>(null);
+    const [showCardGenerator, setShowCardGenerator] = useState(false);
     // Filter functions
     const filteredDonorPosts = filterCategory === "all"
         ? myDonorPosts
@@ -101,7 +103,7 @@ export default function DonorDashboard() {
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                         <div>
                                             <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
-                                                My Donor Posts
+                                                My Posts
                                             </h2>
                                             <p className="text-gray-600">Manage your donation offers and track responses</p>
                                         </div>
@@ -128,7 +130,7 @@ export default function DonorDashboard() {
                                 {filteredDonorPosts.length === 0 && (
                                     <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
                                         <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
-                                        <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Donor Posts Yet</h3>
+                                        <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Yet</h3>
                                         <p className="text-gray-600 mb-6">Start making a difference by creating your first donation offer.</p>
                                         <button
                                             onClick={() => setShowDonorPostForm(true)}
@@ -190,7 +192,7 @@ export default function DonorDashboard() {
                                     </div>
                                     <div className="flex space-x-3">
                                         <button
-                                            // onClick={() => setShowCardGenerator(true)}
+                                            onClick={() => setShowCardGenerator(true)}
                                             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
                                         >
                                             <FaShare className="mr-2" />
@@ -233,13 +235,13 @@ export default function DonorDashboard() {
                                 <p className="text-gray-600 text-lg">Coming soon! Communicate directly with recipients.</p>
                             </motion.div>
                         )}
-                        {activeTab === "rewards" && (
+                        {activeTab === "achievements" && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="space-y-6"
                             >
-                                <GamificationDashboard user={donorUser} />
+                                <GamificationDashboard />
                             </motion.div>
                         )}
                     </div>
@@ -260,12 +262,12 @@ export default function DonorDashboard() {
                 selectedCamp={selectedCamp}
                 setSelectedCamp={setSelectedCamp}
             />
-            {/* <DonationCardGenerator
+            <DonorCardGenerator
                 isOpen={showCardGenerator}
                 onClose={() => setShowCardGenerator(false)}
                 userType="donor"
                 userData={donorUser}
-            /> */}
+            />
         </div>
     );
 }
