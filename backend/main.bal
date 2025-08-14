@@ -1,7 +1,5 @@
-// Vytal Backend - Main Application Entry Point
+// Main service file for Vytal Authentication API
 import ballerina/http;
-import ballerina/io;
-import ballerina/cors;
 import ballerina/time;
 import backend.types;
 import backend.services as userService;
@@ -203,4 +201,3 @@ function onShutdown() returns error? {
     io:println("Database connections closed");
     return;
 }
-//hi
