@@ -1,5 +1,5 @@
 export interface User {
-    id: string;
+    id: number;
     name: string;
     email: string;
     avatar: string;
@@ -25,7 +25,7 @@ export interface SidebarProps {
 export interface Post {
     id: number;
     title: string;
-    category: PostCategory;
+    category: Category;
     content: string;
     createdAt: string; // ISO date string
     status: string;
@@ -40,12 +40,32 @@ export interface Post {
     contact: string;
     fundraiserDetails?: FundraiserDetails; // Optional, only for fundraiser posts
     location?: string; // Optional, for posts that have a location
+    donation?: {
+        amount: number;
+        currency: string;
+    }
 }
 
-export enum PostCategory {
+export enum Category {
     ORGANS = "organs",
+    BLOOD = "blood",
     FUNDRAISER = "fundraiser",
-    MEDICINES = "medicines"
+    MEDICINES = "medicines",
+    SUPPLIES = "supplies",
+}
+
+export enum OrganType {
+    KIDNEY = "kidney",
+    LIVER = "liver",
+    CORNEA = "cornea",
+    BONEMARROW = "bonemarrow",
+}
+
+export enum BloodDonationType {
+    WHOLE_BLOOD = "whole_blood",
+    PLASMA = "plasma",
+    PLATELETS = "platelets",
+    STEMCELLS = "stem_cells",
 }
 
 export interface FundraiserDetails {
@@ -134,9 +154,51 @@ export interface RecipientPostGridProps {
     filteredRecipientPosts: Array<Post>;
 }
 
-export enum DonorPostStatus {
-    AVAILABLE = "available",    // Ready to help
-    COMMITTED = "committed",    // Committed to help someone specific
-    COMPLETED = "completed",    // Already helped
-    PAUSED = "paused"          // Temporarily unavailable
+export interface Donation {
+    id: number;
+    donor: User;
+    amount?: number;
+    date: string; // ISO date string
+    status: string; // e.g., "completed", "pending"
+    postId: number; // Associated post ID
+    category: Category; // Category of the donation
+}
+
+export interface DonorStat {
+    level: number;
+    totalDonations: number;
+    livesTouched: number;
+    streakDays: number;
+    badgesEarned: number,
+    points: number;
+    rank: number
+}
+
+export interface Badges {
+    id: number;
+    name: string;
+    description: string;
+    icon: string; // Icon name from react-icons
+    earned: boolean; // Whether the badge has been earned
+    rarity: "common" | "rare" | "epic" | "legendary"; // Rarity level
+    points: number; // Points awarded for earning this badge
+}
+
+export interface Achievement {
+    id: number;
+    title: string;
+    description: string;
+    progress: number; // Current progress towards the achievement
+    target: number; // Target to reach for the achievement
+    reward: string; // Reward for completing the achievement
+}
+
+export interface LeaderboardDetails {
+    rank: number;
+    name: string;
+    avatar: string; // Initials or avatar image
+    points: number; // Total points
+    badges: number; // Number of badges earned
+    donations: number; // Total donations made
+    isUser?: boolean; // Whether this entry is for the current user
 }

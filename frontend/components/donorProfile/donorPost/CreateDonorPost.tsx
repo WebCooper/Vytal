@@ -28,7 +28,17 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
     healthStatus: 'excellent'
   });
 
-  const [errors, setErrors] = useState({});
+  interface FormErrors {
+    title?: string;
+    content?: string;
+    location?: string;
+    contact?: string;
+    bloodOrOrgan?: string;
+    maxAmount?: string;
+    medicineTypes?: string;
+  }
+
+  const [errors, setErrors] = useState<FormErrors>({});
 
   if (!isOpen) return null;
 
@@ -70,7 +80,7 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: FormErrors = {};
     
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.content.trim()) newErrors.content = 'Description is required';
