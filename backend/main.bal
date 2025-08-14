@@ -10,16 +10,6 @@ import ballerina/io;
 // HTTP service with all authentication endpoints
 service / on new http:Listener(9091) {
 
-    // Health check endpoint
-    resource function get health() returns json {
-        io:println("Health check endpoint called");
-        return {
-            "status": "healthy",
-            "timestamp": time:utcNow(),
-            "service": "Vytal Authentication API"
-        };
-    }
-
     // API endpoints
     resource function get api/v1/health() returns json {
         io:println("API health endpoint called");
