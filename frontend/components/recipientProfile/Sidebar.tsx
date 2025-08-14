@@ -1,0 +1,64 @@
+import React from 'react'
+import { motion } from "framer-motion";
+import { MdVerified } from 'react-icons/md';
+import { SidebarProps } from '@/components/types';
+
+const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab  }) => {
+  return (
+    <div>
+        <div className="lg:col-span-1">
+        <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6 sticky top-24"
+        >
+            <div className="text-center mb-6">
+            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
+                {user.avatar}
+            </div>
+            <div className="flex items-center justify-center space-x-1 mb-2">
+                <h3 className="text-xl font-bold text-teal-700">{user.name}</h3>
+                {user.verified && <MdVerified className="text-teal-500" />}
+            </div>
+            <p className="text-gray-600 text-sm mb-4">Member since {user.joinedDate}</p>
+            </div>
+
+            <nav className="space-y-2">
+                <button
+                    onClick={() => setActiveTab("posts")}
+                    className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                    activeTab === "posts" 
+                        ? "bg-teal-500 text-white shadow-lg" 
+                        : "text-teal-700 hover:bg-teal-50"
+                    }`}
+                >
+                    My Posts
+                </button>
+                <button
+                    onClick={() => setActiveTab("analytics")}
+                    className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                    activeTab === "analytics" 
+                        ? "bg-teal-500 text-white shadow-lg" 
+                        : "text-teal-700 hover:bg-teal-50"
+                    }`}
+                >
+                    Analytics
+                </button>
+                <button
+                    onClick={() => setActiveTab("messages")}
+                    className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+                    activeTab === "messages" 
+                        ? "bg-teal-500 text-white shadow-lg" 
+                        : "text-teal-700 hover:bg-teal-50"
+                    }`}
+                >
+                    Messages
+                </button>
+            </nav>
+        </motion.div>
+        </div>
+    </div>
+  )
+}
+
+export default Sidebar

@@ -1,5 +1,7 @@
-// Main service file for Vytal Authentication API
+// Vytal Backend - Main Application Entry Point
 import ballerina/http;
+import ballerina/io;
+import ballerina/cors;
 import ballerina/time;
 import backend.types;
 import backend.services as userService;
