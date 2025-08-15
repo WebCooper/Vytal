@@ -16,6 +16,7 @@ import GamificationDashboard from "@/components/donorProfile/achievements/Gamifi
 import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
 
 export default function DonorDashboard() {
+    const currentUserId = 2; // Replace with actual user ID from context
     const [activeTab, setActiveTab] = useState("explore");
     const [filterCategory, setFilterCategory] = useState("all");
     const [urgencyFilter, setUrgencyFilter] = useState("all");
@@ -241,7 +242,7 @@ export default function DonorDashboard() {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="space-y-6"
                             >
-                                <GamificationDashboard />
+                                <GamificationDashboard currentUserId={currentUserId} />
                             </motion.div>
                         )}
                     </div>

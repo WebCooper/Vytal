@@ -7,6 +7,7 @@ export interface User {
     joinedDate: string; // Format: "Month YYYY"
     type: UserType;
     location?: string;
+    referrals?: Array<number>; // User IDs of referrals made
 }
 
 export enum UserType {
@@ -52,6 +53,7 @@ export enum Category {
     FUNDRAISER = "fundraiser",
     MEDICINES = "medicines",
     SUPPLIES = "supplies",
+    CAMP = "camp",
 }
 
 export enum OrganType {
@@ -174,15 +176,13 @@ export interface DonorStat {
     rank: number
 }
 
-export interface Badges {
-    id: number;
-    name: string;
-    description: string;
-    icon: string; // Icon name from react-icons
-    earned: boolean; // Whether the badge has been earned
-    rarity: "common" | "rare" | "epic" | "legendary"; // Rarity level
-    points: number; // Points awarded for earning this badge
-}
+export interface LevelInfo {
+    level: number;
+    title: string;
+    pointsForNextLevel: number | null; // null if max level
+    pointsToNextLevel: number | null; // null if max level
+    progressPercent: number; // 0–100
+};
 
 export interface Achievement {
     id: number;
@@ -191,6 +191,7 @@ export interface Achievement {
     progress: number; // Current progress towards the achievement
     target: number; // Target to reach for the achievement
     reward: string; // Reward for completing the achievement
+    completed?: boolean; // Whether the achievement is completed
 }
 
 export interface LeaderboardDetails {

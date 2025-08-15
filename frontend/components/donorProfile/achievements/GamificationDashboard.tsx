@@ -1,16 +1,18 @@
 // File: components/gamification/GamificationDashboard.tsx
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { badges, achievements, leaderboardDetails, donorStat } from '@/app/mockData';
+import { donations, leaderboardDetails } from '@/app/mockData';
 import DonorStatsCard from '@/components/donorProfile/achievements/DonorStatsCard';
 import BadgesTab from '@/components/donorProfile/achievements/BadgesTab';
 import AchievementsTab from './AchievementsTab';
 import LeaderboardTab from './LeaderboardTab';
 import TabNavigation from './TabNavigation';
 import ActionCards from './ActionCards';
+import { getDonorAchievementsProgress } from './calculations';
 
-const GamificationDashboard = () => {
+const GamificationDashboard = ({ currentUserId }: { currentUserId: number }) => {
   const [activeTab, setActiveTab] = useState('badges');
+  const achievements = getDonorAchievementsProgress(donations, currentUserId);
 
   return (
     <div className="space-y-6">
@@ -25,7 +27,7 @@ const GamificationDashboard = () => {
       </div>
 
       {/* User Stats Overview */}
-      <DonorStatsCard donorStat={donorStat} />
+      <DonorStatsCard currentUserId={currentUserId} />
 
       {/* Tab Navigation */}
       <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -33,7 +35,7 @@ const GamificationDashboard = () => {
       <AnimatePresence mode="wait">
         {/* Badges Tab */}
         {activeTab === 'badges' && (
-          <BadgesTab badges={badges} />
+          <BadgesTab achievements={achievements}/>
         )}
 
         {/* Achievements Tab */}

@@ -21,7 +21,17 @@ export const donorUser = {
     joinedDate: "February 2024",
     type: UserType.DONOR,
     location: "Colombo",
+    referrals: [3, 4] 
 };
+
+export const Users = [
+  {
+    donorUser
+  },
+  {
+    recipientUser
+  }
+]
 
   // Mock recipient posts
 export const myRecipientPosts = [
@@ -461,28 +471,6 @@ export const donations = [
   }
 ]
 
-export const donorStat = {
-  level: 7,
-  totalDonations: 23,
-  livesTouched: 69,
-  streakDays: 45,
-  badgesEarned: 12,
-  points: 2847,
-  rank: 156
-};
-export const badges = [
-  { id: 1, name: 'First Donor', description: 'Made your first donation', icon: 'FaHeart', earned: true, rarity: 'common', points: 100 },
-  { id: 2, name: 'Life Saver', description: 'Helped save 10 lives', icon: 'FaMedal', earned: true, rarity: 'rare', points: 500 },
-  { id: 3, name: 'Blood Champion', description: 'Donated blood 5 times', icon: 'MdBloodtype', earned: true, rarity: 'epic', points: 750 },
-  { id: 4, name: 'Community Hero', description: 'Top donor in your city', icon: 'FaCrown', earned: false, rarity: 'legendary', points: 1000 },
-  { id: 5, name: 'Streak Master', description: '30-day donation streak', icon: 'FaFire', earned: true, rarity: 'rare', points: 600 },
-  { id: 6, name: 'Generous Soul', description: 'Donated over LKR 1M', icon: 'FaGift', earned: false, rarity: 'epic', points: 800 }
-];
-export const achievements = [
-        { id: 1, title: 'Monthly Challenge', description: 'Help 3 people this month', progress: 2, target: 3, reward: '200 points + Badge' },
-        { id: 2, title: 'Blood Camp Hero', description: 'Attend 2 blood camps', progress: 1, target: 2, reward: '300 points' },
-        { id: 3, title: 'Referral Master', description: 'Invite 5 friends to join', progress: 0, target: 5, reward: '500 points + Title' }
-    ];
 export const leaderboardDetails = [
         { rank: 1, name: 'Dr. Priya Silva', avatar: 'PS', points: 4250, badges: 15, donations: 42 },
         { rank: 2, name: 'Kasun Fernando', avatar: 'KF', points: 3890, badges: 13, donations: 38 },
