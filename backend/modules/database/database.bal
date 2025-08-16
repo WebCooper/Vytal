@@ -7,13 +7,11 @@ import backend.storage;
 import ballerina/io;
 
 # Database Client Configuration - optional for development
-configurable types:DatabaseConfig dbConfig = {
-    user: "root",
-    password: "1010",
-    database: "vytal_db",
-    host: "localhost",
-    port: 3306
-};
+configurable string dbHost = ?;
+configurable string dbUser = ?;
+configurable string dbPassword = ?;
+configurable string dbDatabase = ?;
+configurable int dbPort = ?;
 configurable boolean useSSL = false;
 configurable string sslMode = "PREFERRED";
 configurable decimal connectTimeout = 30;
@@ -22,8 +20,15 @@ configurable decimal connectTimeout = 30;
 isolated mysql:Client? dbClient = ();
 
 # Module initialization - try to connect to database
+# Module initialization - try to connect to database
 function init() {
-    types:DatabaseConfig config = dbConfig;
+    types:DatabaseConfig config = {
+        host: dbHost,
+        user: dbUser,
+        password: dbPassword,
+        database: dbDatabase,
+        port: dbPort
+    };
     
     io:println(string `=== MySQL Connection Test ===`);
     io:println(string `Host: ${config.host}, Port: ${config.port}, Database: ${config.database}, User: ${config.user}`);
@@ -65,12 +70,16 @@ function init() {
         lock {
             dbClient = clientResult;
         }
-        io:println("Successfully connected to MySQL database");
+        io:println("✅ Successfully connected to MySQL database");
+
+        // Ensure required tables exist
+        checkpanic setupDatabase(clientResult);
     } else {
-        io:println("Failed to connect to MySQL database: " + clientResult.message());
-        io:println("Will use in-memory fallback storage instead");
+        io:println("❌ Failed to connect to MySQL database: " + clientResult.message());
+        io:println("⚠️ Will use in-memory fallback storage instead");
     }
 }
+
 
 # Helper function to convert string SSL mode to enum
 # + mode - SSL mode as string
@@ -280,9 +289,9 @@ public isolated function convertJsonToCategories(string categoriesJson) returns 
     foreach string categoryStr in categoryStrings {
         string trimmed = categoryStr.trim();
         match trimmed {
-            "Organic" => {
-                types:Category organic = "Organic";
-                categories.push(organic);
+            "Organs" => {
+                types:Category organs = "Organs";
+                categories.push(organs);
             }
             "Medicines" => {
                 types:Category medicines = "Medicines";
@@ -310,4 +319,62 @@ public isolated function closeDbConnection() returns error? {
         }
     }
     return ();
+}
+
+# Description.
+#
+# + dbClient - parameter description
+# + return - return value description
+public isolated function setupDatabase(mysql:Client dbClient) returns error? {
+    // Users table
+    sql:ExecutionResult _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        phone_number VARCHAR(20) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role ENUM('donor', 'receiver') NOT NULL,
+        categories JSON NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_email (email),
+        INDEX idx_role (role),
+        INDEX idx_created_at (created_at)
+    )`);
+
+    // Health records table
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS health_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        record_type VARCHAR(50) NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        data JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_record_type (record_type),
+        INDEX idx_created_at (created_at)
+    )`);
+
+    // Appointments table
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS appointments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id INT NOT NULL,
+        doctor_id INT NOT NULL,
+        appointment_date DATETIME NOT NULL,
+        status ENUM('scheduled', 'confirmed', 'completed', 'cancelled') DEFAULT 'scheduled',
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_patient_id (patient_id),
+        INDEX idx_doctor_id (doctor_id),
+        INDEX idx_appointment_date (appointment_date),
+        INDEX idx_status (status)
+    )`);
+
+    io:println("✅ Database tables are ready");
 }

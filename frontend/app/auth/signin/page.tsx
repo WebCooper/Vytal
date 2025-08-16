@@ -3,7 +3,8 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { FaUser, FaLock, FaGoogle, FaFacebookF, FaLinkedinIn } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignIn() {
   const pathname = usePathname();
