@@ -8,7 +8,8 @@ public enum Role {
 public enum Category {
     ORGANIC = "Organs",
     MEDICINES = "Medicines", 
-    BLOOD = "Blood"
+    BLOOD = "Blood",
+    FUNDRAISER = "Fundraiser"
 }
 
 # Database Configuration record type
@@ -119,3 +120,138 @@ public type LoginResponse record {
     string token;
     UserResponse user;
 };
+# Engagement metrics for posts
+#
+# + likes - field description  
+# + comments - field description  
+# + shares - field description  
+# + views - field description
+public type Engagement record {|
+    int likes;
+    int comments;
+    int shares;
+    int views;
+|};
+
+# Fundraiser details for posts
+#
+# + goal - field description  
+# + received - field description
+public type FundraiserDetails record {|
+    decimal goal;
+    decimal received;
+|};
+
+# Recipient Post (DB-facing model - normalized)
+#
+# + id - field description  
+# + recipient_id - field description  
+# + title - field description  
+# + content - field description  
+# + category - field description  
+# + status - field description  
+# + location - field description  
+# + urgency - field description  
+# + contact - field description  
+# + created_at - field description  
+# + updated_at - field description  
+# + likes - field description  
+# + comments - field description  
+# + shares - field description  
+# + views - field description  
+# + goal - field description  
+# + received - field description
+public type RecipientPost record {|
+    int id;
+    int recipient_id;
+    string title;
+    string content;
+    Category category;
+    string status;        // open, fulfilled, cancelled
+    string location?;
+    string urgency?;      // low, medium, high
+    string contact?;
+    string created_at?;
+    string updated_at?;
+    int likes = 0;
+    int comments = 0;
+    int shares = 0;
+    int views = 0;
+    decimal? goal = ();
+    decimal? received = ();
+|};
+
+# Create post (input)
+#
+# + recipient_id - field description  
+# + title - field description  
+# + content - field description  
+# + category - field description  
+# + status - field description  
+# + location - field description  
+# + urgency - field description  
+# + contact - field description  
+# + goal - field description
+public type RecipientPostCreate record {|
+    int recipient_id;
+    string title;
+    string content;
+    Category category;
+    string status = "open";
+    string location?;
+    string urgency?;
+    string contact?;
+    decimal? goal = ();
+|};
+
+# Update post (partial update)
+#
+# + title - field description  
+# + content - field description  
+# + category - field description  
+# + status - field description  
+# + location - field description  
+# + urgency - field description  
+# + contact - field description  
+# + goal - field description  
+# + received - field description
+public type RecipientPostUpdate record {|
+    string? title;
+    string? content;
+    Category? category;
+    string? status;
+    string? location;
+    string? urgency;
+    string? contact;
+    decimal? goal;
+    decimal? received;
+|};
+
+# Response type (frontend-ready)
+#
+# + id - field description  
+# + user - field description  
+# + title - field description  
+# + content - field description  
+# + category - field description  
+# + status - field description  
+# + location - field description  
+# + urgency - field description  
+# + createdAt - field description  
+# + engagement - field description  
+# + contact - field description  
+# + fundraiserDetails - field description
+public type RecipientPostResponse record {|
+    int id;
+    UserResponse user;
+    string title;
+    string content;
+    Category category;
+    string status;
+    string? location;
+    string? urgency;
+    string createdAt;
+    Engagement engagement;
+    string? contact;
+    FundraiserDetails? fundraiserDetails;
+|};

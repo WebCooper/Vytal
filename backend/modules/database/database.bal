@@ -116,6 +116,37 @@ isolated function getDbClient() returns mysql:Client|error {
     }
 }
 
+# Get user by ID
+# + userId - User ID to search for
+# + return - User record if found, null if not found, or error if operation fails
+public isolated function getUserById(int userId) returns types:User?|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    // If database not available, use in-memory storage
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
+    sql:ParameterizedQuery query = `
+        SELECT 
+            id, name, phone_number, email, password, role, categories, created_at, updated_at
+        FROM users 
+        WHERE id = ${userId}
+    `;
+    
+    stream<types:User, sql:Error?> resultStream = dbClientInstance->query(query);
+    record {|types:User value;|}? result = check resultStream.next();
+    check resultStream.close();
+    
+    if result is () {
+        return ();
+    }
+    
+    return result.value;
+}
+
 # Get user by email
 # + email - Email address to search for
 # + return - User record if found, null if not found, or error if operation fails
@@ -307,6 +338,112 @@ public isolated function convertJsonToCategories(string categoriesJson) returns 
     return categories;
 }
 
+# Get all recipient posts from the database
+# + return - Array of recipient posts or error if the operation fails
+public isolated function getRecipientPosts() returns types:RecipientPost[]|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    if dbClientResult is error {
+        // fallback to memory if needed
+        return [];
+    }
+    mysql:Client dbClientInstance = dbClientResult;
+
+    sql:ParameterizedQuery query = `
+        SELECT id, recipient_id, title, content, category, status,
+               location, urgency, contact, created_at, updated_at,
+               likes, comments, shares, views, goal, received
+        FROM recipient_posts
+        ORDER BY created_at DESC
+    `;
+    
+    stream<types:RecipientPost, sql:Error?> resultStream = dbClientInstance->query(query);
+    types:RecipientPost[] posts = [];
+    
+    error? e = from types:RecipientPost post in resultStream
+        do {
+            posts.push(post);
+        };
+    check resultStream.close();
+    
+    if e is error {
+        return error("Failed to fetch recipient posts: " + e.message());
+    }
+    return posts;
+}
+
+# Get a recipient post by its ID
+# + id - The ID of the recipient post to retrieve
+# + return - The recipient post or null if not found, error if operation fails
+public isolated function getRecipientPostById(int id) returns types:RecipientPost?|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `
+        SELECT id, recipient_id, title, content, category, status,
+               location, urgency, contact, created_at, updated_at,
+               likes, comments, shares, views, goal, received
+        FROM recipient_posts
+        WHERE id = ${id}
+    `;
+    stream<types:RecipientPost, sql:Error?> resultStream = dbClientInstance->query(query);
+    record {|types:RecipientPost value;|}? result = check resultStream.next();
+    check resultStream.close();
+    if result is () {
+        return ();
+    }
+    return result.value;
+}
+
+# Insert a new recipient post into the database
+# + post - The recipient post data to insert
+# + return - The execution result or error if operation fails
+public isolated function insertRecipientPost(types:RecipientPostCreate post) returns sql:ExecutionResult|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery query = `
+        INSERT INTO recipient_posts (
+            recipient_id, title, content, category, status,
+            location, urgency, contact, goal
+        ) VALUES (
+            ${post.recipient_id}, ${post.title}, ${post.content}, ${post.category}, ${post.status},
+            ${post.location}, ${post.urgency}, ${post.contact}, ${post.goal}
+        )
+    `;
+    return dbClientInstance->execute(query);
+}
+
+# Update an existing recipient post in the database
+# + id - The ID of the recipient post to update
+# + post - The updated recipient post data
+# + return - The execution result or error if operation fails
+public isolated function updateRecipientPost(int id, types:RecipientPostUpdate post) returns sql:ExecutionResult|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery query = `
+        UPDATE recipient_posts 
+        SET 
+            title = COALESCE(${post.title}, title),
+            content = COALESCE(${post.content}, content),
+            category = COALESCE(${post.category}, category),
+            status = COALESCE(${post.status}, status),
+            location = COALESCE(${post.location}, location),
+            urgency = COALESCE(${post.urgency}, urgency),
+            contact = COALESCE(${post.contact}, contact),
+            goal = COALESCE(${post.goal}, goal),
+            received = COALESCE(${post.received}, received),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+    `;
+    return dbClientInstance->execute(query);
+}
+
+# Delete a recipient post from the database
+# + id - The ID of the recipient post to delete
+# + return - The execution result or error if operation fails
+public isolated function deleteRecipientPost(int id) returns sql:ExecutionResult|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery query = `DELETE FROM recipient_posts WHERE id = ${id}`;
+    return dbClientInstance->execute(query);
+}
+
+
 # Close the database client connection
 # Should be called when the application is shutting down
 # + return - Error if closing fails
@@ -375,6 +512,27 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         INDEX idx_appointment_date (appointment_date),
         INDEX idx_status (status)
     )`);
-
+    // Recipient posts table
+        _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS recipient_posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipient_id INT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    category ENUM('Organs', 'Medicines', 'Blood', 'Fundraiser') NOT NULL,
+    status ENUM('open', 'fulfilled', 'cancelled') DEFAULT 'open',
+    location VARCHAR(200),
+    urgency ENUM('low', 'medium', 'high'),
+    contact VARCHAR(300),
+    likes INT DEFAULT 0,
+    comments INT DEFAULT 0,
+    shares INT DEFAULT 0,
+    views INT DEFAULT 0,
+    goal DECIMAL(15,2),
+    received DECIMAL(15,2) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    `);
     io:println("✅ Database tables are ready");
 }
