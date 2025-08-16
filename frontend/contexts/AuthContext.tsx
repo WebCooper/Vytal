@@ -32,7 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (savedUser && savedToken) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        // Restore the token in apiClient
+        apiClient.setToken(savedToken);
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('vytal_user');
@@ -49,10 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await apiClient.signIn({ email, password });
       
-      if (response.success && response.user && response.token) {
-        setUser(response.user);
-        localStorage.setItem('vytal_user', JSON.stringify(response.user));
-        localStorage.setItem('vytal_token', response.token);
+      if (response.data?.user && response.data?.token) {
+        setUser(response.data.user);
+        localStorage.setItem('vytal_user', JSON.stringify(response.data.user));
+        localStorage.setItem('vytal_token', response.data.token);
       }
       
       return response;
@@ -74,9 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await apiClient.signUp(data);
       
-      if (response.success && response.user) {
-        setUser(response.user);
-        localStorage.setItem('vytal_user', JSON.stringify(response.user));
+      if (response.success && response.data?.user) {
+        setUser(response.data.user);
+        localStorage.setItem('vytal_user', JSON.stringify(response.data.user));
+        if (response.data.token) {
+          localStorage.setItem('vytal_token', response.data.token);
+        }
       }
       
       return response;
@@ -89,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('vytal_user');
     localStorage.removeItem('vytal_token');
+    apiClient.clearToken();
   };
 
   const value: AuthContextType = {

@@ -42,8 +42,20 @@ public isolated function registerUser(types:RegisterRequest request) returns typ
         return error("Failed to register user: " + result.message());
     }
     
+    // Get the newly created user to get their ID
+    types:User?|error userResult = database:getUserByEmail(newUser.email);
+    if userResult is error {
+        return error("Failed to retrieve user after creation: " + userResult.message());
+    }
+    if userResult is () {
+        return error("User not found after creation");
+    }
+    
+    types:User user = <types:User>userResult;
+    
     // Return user response
     return {
+        id: <int>user.id,
         name: newUser.name,
         phone_number: newUser.phone_number,
         email: newUser.email,
@@ -89,6 +101,7 @@ public isolated function loginUser(types:LoginRequest request) returns types:Log
     return {
         token: tokenValue,
         user: {
+            id: <int>user.id,
             name: user.name,
             phone_number: user.phone_number,
             email: user.email,
@@ -115,7 +128,9 @@ public isolated function getUserProfile(string email) returns types:UserResponse
         return error("Error processing user data");
     }
     
+    int userId = user.id ?: 0; // Provide a default value if ID is null
     return {
+        id: userId,
         name: user.name,
         phone_number: user.phone_number,
         email: user.email,
@@ -156,13 +171,16 @@ public isolated function updateUserProfile(string email, types:User updatedUser)
         return error("Failed to update user: " + result.message());
     }
     
+    int userId = existingUser.id ?: 0; // Provide a default value if ID is null
     return {
+        id: userId,
         name: updatedUser.name,
         phone_number: updatedUser.phone_number,
         email: email,
         role: updatedUser.role,
         categories: categoriesResult
     };
+
 }
 
 public isolated function logoutUser(string tokenValue) returns error? {

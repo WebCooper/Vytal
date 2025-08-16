@@ -93,6 +93,7 @@ public type UserUpdate record {|
 |};
 
 public type UserResponse record {
+    int id;
     string name;
     string phone_number;
     string email;
