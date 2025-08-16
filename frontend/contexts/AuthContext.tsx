@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, apiClient, AuthResponse } from '@/lib/api';
+import { User, signIn as apiSignIn, signUp as apiSignUp, logout, AuthResponse } from '@/lib/userService';
 
 interface AuthContextType {
   user: User | null;
@@ -34,8 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
-        // Restore the token in apiClient
-        apiClient.setToken(savedToken);
+        // Set the authorization token in axios instance
+        import('@/lib/axiosInstance').then(({ setAuthorizationToken }) => {
+          setAuthorizationToken(savedToken);
+        });
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('vytal_user');
@@ -50,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      const response = await apiClient.signIn({ email, password });
+      const response = await apiSignIn({ email, password });
       
       if (response.data?.user && response.data?.token) {
         setUser(response.data.user);
@@ -75,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      const response = await apiClient.signUp(data);
+      const response = await apiSignUp(data);
       
       if (response.success && response.data?.user) {
         setUser(response.data.user);
@@ -95,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('vytal_user');
     localStorage.removeItem('vytal_token');
-    apiClient.clearToken();
+    logout();
   };
 
   const value: AuthContextType = {

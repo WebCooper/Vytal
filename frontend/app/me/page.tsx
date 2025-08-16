@@ -6,6 +6,7 @@ import ProfileHeader from "@/components/shared/ProfileHeader";
 import Sidebar from "@/components/recipientProfile/Sidebar";
 import Filterbar from "@/components/recipientProfile/Filterbar";
 import PostsGrid from "@/components/shared/PostsGrid";
+import CreatePostModal from "@/components/recipientProfile/CreatePostModel";
 import { myRecipientPosts } from "../mockData"; // get myPosts from API
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -18,6 +19,7 @@ export default function RecipientDashboard() {
   const [activeTab, setActiveTab] = useState("posts");
   const [filterCategory, setFilterCategory] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     // Protect the recipient page - only receivers can access
@@ -44,8 +46,20 @@ export default function RecipientDashboard() {
     type: UserType.RECIPIENT // Since this is the /me page for recipients
   };
 
+  const handlePostCreated = async () => {
+    // In a real implementation, you would refresh the posts from the API
+    // For now, we'll just close the modal
+    // TODO: Add logic to refresh posts
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
+      {isModalOpen && (
+        <CreatePostModal 
+          onClose={() => setIsModalOpen(false)} 
+          onSuccess={handlePostCreated}
+        />
+      )}
       <ProfileHeader user={adaptedUser} />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -69,7 +83,10 @@ export default function RecipientDashboard() {
                       </h2>
                       <p className="text-gray-600">Manage your support requests and track engagement</p>
                     </div>
-                    <button className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center">
+                    <button 
+                      onClick={() => setIsModalOpen(true)}
+                      className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
+                    >
                       <FaPlus className="mr-2" />
                       Create New Post
                     </button>

@@ -183,6 +183,38 @@ public isolated function updateUserProfile(string email, types:User updatedUser)
 
 }
 
+# Get user by ID
+# + userId - The ID of the user to retrieve
+# + return - User response or error
+public isolated function getUserById(int userId) returns types:UserResponse|error {
+    // Get user from database
+    types:User?|error userResult = database:getUserById(userId);
+    if userResult is error {
+        return error("Database error: " + userResult.message());
+    }
+    if userResult is () {
+        return error("User not found");
+    }
+    
+    types:User user = <types:User>userResult;
+    
+    // Convert categories from JSON string to array
+    types:Category[]|error categoriesResult = database:convertJsonToCategories(user.categories);
+    if categoriesResult is error {
+        return error("Error processing user data");
+    }
+    
+    // Convert to UserResponse format
+    return {
+        id: user.id ?: 0,
+        name: user.name,
+        phone_number: user.phone_number,
+        email: user.email,
+        role: user.role,
+        categories: categoriesResult
+    };
+}
+
 public isolated function logoutUser(string tokenValue) returns error? {
     if !storage:tokenExists(tokenValue) {
         return error("Invalid token");

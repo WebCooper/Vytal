@@ -388,10 +388,11 @@ modules = [
 	{org = "cooper", packageName = "backend", moduleName = "backend"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.auth"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.database"},
-	{org = "cooper", packageName = "backend", moduleName = "backend.services"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.postOp"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.storage"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.token"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.types"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.userOp"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.utils"}
 ]
 

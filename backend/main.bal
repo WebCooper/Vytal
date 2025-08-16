@@ -2,7 +2,8 @@
 import ballerina/http;
 import ballerina/time;
 import backend.types;
-import backend.services as userService;
+import backend.userOp as userService;
+import backend.postOp as postService;
 import backend.token;
 import backend.database;
 import ballerina/io;
@@ -187,6 +188,168 @@ service /api/v1 on new http:Listener(9091) {
             response.statusCode = 200;
             response.setJsonPayload({
                 "message": "Logout successful",
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+
+    // Create recipient post endpoint
+    resource function post posts(@http:Header {name: "Authorization"} string? authorization, types:RecipientPostCreate request) returns http:Response|error {
+        http:Response response = new;
+        
+        // Validate token and get user email
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Get user ID from email
+        types:UserResponse|error userResult = userService:getUserProfile(email);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Create the post
+        types:RecipientPostResponse|error result = postService:createRecipientPost(userResult.id, request);
+        
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 201;
+            response.setJsonPayload({
+                "message": "Post created successfully",
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+
+    // Get all recipient posts endpoint
+    resource function get posts() returns http:Response|error {
+        http:Response response = new;
+        
+        types:RecipientPostResponse[]|error result = postService:getAllRecipientPosts();
+        
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+
+    // Get posts by user endpoint
+    resource function get posts/[int userId]() returns http:Response|error {
+        http:Response response = new;
+        
+        types:RecipientPostResponse[]|error result = postService:getRecipientPostsByUser(userId);
+        
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+
+    // Update recipient post endpoint
+    resource function put posts/[int postId](@http:Header {name: "Authorization"} string? authorization, types:RecipientPostUpdate request) returns http:Response|error {
+        http:Response response = new;
+        
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:RecipientPostResponse|error result = postService:updateRecipientPost(postId, request);
+        
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "message": "Post updated successfully",
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+
+    // Delete recipient post endpoint
+    resource function delete posts/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        error? result = postService:deleteRecipientPost(postId);
+        
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "message": "Post deleted successfully",
                 "timestamp": time:utcNow()
             });
         }
