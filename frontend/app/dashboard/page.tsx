@@ -6,14 +6,14 @@ import { useEffect, useState } from "react";
 import { apiClient, User } from "@/lib/api";
 
 export default function Dashboard() {
-  const { user, signOut, isAuthenticated } = useAuth();
+  const { user, signOut, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiHealth, setApiHealth] = useState<string>("checking...");
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       router.push("/auth/signin");
       return;
     }
@@ -41,6 +41,10 @@ export default function Dashboard() {
     signOut();
     router.push("/auth/signin");
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   if (!isAuthenticated) {
     return <div>Redirecting...</div>;
@@ -76,7 +80,7 @@ export default function Dashboard() {
               <p><span className="font-medium">Name:</span> {user?.name}</p>
               <p><span className="font-medium">Email:</span> {user?.email}</p>
               <p><span className="font-medium">ID:</span> {user?.id}</p>
-              {user?.phone && <p><span className="font-medium">Phone:</span> {user.phone}</p>}
+              {user?.phone_number && <p><span className="font-medium">Phone:</span> {user.phone_number}</p>}
             </div>
           </div>
 

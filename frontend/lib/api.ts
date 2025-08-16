@@ -3,6 +3,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9091/api/v1';
 
 export interface User {
+  id: number;
   name: string;
   email: string;
   phone_number?: string;
@@ -12,10 +13,13 @@ export interface User {
 }
 
 export interface AuthResponse {
-  success: boolean;
-  user?: User;
-  message?: string;
-  token?: string;
+  message: string;
+  data?: {
+    token: string;
+    user: User;
+  };
+  timestamp: [number, number];
+  success?: boolean;
 }
 
 export interface SignUpData {
@@ -93,8 +97,6 @@ class ApiClient {
     status: string; 
     timestamp: string; 
     service: string; 
-    database: string;
-    version: string;
   }> {
     return this.request('/health');
   }
@@ -107,24 +109,20 @@ class ApiClient {
   // Authentication
   async signUp(data: SignUpData): Promise<AuthResponse> {
     try {
-      const response = await this.request<{
-        message: string;
-        user: User;
-        timestamp: [number, number];
-      }>('/register', {
+      const response = await this.request<AuthResponse>('/register', {
         method: 'POST',
         body: JSON.stringify(data),
       });
 
       return {
-        success: true,
-        message: response.message,
-        user: response.user
+        ...response,
+        success: true
       };
     } catch (error) {
       return {
-        success: false,
         message: error instanceof Error ? error.message : 'Registration failed',
+        timestamp: [Math.floor(Date.now() / 1000), 0],
+        success: false
       };
     }
   }
@@ -136,15 +134,19 @@ class ApiClient {
         body: JSON.stringify(data),
       });
 
-      if (response.success && response.token) {
-        this.setToken(response.token);
+      if (response.data?.token) {
+        this.setToken(response.data.token);
       }
 
-      return response;
+      return {
+        ...response,
+        success: true
+      };
     } catch (error) {
       return {
-        success: false,
         message: error instanceof Error ? error.message : 'Sign in failed',
+        timestamp: [Math.floor(Date.now() / 1000), 0],
+        success: false
       };
     }
   }

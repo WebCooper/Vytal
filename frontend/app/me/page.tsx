@@ -1,26 +1,56 @@
 'use client';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaPlus } from "react-icons/fa";
 import ProfileHeader from "@/components/shared/ProfileHeader";
 import Sidebar from "@/components/recipientProfile/Sidebar";
 import Filterbar from "@/components/recipientProfile/Filterbar";
 import PostsGrid from "@/components/shared/PostsGrid";
-import { myRecipientPosts, recipientUser } from "../mockData"; // get myPosts from API
+import { myRecipientPosts } from "../mockData"; // get myPosts from API
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { UserType } from "@/components/types";
 
 export default function RecipientDashboard() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
   const myPosts = myRecipientPosts; // Replace with actual API call to fetch recipient's posts
   const [activeTab, setActiveTab] = useState("posts");
   const [filterCategory, setFilterCategory] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
 
+  useEffect(() => {
+    // Protect the recipient page - only receivers can access
+    if (!isLoading && (!isAuthenticated || user?.role !== 'receiver')) {
+      router.push('/auth/signin');
+    }
+  }, [isLoading, isAuthenticated, user, router]);
+
+  // Show loading state while checking authentication
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
+        <div className="text-emerald-700 text-xl font-semibold">Loading...</div>
+      </div>
+    );
+  }
+
+  // Adapt the user data to match the expected format
+  const adaptedUser = {
+    ...user,
+    avatar: '/images/default-avatar.png', // You can set a default avatar or get it from user data
+    verified: true, // You can set this based on your user data
+    joinedDate: new Date().toISOString().split('T')[0], // You can get this from user data if available
+    type: UserType.RECIPIENT // Since this is the /me page for recipients
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
-      <ProfileHeader user={recipientUser} />
+      <ProfileHeader user={adaptedUser} />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-4 gap-8">
-          <Sidebar user={recipientUser} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Sidebar user={adaptedUser} activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Main Content */}
           <div className="lg:col-span-3">
