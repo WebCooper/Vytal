@@ -61,8 +61,17 @@ const Sidebar:React.FC<SidebarProps> = ({user, activeTab, setActiveTab}) => {
                         My Donations
                     </button>
                     <button
+                        onClick={() => setActiveTab("achievements")}
+                        className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === "achievements"
+                            ? "bg-teal-500 text-white shadow-lg"
+                            : "text-teal-700 hover:bg-teal-50"
+                            }`}
+                    >
+                        Achievements
+                    </button>
+                    <button
                         onClick={() => setActiveTab("analytics")}
-                        className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === "otherdonors"
+                        className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === "analytics"
                             ? "bg-teal-500 text-white shadow-lg"
                             : "text-teal-700 hover:bg-teal-50"
                             }`}

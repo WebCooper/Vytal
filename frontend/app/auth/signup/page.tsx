@@ -4,8 +4,6 @@ import React, { useState } from "react";
 import { FaUser, FaLock, FaGoogle, FaFacebookF, FaLinkedinIn, FaPhone, FaEnvelope } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
-import Header from "@/components/shared/Header";
-import Footer from "@/components/shared/Footer";
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -50,8 +48,6 @@ export default function SignUp() {
   };
   return (
     <div>
-      <Header />
-
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-white to-emerald-700 px-2" style={{ perspective: 1200 }}>
         <AnimatePresence mode="wait">
           <motion.div
@@ -119,8 +115,6 @@ export default function SignUp() {
           </motion.div>
         </AnimatePresence>
       </div>
-
-      <Footer />
     </div>
   );
 } 

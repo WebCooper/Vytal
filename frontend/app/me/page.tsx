@@ -6,9 +6,10 @@ import ProfileHeader from "@/components/shared/ProfileHeader";
 import Sidebar from "@/components/recipientProfile/Sidebar";
 import Filterbar from "@/components/recipientProfile/Filterbar";
 import PostsGrid from "@/components/shared/PostsGrid";
-import { myPosts, recipientUser } from "../mockData"; // get myPosts from API
+import { myRecipientPosts, recipientUser } from "../mockData"; // get myPosts from API
 
 export default function RecipientDashboard() {
+  const myPosts = myRecipientPosts; // Replace with actual API call to fetch recipient's posts
   const [activeTab, setActiveTab] = useState("posts");
   const [filterCategory, setFilterCategory] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");

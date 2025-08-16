@@ -7,23 +7,23 @@ import PostsGrid from "@/components/shared/PostsGrid";
 import MapSection from "@/components/bloodCamps/MapSection";
 import CampDetailsModal from "@/components/bloodCamps/CampDetailsModal";
 import { BloodCamp } from "@/components/types";
-import { bloodCamps, recipientPosts, recipientUser } from "../mockData";
+import { bloodCamps, recipientPosts, myDonorPosts, donorPosts, recipientUser, myRecipientPosts } from "../mockData";
 import Filterbar from "@/components/shared/Filterbar";
 import CampsSection from "@/components/bloodCamps/CampsSection";
 
 export default function CommunityPage() {
+  const allPosts = [...myDonorPosts, ...donorPosts, ...recipientPosts, ...myRecipientPosts];
   const [activeTab, setActiveTab] = useState("posts");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterUrgency, setFilterUrgency] = useState("all");
   const [selectedCamp, setSelectedCamp] = useState<BloodCamp | null>(null);
   const [showBloodCampForm, setShowBloodCampForm] = useState(false);
 
-  const filteredPosts = recipientPosts.filter(post => {
+  const filteredPosts = allPosts.filter(post => {
     const categoryMatch = filterCategory === "all" || post.category === filterCategory;
     const urgencyMatch = filterUrgency === "all" || post.urgency === filterUrgency;
     return categoryMatch && urgencyMatch;
   });
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
