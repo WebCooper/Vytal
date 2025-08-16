@@ -1,9 +1,12 @@
 'use client';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaPlus, FaHeart, FaShare } from "react-icons/fa";
 import ProfileHeader from "@/components/shared/ProfileHeader";
-import { bloodCamps, donorUser, myDonorPosts, recipientPosts } from "../mockData";
+import { bloodCamps, myDonorPosts, recipientPosts } from "../mockData";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { UserType } from "@/components/types";
 import CreateDonorPost from "@/components/donorProfile/donorPost/CreateDonorPost";
 import CampDetailsModal from "@/components/bloodCamps/CampDetailsModal";
 import { BloodCamp } from "@/components/types";
@@ -16,6 +19,8 @@ import GamificationDashboard from "@/components/donorProfile/achievements/Gamifi
 import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
 
 export default function DonorDashboard() {
+    const { user, isAuthenticated, isLoading } = useAuth();
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState("explore");
     const [filterCategory, setFilterCategory] = useState("all");
     const [urgencyFilter, setUrgencyFilter] = useState("all");
@@ -23,6 +28,31 @@ export default function DonorDashboard() {
     const [showBloodCampForm, setShowBloodCampForm] = useState(false);
     const [selectedCamp, setSelectedCamp] = useState<BloodCamp | null>(null);
     const [showCardGenerator, setShowCardGenerator] = useState(false);
+
+    useEffect(() => {
+        // Protect the donor page
+        if (!isLoading && (!isAuthenticated || user?.role !== 'donor')) {
+            router.push('/auth/signin');
+        }
+    }, [isLoading, isAuthenticated, user, router]);
+
+    // Show loading state or return null while checking authentication
+    if (isLoading || !user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
+                <div className="text-emerald-700 text-xl font-semibold">Loading...</div>
+            </div>
+        );
+    }
+
+    // Adapt the user data to match the expected format
+    const adaptedUser = {
+        ...user,
+        avatar: 'AV', // You can set a default avatar or get it from user data
+        verified: true, // You can set this based on your user data
+        joinedDate: new Date().toISOString().split('T')[0], // You can get this from user data if available
+        type: user.role === 'donor' ? UserType.DONOR : UserType.RECIPIENT // Map role to specific UserType
+    };
     // Filter functions
     const filteredDonorPosts = filterCategory === "all"
         ? myDonorPosts
@@ -36,11 +66,11 @@ export default function DonorDashboard() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
-            <ProfileHeader user={donorUser} />
+            <ProfileHeader user={adaptedUser} />
 
             <div className="max-w-7xl mx-auto px-4 py-8">
                 <div className="grid lg:grid-cols-4 gap-8">
-                    <Sidebar user={donorUser} activeTab={activeTab} setActiveTab={setActiveTab} />
+                    <Sidebar user={adaptedUser} activeTab={activeTab} setActiveTab={setActiveTab} />
 
                     {/* Main Content */}
                     <div className="lg:col-span-3">
@@ -266,7 +296,7 @@ export default function DonorDashboard() {
                 isOpen={showCardGenerator}
                 onClose={() => setShowCardGenerator(false)}
                 userType="donor"
-                userData={donorUser}
+                userData={adaptedUser}
             />
         </div>
     );

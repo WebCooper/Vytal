@@ -24,8 +24,13 @@ export default function SignIn() {
     try {
       const response = await signIn(formData.email, formData.password);
       
-      if (response.success) {
-        router.push("/dashboard"); // Redirect to dashboard after successful login
+      if (response.success && response.data?.user) {
+        // Redirect based on user role
+        if (response.data.user.role === "donor") {
+          router.push("/donor");
+        } else {
+          router.push("/me");
+        }
       } else {
         setError(response.message || "Sign in failed");
       }
