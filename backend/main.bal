@@ -8,10 +8,21 @@ import backend.database;
 import ballerina/io;
 
 // HTTP service with all authentication endpoints
-service / on new http:Listener(9091) {
+@http:ServiceConfig {
+    cors: {
+        allowOrigins: ["http://localhost:3000", "http://127.0.0.1:3000", "https://your-frontend-domain.com"],
+        allowCredentials: true,
+        allowHeaders: ["Authorization", "Content-Type"],
+        exposeHeaders: ["X-CUSTOM-HEADER"],
+        maxAge: 86400
+    }
+}
+
+// HTTP service with all authentication endpoints
+service /api/v1 on new http:Listener(9091) {
 
     // API endpoints
-    resource function get api/v1/health() returns json {
+    resource function get health() returns json {
         io:println("API health endpoint called");
         return {
             "status": "healthy",
@@ -21,7 +32,7 @@ service / on new http:Listener(9091) {
     }
 
     // Registration endpoint
-    resource function post api/v1/register(types:RegisterRequest request) returns http:Response|error {
+    resource function post register(types:RegisterRequest request) returns http:Response|error {
         http:Response response = new;
         
         types:UserResponse|error result = userService:registerUser(request);
@@ -45,7 +56,7 @@ service / on new http:Listener(9091) {
     }
 
     // Login endpoint
-    resource function post api/v1/login(types:LoginRequest request) returns http:Response|error {
+    resource function post login(types:LoginRequest request) returns http:Response|error {
         http:Response response = new;
         
         types:LoginResponse|error result = userService:loginUser(request);
@@ -69,7 +80,7 @@ service / on new http:Listener(9091) {
     }
 
     // Get profile endpoint
-    resource function get api/v1/profile(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+    resource function get profile(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
         
         string|error email = token:validateToken(authorization);
@@ -103,7 +114,7 @@ service / on new http:Listener(9091) {
     }
 
     // Update profile endpoint
-    resource function put api/v1/profile(@http:Header {name: "Authorization"} string? authorization, types:UserUpdate updatedUser) returns http:Response|error {
+    resource function put profile(@http:Header {name: "Authorization"} string? authorization, types:UserUpdate updatedUser) returns http:Response|error {
         http:Response response = new;
         
         string|error email = token:validateToken(authorization);
@@ -151,7 +162,7 @@ service / on new http:Listener(9091) {
     }
 
     // Logout endpoint
-    resource function post api/v1/logout(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+    resource function post logout(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
         
         if authorization is () || !authorization.startsWith("Bearer ") {

@@ -1,33 +1,30 @@
 -- Vytal Database Setup Script
--- Run this script to create the database and initial structure
+-- Run once or let Ballerina auto-create
 
--- Create database
 CREATE DATABASE IF NOT EXISTS vytal_db 
 CHARACTER SET utf8mb4 
 COLLATE utf8mb4_unicode_ci;
 
--- Use the database
 USE vytal_db;
 
--- Create users table
+-- Users table
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20) NOT NULL,
+    phone_number VARCHAR(20) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
     role ENUM('donor', 'receiver') NOT NULL,
-    category ENUM('Organs', 'Medicines', 'Blood') NOT NULL,
+    categories JSON NOT NULL, -- multiple categories allowed
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     INDEX idx_email (email),
     INDEX idx_role (role),
-    INDEX idx_category (category),
     INDEX idx_created_at (created_at)
 );
 
--- Create health_records table (for future use)
+-- Health Records table (future use)
 CREATE TABLE IF NOT EXISTS health_records (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -37,14 +34,14 @@ CREATE TABLE IF NOT EXISTS health_records (
     data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
     INDEX idx_record_type (record_type),
     INDEX idx_created_at (created_at)
 );
 
--- Create appointments table (for future use)
+-- Appointments table (future use)
 CREATE TABLE IF NOT EXISTS appointments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT NOT NULL,
@@ -54,7 +51,7 @@ CREATE TABLE IF NOT EXISTS appointments (
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_patient_id (patient_id),
@@ -63,39 +60,33 @@ CREATE TABLE IF NOT EXISTS appointments (
     INDEX idx_status (status)
 );
 
--- Insert sample users with new schema
-INSERT IGNORE INTO users (name, phone, email, password_hash, role, category) 
+-- Insert sample users (with JSON categories)
+INSERT IGNORE INTO users (name, phone_number, email, password, role, categories) 
 VALUES (
-    'John Donor', 
+    'John Donor',
     '+1234567890',
-    'donor@vytal.com', 
-    '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', -- SHA256 hash of 'donor123'
+    'donor@vytal.com',
+    '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', -- SHA256 of 'donor123'
     'donor',
-    'Blood'
+    '["Blood"]'
 );
 
-INSERT IGNORE INTO users (name, phone, email, password_hash, role, category) 
+INSERT IGNORE INTO users (name, phone_number, email, password, role, categories) 
 VALUES (
-    'Sarah Receiver', 
+    'Sarah Receiver',
     '+1234567891',
-    'receiver@vytal.com', 
-    '8b2c2e9a7e9e9e5f3e9b6a9f8e3c4d5f6789abc123def456ghi789jkl012mno345', -- SHA256 hash of 'receiver123'
+    'receiver@vytal.com',
+    '8b2c2e9a7e9e9e5f3e9b6a9f8e3c4d5f6789abc123def456ghi789jkl012mno345', -- fake hash
     'receiver',
-    'Organs'
+    '["Organs"]'
 );
 
-INSERT IGNORE INTO users (name, phone, email, password_hash, role, category) 
+INSERT IGNORE INTO users (name, phone_number, email, password, role, categories) 
 VALUES (
-    'Medicine Donor', 
+    'Medicine Donor',
     '+1234567892',
-    'medicine@vytal.com', 
-    'f8f7e9e9e6d5c4b3a29182736454859687776665544332211009988776655443', -- SHA256 hash of 'medicine123'
+    'medicine@vytal.com',
+    'f8f7e9e9e6d5c4b3a29182736454859687776665544332211009988776655443', -- fake hash
     'donor',
-    'Medicines'
+    '["Medicines"]'
 );
-
--- Show created tables
-SHOW TABLES;
-
--- Show users
-SELECT id, name, email, role, created_at FROM users;

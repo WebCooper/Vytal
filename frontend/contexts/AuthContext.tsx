@@ -11,10 +11,10 @@ interface AuthContextType {
   signUp: (data: {
     name: string;
     email: string;
-    phone: string;
+    phone_number: string;
     password: string;
     role?: string;
-    category?: string;
+    categories?: string[];
   }) => Promise<AuthResponse>;
   signOut: () => void;
 }
@@ -64,20 +64,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (data: {
     name: string;
     email: string;
-    phone: string;
+    phone_number: string;
     password: string;
     role?: string;
-    category?: string;
+    categories?: string[];
   }): Promise<AuthResponse> => {
     setIsLoading(true);
     
     try {
       const response = await apiClient.signUp(data);
       
-      if (response.success && response.user && response.token) {
+      if (response.success && response.user) {
         setUser(response.user);
         localStorage.setItem('vytal_user', JSON.stringify(response.user));
-        localStorage.setItem('vytal_token', response.token);
       }
       
       return response;

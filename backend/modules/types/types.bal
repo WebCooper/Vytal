@@ -6,7 +6,7 @@ public enum Role {
 }
 
 public enum Category {
-    ORGANIC = "Organic",
+    ORGANIC = "Organs",
     MEDICINES = "Medicines", 
     BLOOD = "Blood"
 }

@@ -1,16 +1,14 @@
 // API configuration and utilities for Vytal frontend
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9091/api/v1';
 
 export interface User {
-  id: number;
   name: string;
   email: string;
-  phone?: string;
+  phone_number?: string;
   role?: string;
-  category?: string;
-  created_at?: string;
-  updated_at?: string;
+  categories?: string[];
+  timestamp?: [number, number];
 }
 
 export interface AuthResponse {
@@ -23,10 +21,10 @@ export interface AuthResponse {
 export interface SignUpData {
   name: string;
   email: string;
-  phone?: string;
+  phone_number: string;
   password: string;
   role?: string;
-  category?: string;
+  categories?: string[];
 }
 
 export interface SignInData {
@@ -109,19 +107,20 @@ class ApiClient {
   // Authentication
   async signUp(data: SignUpData): Promise<AuthResponse> {
     try {
-      // Create user through registration endpoint
-      await this.request<User>('/users', {
+      const response = await this.request<{
+        message: string;
+        user: User;
+        timestamp: [number, number];
+      }>('/register', {
         method: 'POST',
         body: JSON.stringify(data),
       });
 
-      // After successful registration, try to log in
-      const loginResponse = await this.signIn({
-        email: data.email,
-        password: data.password
-      });
-
-      return loginResponse;
+      return {
+        success: true,
+        message: response.message,
+        user: response.user
+      };
     } catch (error) {
       return {
         success: false,
@@ -132,7 +131,7 @@ class ApiClient {
 
   async signIn(data: SignInData): Promise<AuthResponse> {
     try {
-      const response = await this.request<AuthResponse>('/auth/login', {
+      const response = await this.request<AuthResponse>('/login', {
         method: 'POST',
         body: JSON.stringify(data),
       });
