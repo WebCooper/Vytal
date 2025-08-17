@@ -6,20 +6,59 @@ import ProfileHeader from "@/components/shared/ProfileHeader";
 import Sidebar from "@/components/recipientProfile/Sidebar";
 import Filterbar from "@/components/recipientProfile/Filterbar";
 import PostsGrid from "@/components/shared/PostsGrid";
-import CreatePostModal from "@/components/recipientProfile/CreatePostModel";
-import { myRecipientPosts } from "../mockData"; // get myPosts from API
+import CreateRecipientPost from "@/components/recipientProfile/CreatePostModel";
+import { getPostsByUser, RecipientPost, PostCategory } from "@/lib/recipientPosts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { UserType } from "@/components/types";
+import { UserType, Post, Category } from "@/components/types";
 
 export default function RecipientDashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const myPosts = myRecipientPosts; // Replace with actual API call to fetch recipient's posts
+  const [myPosts, setMyPosts] = useState<Post[]>([]);
+  const [isPostsLoading, setIsPostsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("posts");
   const [filterCategory, setFilterCategory] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Function to convert RecipientPost to Post
+  const mapRecipientPostToPost = (recipientPost: RecipientPost): Post => {
+    // Map PostCategory to Category enum
+    const mapCategory = (category: PostCategory): Category => {
+      switch(category) {
+        case 'blood': return Category.BLOOD;
+        case 'organs': return Category.ORGANS;
+        case 'fundraiser': return Category.FUNDRAISER;
+        case 'medicines': return Category.MEDICINES;
+        case 'supplies': return Category.SUPPLIES;
+        default: return Category.SUPPLIES; // Default fallback
+      }
+    };
+    
+    return {
+      id: recipientPost.id,
+      title: recipientPost.title,
+      category: mapCategory(recipientPost.category),
+      content: recipientPost.content,
+      createdAt: recipientPost.createdAt,
+      status: recipientPost.status,
+      urgency: recipientPost.urgency || 'medium',
+      engagement: recipientPost.engagement,
+      user: {
+        id: recipientPost.user.id,
+        name: recipientPost.user.name,
+        email: recipientPost.user.email,
+        avatar: '/images/default-avatar.png', // Default avatar
+        verified: true,
+        joinedDate: new Date().toISOString().split('T')[0],
+        type: UserType.RECIPIENT
+      },
+      contact: recipientPost.contact || '',
+      fundraiserDetails: recipientPost.fundraiserDetails || undefined,
+      location: recipientPost.location
+    };
+  };
 
   useEffect(() => {
     // Protect the recipient page - only receivers can access
@@ -27,9 +66,30 @@ export default function RecipientDashboard() {
       router.push('/auth/signin');
     }
   }, [isLoading, isAuthenticated, user, router]);
+  
+  useEffect(() => {
+    // Fetch recipient's posts when user is authenticated
+    const fetchUserPosts = async () => {
+      if (user && user.id) {
+        try {
+          setIsPostsLoading(true);
+          const response = await getPostsByUser(user.id);
+          setMyPosts(response.data.map(post => mapRecipientPostToPost(post)));
+        } catch (error) {
+          console.error("Error fetching user posts:", error);
+        } finally {
+          setIsPostsLoading(false);
+        }
+      }
+    };
+    
+    if (isAuthenticated && user) {
+      fetchUserPosts();
+    }
+  }, [isAuthenticated, user]);
 
-  // Show loading state while checking authentication
-  if (isLoading || !user) {
+  // Show loading state while checking authentication or loading posts
+  if (isLoading || !user || isPostsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
         <div className="text-emerald-700 text-xl font-semibold">Loading...</div>
@@ -47,19 +107,28 @@ export default function RecipientDashboard() {
   };
 
   const handlePostCreated = async () => {
-    // In a real implementation, you would refresh the posts from the API
-    // For now, we'll just close the modal
-    // TODO: Add logic to refresh posts
+    console.log('Post created successfully!');
+    // Refresh posts after creating a new one
+    if (user && user.id) {
+      try {
+        setIsPostsLoading(true);
+        const response = await getPostsByUser(user.id);
+        setMyPosts(response.data.map(post => mapRecipientPostToPost(post)));
+      } catch (error) {
+        console.error("Error refreshing user posts:", error);
+      } finally {
+        setIsPostsLoading(false);
+      }
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
-      {isModalOpen && (
-        <CreatePostModal 
-          onClose={() => setIsModalOpen(false)} 
-          onSuccess={handlePostCreated}
-        />
-      )}
+      <CreateRecipientPost 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)} 
+        onPostCreated={handlePostCreated}
+      />
       <ProfileHeader user={adaptedUser} />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
