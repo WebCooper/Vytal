@@ -20,7 +20,7 @@ import {
 import { MdVerified } from 'react-icons/md';
 import { RecipientPost, getAllPosts } from '@/lib/recipientPosts';
 import { Post, Category, UserType } from '@/components/types';
-import { getCategoryIcon, getCategoryColor, getUrgencyColor, getStatusColor, formatDate } from '@/components/utils';
+import { getCategoryIcon, getCategoryColor,formatDate } from '@/components/utils';
 import FundraiserProgressbar from '@/components/shared/FundraiserProgressbar';
 import ContactModal from '@/components/shared/ContactModal';
 import HelpNowModal from '@/components/shared/HelpNowModal';

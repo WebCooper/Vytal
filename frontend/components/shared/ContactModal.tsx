@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaPhone, FaEnvelope, FaMapMarkerAlt, FaUser, FaPaperPlane } from 'react-icons/fa';
+import { FaTimes, FaPhone, FaEnvelope, FaUser, FaPaperPlane } from 'react-icons/fa';
 import { MdVerified } from 'react-icons/md';
 import { Post } from '../types';
 
