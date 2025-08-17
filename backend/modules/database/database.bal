@@ -8,6 +8,7 @@ import ballerina/io;
 import ballerina/lang.'int;
 import ballerina/lang.value;
 
+
 # Database Client Configuration - optional for development
 configurable string dbHost = ?;
 configurable string dbUser = ?;
@@ -563,195 +564,107 @@ public isolated function closeDbConnection() returns error? {
     }
     return ();
 }
+public isolated function createDonorPost(int userId, types:DonorPostCreate request) returns int|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    // If database not available, return an error
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    string categoryJson = value:toJson(request.category).toJsonString();
+    string statusJson = value:toJson(request.status).toJsonString();
+    string urgencyJson = value:toJson(request.urgency).toJsonString();
 
-public isolated function createDonorPost(types:DonorPostCreate post) returns (int|error) {
-    mysql:Client dbClientInstance = check getDbClient();
     
-    string? bloodOfferingJson = ();
-    string? fundraiserOfferingJson = ();
-    string? medicineOfferingJson = ();
-    string? organOfferingJson = ();
+    // Convert complex objects to JSON strings if they exist
+    string? bloodOfferingJson = request.bloodOffering is () ? () : 
+                               value:toJson(request.bloodOffering).toJsonString();
+    string? fundraiserOfferingJson = request.fundraiserOffering is () ? () : 
+                                    value:toJson(request.fundraiserOffering).toJsonString();
+    string? medicineOfferingJson = request.medicineOffering is () ? () : 
+                                  value:toJson(request.medicineOffering).toJsonString();
+    string? organOfferingJson = request.organOffering is () ? () : 
+                               value:toJson(request.organOffering).toJsonString();
     
-    // Create the appropriate offering JSON based on the category
-    match post.category {
-        "blood" => {
-            if post.bloodOffering is () {
-                return error("Blood category requires blood offering details");
-            }
-            types:BloodOffering bloodOffering = <types:BloodOffering>post.bloodOffering;
-            json bloodJson = {
-                "bloodType": bloodOffering.bloodType,
-                "availability": bloodOffering.availability,
-                "lastDonation": bloodOffering.lastDonation
-            };
-            bloodOfferingJson = bloodJson.toJsonString();
-        }
-        "fundraiser" => {
-            if post.fundraiserOffering is () {
-                return error("Fundraiser category requires fundraiser offering details");
-            }
-            types:FundraiserOffering fundraiserOffering = <types:FundraiserOffering>post.fundraiserOffering;
-            json fundraiserJson = {
-                "maxAmount": fundraiserOffering.maxAmount,
-                "preferredUse": fundraiserOffering.preferredUse,
-                "requirements": fundraiserOffering.requirements
-            };
-            fundraiserOfferingJson = fundraiserJson.toJsonString();
-        }
-        "medicines" => {
-            if post.medicineOffering is () {
-                return error("Medicine category requires medicine offering details");
-            }
-            types:MedicineOffering medicineOffering = <types:MedicineOffering>post.medicineOffering;
-            json medicineJson = {
-                "medicineTypes": medicineOffering.medicineTypes,
-                "quantity": medicineOffering.quantity,
-                "expiry": medicineOffering.expiry
-            };
-            medicineOfferingJson = medicineJson.toJsonString();
-        }
-        "organs" => {
-            if post.organOffering is () {
-                return error("Organ category requires organ offering details");
-            }
-            types:OrganOffering organOffering = <types:OrganOffering>post.organOffering;
-            json organJson = {
-                "organType": organOffering.organType,
-                "healthStatus": organOffering.healthStatus,
-                "availability": organOffering.availability
-            };
-            organOfferingJson = organJson.toJsonString();
-        }
-        _ => {
-            return error("Unsupported category: " + post.category.toString());
-        }
+    // Match exactly with the database column names from the CREATE TABLE statement
+    sql:ParameterizedQuery query = `INSERT INTO donor_posts 
+        (donor_id, title, category, content, location, status, urgency, contact, 
+        bloodOffering, fundraiserOffering, medicineOffering, organOffering,
+        likes, comments, shares, views, created_at) 
+        VALUES (${userId}, ${request.title}, ${categoryJson}, ${request.content},
+                ${request.location}, ${statusJson}, ${urgencyJson}, ${request.contact},
+                ${bloodOfferingJson}, ${fundraiserOfferingJson},
+                ${medicineOfferingJson}, ${organOfferingJson},
+                0, 0, 0, 0, CURRENT_TIMESTAMP())`;
+
+
+    sql:ExecutionResult|error result = dbClientInstance->execute(query);
+    if result is error {
+        return result;
     }
 
-    // Convert enum values to JSON strings - wrapped in quotes for JSON format
-    string statusJson = "\"" + post.status.toString() + "\"";
-    string categoryJson = "\"" + post.category.toString() + "\"";
-    string urgencyJson = "\"" + post.urgency.toString() + "\"";
-    
-    sql:ParameterizedQuery insertQuery = `INSERT INTO donor_posts
-        (donor_id, title, status, category, content, location, urgency, contact,
-         bloodOffering, fundraiserOffering, medicineOffering, organOffering)
-        VALUES (${post.donor_id}, ${post.title}, ${statusJson},
-                ${categoryJson}, ${post.content}, ${post.location},
-                ${urgencyJson}, ${post.contact}, 
-                ${bloodOfferingJson}, ${fundraiserOfferingJson}, ${medicineOfferingJson}, 
-                ${organOfferingJson})`;
-
-    sql:ExecutionResult result = check dbClientInstance->execute(insertQuery);
     return <int>result.lastInsertId;
 }
 
+public isolated function getDonorPostById(int id) returns types:DonorPost|error|() {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
+    sql:ParameterizedQuery query = `SELECT * FROM donor_posts WHERE id = ${id}`;
+    stream<record {}, sql:Error?> resultStream = dbClientInstance->query(query);
 
-# Get all donor posts from the database
-# + return - Array of donor posts or error if operation fails
+    // Use proper type casting to handle the result
+    var result = resultStream.next();
+    check resultStream.close();
+
+    if result is sql:Error {
+        return error("Error fetching donor post: " + result.message());
+    } else if result is () {
+        return ();
+    } else {
+        // The result can only be a record at this point
+        var recordResult = <record {|record {} value;|}>result;
+        return mapRowToDonorPost(recordResult.value);
+    }
+}
+
 public isolated function getDonorPosts() returns types:DonorPost[]|error {
-    mysql:Client dbClientInstance = check getDbClient();
-
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
     sql:ParameterizedQuery query = `SELECT * FROM donor_posts ORDER BY created_at DESC`;
     stream<record {}, sql:Error?> resultStream = dbClientInstance->query(query);
 
     types:DonorPost[] posts = [];
-
+    
+    // Process each row
     while (true) {
-        record {|record {} value;|}|sql:Error? result = resultStream.next();
+        var result = resultStream.next();
         if result is sql:Error {
-            return error("Error retrieving donor posts: " + result.message());
+            check resultStream.close();
+            return error("Error fetching donor posts: " + result.message());
         } else if result is () {
             break;
         } else {
-            record {} row = result.value;
-            
-            // Clean enum JSON strings
-            string categoryStr = <string>(row["category"] ?: "\"unknown\"");
-            string categoryClean = regex:replaceAll(categoryStr, "\"", "");
-            
-            string statusStr = <string>(row["status"] ?: "\"pending\"");
-            string statusClean = regex:replaceAll(statusStr, "\"", "");
-            
-            string urgencyStr = <string>(row["urgency"] ?: "\"low\"");
-            string urgencyClean = regex:replaceAll(urgencyStr, "\"", "");
-            
-            // Build donor post
-            types:DonorPost post = {
-                id: row["id"] is () ? 0 : <int>row["id"],
-                donor_id: row["donor_id"] is () ? 0 : <int>row["donor_id"],
-                title: <string>(row["title"] ?: ""),
-                status: <types:Status>statusClean,
-                category: <types:Category>categoryClean,
-                content: <string>(row["content"] ?: ""),
-                location: <string>(row["location"] ?: ""),
-                createdAt: <string>(row["created_at"] ?: ""),
-                urgency: <types:Urgency>urgencyClean,
-                contact: <string>(row["contact"] ?: ""),
-                engagement: {
-                    likes: row["likes"] is () ? 0 : <int>row["likes"],
-                    comments: row["comments"] is () ? 0 : <int>row["comments"],
-                    shares: row["shares"] is () ? 0 : <int>row["shares"],
-                    views: row["views"] is () ? 0 : <int>row["views"]
-                },
-                bloodOffering: (),
-                fundraiserOffering: (),
-                medicineOffering: (),
-                organOffering: ()
-            };
-            
-            // Parse offerings based on category
-            string category = categoryClean;
-            match category {
-                "blood" => {
-                    any bloodOfferingValue = row["bloodOffering"];
-                    if bloodOfferingValue is string && bloodOfferingValue != "" {
-                        json|error bloodJson = value:fromJsonString(bloodOfferingValue);
-                        if bloodJson is json {
-                            types:BloodOffering|error parsedOffering = value:fromJsonWithType(bloodJson, types:BloodOffering);
-                            if parsedOffering is types:BloodOffering {
-                                post.bloodOffering = parsedOffering;
-                            }
-                        }
-                    }
-                }
-                "fundraiser" => {
-                    any fundraiserOfferingValue = row["fundraiserOffering"];
-                    if fundraiserOfferingValue is string && fundraiserOfferingValue != "" {
-                        json|error fundraiserJson = value:fromJsonString(fundraiserOfferingValue);
-                        if fundraiserJson is json {
-                            types:FundraiserOffering|error parsedOffering = value:fromJsonWithType(fundraiserJson, types:FundraiserOffering);
-                            if parsedOffering is types:FundraiserOffering {
-                                post.fundraiserOffering = parsedOffering;
-                            }
-                        }
-                    }
-                }
-                "medicines" => {
-                    any medicineOfferingValue = row["medicineOffering"];
-                    if medicineOfferingValue is string && medicineOfferingValue != "" {
-                        json|error medicineJson = value:fromJsonString(medicineOfferingValue);
-                        if medicineJson is json {
-                            types:MedicineOffering|error parsedOffering = value:fromJsonWithType(medicineJson, types:MedicineOffering);
-                            if parsedOffering is types:MedicineOffering {
-                                post.medicineOffering = parsedOffering;
-                            }
-                        }
-                    }
-                }
-                "organs" => {
-                    any organOfferingValue = row["organOffering"];
-                    if organOfferingValue is string && organOfferingValue != "" {
-                        json|error organJson = value:fromJsonString(organOfferingValue);
-                        if organJson is json {
-                            types:OrganOffering|error parsedOffering = value:fromJsonWithType(organJson, types:OrganOffering);
-                            if parsedOffering is types:OrganOffering {
-                                post.organOffering = parsedOffering;
-                            }
-                        }
-                    }
-                }
+            // The result can only be a record at this point
+            var recordResult = <record {|record {} value;|}>result;
+            types:DonorPost|error post = mapRowToDonorPost(recordResult.value);
+            if post is error {
+                check resultStream.close();
+                return post;
             }
-            
             posts.push(post);
         }
     }
@@ -760,188 +673,178 @@ public isolated function getDonorPosts() returns types:DonorPost[]|error {
     return posts;
 }
 
-public isolated function getDonorPostById(int id) returns (types:DonorPost|error?) {
-    mysql:Client dbClientInstance = check getDbClient();
+public isolated function updateDonorPost(int id, types:DonorPostUpdate request) returns boolean|error {
+    mysql:Client|error dbClientResult = getDbClient();
     
-    sql:ParameterizedQuery selectQuery = `SELECT * FROM donor_posts WHERE id = ${id}`;
-    stream<record {}, error?> resultStream = dbClientInstance->query(selectQuery);
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
+    // Convert complex objects to JSON strings if they exist
+    string? bloodOfferingJson = request.bloodOffering is () ? () : 
+                               value:toJson(request.bloodOffering).toJsonString();
+    string? fundraiserOfferingJson = request.fundraiserOffering is () ? () : 
+                                    value:toJson(request.fundraiserOffering).toJsonString();
+    string? medicineOfferingJson = request.medicineOffering is () ? () : 
+                                  value:toJson(request.medicineOffering).toJsonString();
+    string? organOfferingJson = request.organOffering is () ? () : 
+                               value:toJson(request.organOffering).toJsonString();
+    
+    sql:ParameterizedQuery query = `UPDATE donor_posts SET 
+        title = COALESCE(${request.title}, title),
+        category = COALESCE(${request.category}, category),
+        content = COALESCE(${request.content}, content),
+        status = COALESCE(${request.status}, status),
+        location = COALESCE(${request.location}, location),
+        urgency = COALESCE(${request.urgency}, urgency),
+        contact = COALESCE(${request.contact}, contact),
+        blood_offering = COALESCE(${bloodOfferingJson}, blood_offering),
+        fundraiser_offering = COALESCE(${fundraiserOfferingJson}, fundraiser_offering),
+        medicine_offering = COALESCE(${medicineOfferingJson}, medicine_offering),
+        organ_offering = COALESCE(${organOfferingJson}, organ_offering),
+        updated_at = CURRENT_TIMESTAMP()
+        WHERE id = ${id}`;
 
-    record {}? row = check resultStream.next();
-    check resultStream.close();
-    
-    if row is () {
-        return ();
+    sql:ExecutionResult|error result = dbClientInstance->execute(query);
+    if result is error {
+        return result;
     }
 
-    // Get and clean category JSON string
-    string categoryStr = <string>(row["category"] ?: "\"unknown\"");
-    string categoryClean = regex:replaceAll(categoryStr, "\"", "");
-    
-    // Get and clean status JSON string
-    string statusStr = <string>(row["status"] ?: "\"pending\"");
-    string statusClean = regex:replaceAll(statusStr, "\"", "");
-    
-    // Get and clean urgency JSON string
-    string urgencyStr = <string>(row["urgency"] ?: "\"low\"");
-    string urgencyClean = regex:replaceAll(urgencyStr, "\"", "");
+    return result?.affectedRowCount > 0;
+}
 
-    // Build donor post safely, handling nullable fields with default values
+public isolated function deleteDonorPost(int id) returns boolean|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
+    sql:ParameterizedQuery query = `DELETE FROM donor_posts WHERE id = ${id}`;
+    sql:ExecutionResult|error result = dbClientInstance->execute(query);
+    if result is error {
+        return result;
+    }
+    return result?.affectedRowCount > 0;
+}
+
+# Mapper Helper for converting database row to DonorPost record
+# + row - Database row containing donor post data
+# + return - DonorPost record or error
+isolated function mapRowToDonorPost(record {} row) returns types:DonorPost|error {
+    // Parse JSON strings to objects
+    types:BloodOffering? bloodOffer = ();
+    types:FundraiserOffering? fundraiserOffer = ();
+    types:MedicineOffering? medicineOffer = ();
+    types:OrganOffering? organOffer = ();
+
+    // --- Offerings ---
+    if row["bloodOffering"] is string {
+        string jsonStr = <string>row["bloodOffering"];
+        if jsonStr.trim() != "" {
+            json jsonData = check value:fromJsonString(jsonStr);
+            bloodOffer = check value:cloneWithType(jsonData);
+        }
+    }
+
+    if row["fundraiserOffering"] is string {
+        string jsonStr = <string>row["fundraiserOffering"];
+        if jsonStr.trim() != "" {
+            json jsonData = check value:fromJsonString(jsonStr);
+            fundraiserOffer = check value:cloneWithType(jsonData);
+        }
+    }
+
+    if row["medicineOffering"] is string {
+        string jsonStr = <string>row["medicineOffering"];
+        if jsonStr.trim() != "" {
+            json jsonData = check value:fromJsonString(jsonStr);
+            medicineOffer = check value:cloneWithType(jsonData);
+        }
+    }
+
+    if row["organOffering"] is string {
+        string jsonStr = <string>row["organOffering"];
+        if jsonStr.trim() != "" {
+            json jsonData = check value:fromJsonString(jsonStr);
+            organOffer = check value:cloneWithType(jsonData);
+        }
+    }
+
+    // --- Core JSON fields ---
+    string status = "";
+    string category = "";
+    string urgency = "";
+
+    if row["status"] is string {
+        string jsonStr = <string>row["status"];
+        if jsonStr.trim() != "" {
+            json parsed = check value:fromJsonString(jsonStr);
+            // unwrap JSON string like `"low"` into plain string
+            if parsed is string {
+                status = parsed;
+            }
+        }
+    }
+
+    if row["category"] is string {
+        string jsonStr = <string>row["category"];
+        if jsonStr.trim() != "" {
+            json parsed = check value:fromJsonString(jsonStr);
+            if parsed is string {
+                category = parsed;
+            } else if parsed is json[] {
+                // if category was stored as an array, take first element (or join them)
+                if parsed.length() > 0 && parsed[0] is string {
+                    category = <string>parsed[0];
+                }
+            }
+        }
+    }
+
+    if row["urgency"] is string {
+        string jsonStr = <string>row["urgency"];
+        if jsonStr.trim() != "" {
+            json parsed = check value:fromJsonString(jsonStr);
+            if parsed is string {
+                urgency = parsed;
+            }
+        }
+    }
+
+    // --- Build DonorPost record ---
     types:DonorPost donorPost = {
-        id: row["id"] is () ? 0 : <int>row["id"],
-        donor_id: row["donor_id"] is () ? 0 : <int>row["donor_id"],
-        title: <string>(row["title"] ?: ""),
-        status: <types:Status>statusClean,
-        category: <types:Category>categoryClean,
-        content: <string>(row["content"] ?: ""),
-        location: <string>(row["location"] ?: ""),
-        createdAt: <string>(row["created_at"] ?: ""),
-        urgency: <types:Urgency>urgencyClean,
-        contact: <string>(row["contact"] ?: ""),
-        engagement: {
-            likes: row["likes"] is () ? 0 : <int>row["likes"],
-            comments: row["comments"] is () ? 0 : <int>row["comments"],
-            shares: row["shares"] is () ? 0 : <int>row["shares"],
-            views: row["views"] is () ? 0 : <int>row["views"]
-        },
-        bloodOffering: (),
-        fundraiserOffering: (),
-        medicineOffering: (),
-        organOffering: ()
-    };
+        id: <int>row["id"],
+        donor_id: <int>row["donor_id"],
+        title: <string>row["title"],
+        status: <types:Status>status,
+        category: <types:Category>category,
+        content: <string>row["content"],
+        location: <string>row["location"],
+        createdAt: <string>row["created_at"],
+        urgency: <types:Urgency>urgency,
+        contact: <string>row["contact"],
 
-    // Set the appropriate offering details based on category
-    match categoryStr {
-        "blood" => {
-            any bloodOfferingValue = row["bloodOffering"];
-            if bloodOfferingValue is string && bloodOfferingValue != "" {
-                json|error bloodJson = value:fromJsonString(bloodOfferingValue);
-                if bloodJson is json {
-                    types:BloodOffering|error parsedOffering = value:fromJsonWithType(bloodJson, types:BloodOffering);
-                    if parsedOffering is types:BloodOffering {
-                        donorPost.bloodOffering = parsedOffering;
-                    }
-                }
-            }
-        }
-        "fundraiser" => {
-            any fundraiserOfferingValue = row["fundraiserOffering"];
-            if fundraiserOfferingValue is string && fundraiserOfferingValue != "" {
-                json|error fundraiserJson = value:fromJsonString(fundraiserOfferingValue);
-                if fundraiserJson is json {
-                    types:FundraiserOffering|error parsedOffering = value:fromJsonWithType(fundraiserJson, types:FundraiserOffering);
-                    if parsedOffering is types:FundraiserOffering {
-                        donorPost.fundraiserOffering = parsedOffering;
-                    }
-                }
-            }
-        }
-        "medicines" => {
-            any medicineOfferingValue = row["medicineOffering"];
-            if medicineOfferingValue is string && medicineOfferingValue != "" {
-                json|error medicineJson = value:fromJsonString(medicineOfferingValue);
-                if medicineJson is json {
-                    types:MedicineOffering|error parsedOffering = value:fromJsonWithType(medicineJson, types:MedicineOffering);
-                    if parsedOffering is types:MedicineOffering {
-                        donorPost.medicineOffering = parsedOffering;
-                    }
-                }
-            }
-        }
-        "organs" => {
-            any organOfferingValue = row["organOffering"];
-            if organOfferingValue is string && organOfferingValue != "" {
-                json|error organJson = value:fromJsonString(organOfferingValue);
-                if organJson is json {
-                    types:OrganOffering|error parsedOffering = value:fromJsonWithType(organJson, types:OrganOffering);
-                    if parsedOffering is types:OrganOffering {
-                        donorPost.organOffering = parsedOffering;
-                    }
-                }
-            }
-        }
-        _ => {
-            // Unsupported or missing category - leave offerings empty
-        }
-    }
+        engagement: {
+            likes: row["likes"] is int ? <int>row["likes"] : 0,
+            comments: row["comments"] is int ? <int>row["comments"] : 0,
+            shares: row["shares"] is int ? <int>row["shares"] : 0,
+            views: row["views"] is int ? <int>row["views"] : 0
+        },
+
+        bloodOffering: bloodOffer,
+        fundraiserOffering: fundraiserOffer,
+        medicineOffering: medicineOffer,
+        organOffering: organOffer
+    };
 
     return donorPost;
 }
 
-public isolated function deleteDonorPost(int id) returns sql:ExecutionResult|error {
-    mysql:Client dbClientInstance = check getDbClient();
-    sql:ParameterizedQuery query = `DELETE FROM donor_posts WHERE id = ${id}`;
-    return dbClientInstance->execute(query);
-}
-
-public isolated function updateDonorPost(int id, types:DonorPostUpdate post) returns sql:ExecutionResult|error {
-    mysql:Client dbClientInstance = check getDbClient();
-    
-    // Convert enum values to JSON strings if they exist
-    string? categoryJson = post.category is () ? () : "\"" + post.category.toString() + "\"";
-    string? statusJson = post.status is () ? () : "\"" + post.status.toString() + "\"";
-    string? urgencyJson = post.urgency is () ? () : "\"" + post.urgency.toString() + "\"";
-    
-    // Handle each type of offering JSON if provided
-    string? bloodOfferingJson = ();
-    string? fundraiserOfferingJson = ();
-    string? medicineOfferingJson = ();
-    string? organOfferingJson = ();
-    
-    if post.bloodOffering is types:BloodOffering {
-        json bloodJson = {
-            "bloodType": (<types:BloodOffering>post.bloodOffering).bloodType,
-            "availability": (<types:BloodOffering>post.bloodOffering).availability,
-            "lastDonation": (<types:BloodOffering>post.bloodOffering).lastDonation
-        };
-        bloodOfferingJson = bloodJson.toJsonString();
-    }
-    
-    if post.fundraiserOffering is types:FundraiserOffering {
-        json fundraiserJson = {
-            "maxAmount": (<types:FundraiserOffering>post.fundraiserOffering).maxAmount,
-            "preferredUse": (<types:FundraiserOffering>post.fundraiserOffering).preferredUse,
-            "requirements": (<types:FundraiserOffering>post.fundraiserOffering).requirements
-        };
-        fundraiserOfferingJson = fundraiserJson.toJsonString();
-    }
-    
-    if post.medicineOffering is types:MedicineOffering {
-        json medicineJson = {
-            "medicineTypes": (<types:MedicineOffering>post.medicineOffering).medicineTypes,
-            "quantity": (<types:MedicineOffering>post.medicineOffering).quantity,
-            "expiry": (<types:MedicineOffering>post.medicineOffering).expiry
-        };
-        medicineOfferingJson = medicineJson.toJsonString();
-    }
-    
-    if post.organOffering is types:OrganOffering {
-        json organJson = {
-            "organType": (<types:OrganOffering>post.organOffering).organType,
-            "healthStatus": (<types:OrganOffering>post.organOffering).healthStatus,
-            "availability": (<types:OrganOffering>post.organOffering).availability
-        };
-        organOfferingJson = organJson.toJsonString();
-    }
-    
-    sql:ParameterizedQuery query = `
-        UPDATE donor_posts 
-        SET 
-            title = COALESCE(${post.title}, title),
-            content = COALESCE(${post.content}, content),
-            category = COALESCE(${categoryJson}, category),
-            status = COALESCE(${statusJson}, status),
-            location = COALESCE(${post.location}, location),
-            urgency = COALESCE(${urgencyJson}, urgency),
-            contact = COALESCE(${post.contact}, contact),
-            bloodOffering = COALESCE(${bloodOfferingJson}, bloodOffering),
-            fundraiserOffering = COALESCE(${fundraiserOfferingJson}, fundraiserOffering),
-            medicineOffering = COALESCE(${medicineOfferingJson}, medicineOffering),
-            organOffering = COALESCE(${organOfferingJson}, organOffering),
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${id}
-    `;
-    return dbClientInstance->execute(query);
-}
 
 
 # Description.

@@ -363,7 +363,8 @@ service /api/v1 on new http:Listener(9091) {
 
 
     // Create donor post endpoint
-    resource function post donor_post(@http:Header {name: "Authorization"} string? authorization,types:DonorPostCreate request) returns http:Response|error {
+// Create donor post endpoint
+    resource function post donor_post(@http:Header {name: "Authorization"} string? authorization, types:DonorPostCreate request) returns http:Response|error {
         http:Response response = new;
 
         // Validate token and get user email
@@ -388,8 +389,8 @@ service /api/v1 on new http:Listener(9091) {
             return response;
         }
 
-        // Create donor post (passing request directly)
-        types:DonorPost|error result = donorPostService:createDonorPost(request);
+        // Pass userId into donor post creation (similar to recipient)
+        types:DonorPost|error result = donorPostService:createDonorPost(userResult.id, request);
 
         if result is error {
             response.statusCode = 400;
@@ -401,14 +402,13 @@ service /api/v1 on new http:Listener(9091) {
             response.statusCode = 201;
             response.setJsonPayload({
                 "message": "Donor post created successfully",
-                "data": result,
+                "data": result.toJson(),
                 "timestamp": time:utcNow()
             });
         }
 
         return response;
     }
-
 }
 
 // Function to handle shutdown
