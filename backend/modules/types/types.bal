@@ -1,15 +1,32 @@
 import ballerina/sql;
 
 public enum Role {
+    RECIPIENT = "recipient",
     DONOR = "donor",
-    RECEIVER = "receiver"
+    ORGANIZATION = "organization",
+    ADMIN = "admin"
 }
 
+# Description.
 public enum Category {
-    ORGANIC = "Organs",
-    MEDICINES = "Medicines", 
-    BLOOD = "Blood",
-    FUNDRAISER = "Fundraiser"
+    ORGANS = "organs",
+    BLOOD = "blood",
+    FUNDRAISER = "fundraiser",
+    MEDICINES = "medicines",
+    SUPPLIES = "supplies"
+}
+
+public enum Status {
+    PENDING = "pending",
+    OPEN = "open",
+    FULFILLED = "fulfilled",
+    CANCELLED = "cancelled"
+}
+
+public enum Urgency {
+    LOW = "low",
+    MEDIUM = "medium",
+    HIGH = "high"
 }
 
 # Database Configuration record type
@@ -167,9 +184,9 @@ public type RecipientPost record {|
     string title;
     string content;
     Category category;
-    string status;        // open, fulfilled, cancelled
+    Status status;        
     string location?;
-    string urgency?;      // low, medium, high
+    Urgency urgency?;      
     string contact?;
     string created_at?;
     string updated_at?;
@@ -197,9 +214,9 @@ public type RecipientPostCreate record {|
     string title;
     string content;
     Category category;
-    string status = "open";
+    Status status = "pending";
     string location?;
-    string urgency?;
+    Urgency urgency?;
     string contact?;
     decimal? goal = ();
 |};
@@ -219,9 +236,9 @@ public type RecipientPostUpdate record {|
     string? title;
     string? content;
     Category? category;
-    string? status;
+    Status? status;
     string? location;
-    string? urgency;
+    Urgency? urgency;
     string? contact;
     decimal? goal;
     decimal? received;
@@ -247,9 +264,9 @@ public type RecipientPostResponse record {|
     string title;
     string content;
     Category category;
-    string status;
+    Status status;
     string? location;
-    string? urgency;
+    Urgency? urgency;
     string createdAt;
     Engagement engagement;
     string? contact;
