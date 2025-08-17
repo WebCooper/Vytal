@@ -30,6 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedUser = localStorage.getItem('vytal_user');
     const savedToken = localStorage.getItem('vytal_token');
     
+    // Also check for legacy admin storage
+    const legacyUser = localStorage.getItem('user');
+    const legacyAuth = localStorage.getItem('isAuthenticated');
+    
     if (savedUser && savedToken) {
       try {
         const parsedUser = JSON.parse(savedUser);
@@ -43,6 +47,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('vytal_user');
         localStorage.removeItem('vytal_token');
       }
+    } else if (legacyUser && legacyAuth === 'true') {
+      // Handle legacy admin login
+      try {
+        const parsedUser = JSON.parse(legacyUser);
+        if (parsedUser.role === 'admin') {
+          setUser(parsedUser);
+        }
+      } catch (error) {
+        console.error('Error parsing legacy user:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('isAuthenticated');
+      }
     }
     
     setIsLoading(false);
@@ -52,6 +68,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
+      // Development hardcoded admin access
+      if (email === "admin@vytal.com" && password === "admin123") {
+        const mockAdminUser: User = {
+          id: 1,
+          name: "System Administrator",
+          email: "admin@vytal.com",
+          role: "admin"
+        };
+        
+        const mockToken = "dev-admin-token-123";
+        
+        setUser(mockAdminUser);
+        localStorage.setItem('vytal_user', JSON.stringify(mockAdminUser));
+        localStorage.setItem('vytal_token', mockToken);
+        
+        return {
+          success: true,
+          data: { user: mockAdminUser, token: mockToken },
+          message: "Admin login successful",
+          timestamp: [Date.now(), 0] as [number, number]
+        };
+      }
+
       const response = await apiSignIn({ email, password });
       
       if (response.data?.user && response.data?.token) {

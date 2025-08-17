@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "axios": "^1.11.0",
-    "framer-motion": "^12.22.0",
+    "framer-motion": "^12.23.12",
     "next": "15.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
