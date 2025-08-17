@@ -1,10 +1,12 @@
-// postService.ts
+// recipientPost.ts
 import { axiosInstance } from './axiosInstance';
 
-export type PostCategory = 'BLOOD' | 'MONETARY';
-export type PostStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-export type PostUrgency = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+// Enums from backend
+export type PostCategory = 'blood' | 'organs' | 'fundraiser' | 'medicines' | 'supplies';
+export type PostStatus = 'pending' | 'open' | 'fulfilled' | 'cancelled';
+export type PostUrgency = 'low' | 'medium' | 'high';
 
+// Engagement metrics
 export interface PostEngagement {
   likes: number;
   comments: number;
@@ -12,6 +14,13 @@ export interface PostEngagement {
   views: number;
 }
 
+// Fundraiser details
+export interface FundraiserDetails {
+  goal: number;
+  received: number;
+}
+
+// User preview data
 export interface UserPreview {
   id: number;
   name: string;
@@ -21,6 +30,7 @@ export interface UserPreview {
   categories: PostCategory[];
 }
 
+// Post model from backend
 export interface RecipientPost {
   id: number;
   user: UserPreview;
@@ -28,70 +38,74 @@ export interface RecipientPost {
   content: string;
   category: PostCategory;
   status: PostStatus;
-  location: string;
-  urgency: PostUrgency;
+  location?: string;
+  urgency?: PostUrgency;
   createdAt: string;
-  contact: string;
-  fundraiserDetails: any;
+  contact?: string;
+  fundraiserDetails?: FundraiserDetails | null;
   engagement: PostEngagement;
 }
 
+// Input to create a post
 export interface CreatePostInput {
   recipient_id: number;
   title: string;
   content: string;
   category: PostCategory;
-  status: PostStatus;
-  location: string;
-  urgency: PostUrgency;
-  contact: string;
+  status?: PostStatus; // default = 'pending' if omitted
+  location?: string;
+  urgency?: PostUrgency;
+  contact?: string;
   goal?: number;
 }
 
+// Input to update a post
 export interface UpdatePostInput {
   title?: string;
   content?: string;
+  category?: PostCategory;
   status?: PostStatus;
+  location?: string;
   urgency?: PostUrgency;
+  contact?: string;
+  goal?: number;
   received?: number;
 }
 
+// Full post response
 export interface PostResponse {
   message: string;
   data: RecipientPost;
   timestamp: string;
 }
 
+// List of posts
 export interface PostsListResponse {
   data: RecipientPost[];
   timestamp: string;
 }
 
-// Create a new post
+// API methods
 export const createPost = async (data: CreatePostInput): Promise<PostResponse> => {
   const response = await axiosInstance.post<PostResponse>('/posts', data);
   return response.data;
 };
 
-// Get all posts
 export const getAllPosts = async (): Promise<PostsListResponse> => {
   const response = await axiosInstance.get<PostsListResponse>('/posts');
   return response.data;
 };
 
-// Get posts by user ID
 export const getPostsByUser = async (userId: number): Promise<PostsListResponse> => {
   const response = await axiosInstance.get<PostsListResponse>(`/posts/${userId}`);
   return response.data;
 };
 
-// Update a post by post ID
 export const updatePost = async (postId: number, data: UpdatePostInput): Promise<PostResponse> => {
   const response = await axiosInstance.put<PostResponse>(`/posts/${postId}`, data);
   return response.data;
 };
 
-// Delete a post by post ID
 export const deletePost = async (postId: number): Promise<{ message: string; timestamp: string }> => {
   const response = await axiosInstance.delete(`/posts/${postId}`);
   return response.data;
