@@ -3,10 +3,11 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaPlus, FaHeart, FaShare } from "react-icons/fa";
 import ProfileHeader from "@/components/shared/ProfileHeader";
-import { bloodCamps, myDonorPosts, recipientPosts } from "../mockData";
+import { bloodCamps, myDonorPosts } from "../mockData";
+import { getAllPosts, RecipientPost } from "@/lib/recipientPosts";
 import { useAuth } from "@/contexts/AuthContext";
+import { Category, Post, UserType } from "@/components/types";
 import { useRouter } from "next/navigation";
-import { UserType } from "@/components/types";
 import CreateDonorPost from "@/components/donorProfile/donorPost/CreateDonorPost";
 import CampDetailsModal from "@/components/bloodCamps/CampDetailsModal";
 import { BloodCamp } from "@/components/types";
@@ -18,6 +19,46 @@ import CampsSection from "@/components/bloodCamps/CampsSection";
 import GamificationDashboard from "@/components/donorProfile/achievements/GamificationDashboard";
 import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
 
+// Helper function to map RecipientPost to Post type
+const mapRecipientPostToPost = (post: RecipientPost): Post => {
+    // Map category string to Category enum
+    const mapCategory = (category: string): Category => {
+        switch (category) {
+            case 'blood': return Category.BLOOD;
+            case 'organs': return Category.ORGANS;
+            case 'fundraiser': return Category.FUNDRAISER;
+            case 'medicines': return Category.MEDICINES;
+            case 'supplies': return Category.SUPPLIES;
+            default: return Category.BLOOD;
+        }
+    };
+
+    const userType = post.user.role === 'donor' ? UserType.DONOR : UserType.RECIPIENT;
+
+    return {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        category: mapCategory(post.category),
+        status: post.status,
+        urgency: post.urgency || 'medium',
+        createdAt: post.createdAt,
+        engagement: post.engagement,
+        user: {
+            id: post.user.id,
+            name: post.user.name,
+            email: post.user.email,
+            avatar: post.user.name.substring(0, 2).toUpperCase(), // Using initials as avatar
+            verified: true,
+            joinedDate: new Date().toISOString().split('T')[0],
+            type: userType
+        },
+        contact: post.contact || '',
+        location: post.location,
+        fundraiserDetails: post.fundraiserDetails || undefined
+    };
+};
+
 export default function DonorDashboard() {
     const { user, isAuthenticated, isLoading } = useAuth();
     const router = useRouter();
@@ -28,6 +69,8 @@ export default function DonorDashboard() {
     const [showBloodCampForm, setShowBloodCampForm] = useState(false);
     const [selectedCamp, setSelectedCamp] = useState<BloodCamp | null>(null);
     const [showCardGenerator, setShowCardGenerator] = useState(false);
+    const [recipientPosts, setRecipientPosts] = useState<Post[]>([]);
+    const [isLoadingPosts, setIsLoadingPosts] = useState(true);
 
     useEffect(() => {
         // Protect the donor page
@@ -35,6 +78,29 @@ export default function DonorDashboard() {
             router.push('/auth/signin');
         }
     }, [isLoading, isAuthenticated, user, router]);
+    
+    // Fetch recipient posts from API
+    useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+                setIsLoadingPosts(true);
+                const response = await getAllPosts();
+                if (response && response.data) {
+                    // Map the API response to the Post type expected by our components
+                    const mappedPosts = response.data.map(post => mapRecipientPostToPost(post));
+                    setRecipientPosts(mappedPosts);
+                }
+            } catch (error) {
+                console.error("Error fetching recipient posts:", error);
+            } finally {
+                setIsLoadingPosts(false);
+            }
+        };
+        
+        if (isAuthenticated && user) {
+            fetchPosts();
+        }
+    }, [isAuthenticated, user]);
 
     // Show loading state or return null while checking authentication
     if (isLoading || !user) {
@@ -101,23 +167,33 @@ export default function DonorDashboard() {
                                         setUrgencyFilter={setUrgencyFilter}
                                     />
                                 </div>
-                                <PostsGrid posts={recipientPosts} filterCategory={filterCategory} />
-
-                                {filteredRecipientPosts.length === 0 && (
+                                {isLoadingPosts ? (
                                     <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
-                                        <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
-                                        <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Found</h3>
-                                        <p className="text-gray-600 mb-6">Try adjusting your filters to see more donation opportunities.</p>
-                                        <button
-                                            onClick={() => {
-                                                setFilterCategory("all");
-                                                setUrgencyFilter("all");
-                                            }}
-                                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200"
-                                        >
-                                            Clear All Filters
-                                        </button>
+                                        <div className="animate-pulse w-16 h-16 rounded-full bg-emerald-400 mx-auto mb-4"></div>
+                                        <h3 className="text-2xl font-bold text-emerald-700 mb-2">Loading posts...</h3>
+                                        <p className="text-gray-600 mb-6">Please wait while we fetch donation opportunities.</p>
                                     </div>
+                                ) : (
+                                    <>
+                                        <PostsGrid posts={recipientPosts} filterCategory={filterCategory} />
+
+                                        {filteredRecipientPosts.length === 0 && (
+                                            <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                                <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
+                                                <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Found</h3>
+                                                <p className="text-gray-600 mb-6">Try adjusting your filters to see more donation opportunities.</p>
+                                                <button
+                                                    onClick={() => {
+                                                        setFilterCategory("all");
+                                                        setUrgencyFilter("all");
+                                                    }}
+                                                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200"
+                                                >
+                                                    Clear All Filters
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </motion.div>
                         )}
