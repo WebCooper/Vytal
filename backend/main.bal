@@ -8,7 +8,7 @@ import backend.token;
 import backend.database;
 import ballerina/io;
 
-// HTTP service with all authentication endpoints
+# HTTP service with all authentication endpoints
 @http:ServiceConfig {
     cors: {
         allowOrigins: ["http://localhost:3000", "http://127.0.0.1:3000", "https://your-frontend-domain.com"],
@@ -19,10 +19,11 @@ import ballerina/io;
     }
 }
 
-// HTTP service with all authentication endpoints
+
 service /api/v1 on new http:Listener(9091) {
 
-    // API endpoints
+    # Health check endpoint
+    # + return - return value description
     resource function get health() returns json {
         io:println("API health endpoint called");
         return {
@@ -32,7 +33,9 @@ service /api/v1 on new http:Listener(9091) {
         };
     }
 
-    // Registration endpoint
+    # Registration endpoint
+    # + request - registration request payload
+    # + return - HTTP response
     resource function post register(types:RegisterRequest request) returns http:Response|error {
         http:Response response = new;
         

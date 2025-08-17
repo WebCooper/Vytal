@@ -321,16 +321,24 @@ public isolated function convertJsonToCategories(string categoriesJson) returns 
         string trimmed = categoryStr.trim();
         match trimmed {
             "Organs" => {
-                types:Category organs = "Organs";
+                types:Category organs = "organs";
                 categories.push(organs);
             }
             "Medicines" => {
-                types:Category medicines = "Medicines";
+                types:Category medicines = "medicines";
                 categories.push(medicines);
             }
             "Blood" => {
-                types:Category blood = "Blood";
+                types:Category blood = "blood";
                 categories.push(blood);
+            }
+            "Fundraiser" => {
+                types:Category fundraiser = "fundraiser";
+                categories.push(fundraiser);
+            }
+            "Supplies" => {
+                types:Category supplies = "supplies";
+                categories.push(supplies);
             }
         }
     }
@@ -470,7 +478,7 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         phone_number VARCHAR(20) NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role ENUM('donor', 'receiver') NOT NULL,
+        role ENUM('donor', 'receiver', 'admin','organization') NOT NULL,
         categories JSON NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -495,44 +503,27 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         INDEX idx_created_at (created_at)
     )`);
 
-    // Appointments table
-    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS appointments (
+    // Recipient posts table
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS recipient_posts (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        patient_id INT NOT NULL,
-        doctor_id INT NOT NULL,
-        appointment_date DATETIME NOT NULL,
-        status ENUM('scheduled', 'confirmed', 'completed', 'cancelled') DEFAULT 'scheduled',
-        notes TEXT,
+        recipient_id INT NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        content TEXT NOT NULL,
+        category ENUM('Organs', 'Medicines', 'Blood', 'Fundraiser','Supplies') NOT NULL,
+        status ENUM('open', 'fulfilled', 'cancelled', 'pending') DEFAULT 'pending',
+        location VARCHAR(200),
+        urgency ENUM('low', 'medium', 'high'),
+        contact VARCHAR(300),
+        likes INT DEFAULT 0,
+        comments INT DEFAULT 0,
+        shares INT DEFAULT 0,
+        views INT DEFAULT 0,
+        goal DECIMAL(15,2),
+        received DECIMAL(15,2) DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE,
-        INDEX idx_patient_id (patient_id),
-        INDEX idx_doctor_id (doctor_id),
-        INDEX idx_appointment_date (appointment_date),
-        INDEX idx_status (status)
-    )`);
-    // Recipient posts table
-        _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS recipient_posts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    recipient_id INT NOT NULL,
-    title VARCHAR(200) NOT NULL,
-    content TEXT NOT NULL,
-    category ENUM('Organs', 'Medicines', 'Blood', 'Fundraiser') NOT NULL,
-    status ENUM('open', 'fulfilled', 'cancelled') DEFAULT 'open',
-    location VARCHAR(200),
-    urgency ENUM('low', 'medium', 'high'),
-    contact VARCHAR(300),
-    likes INT DEFAULT 0,
-    comments INT DEFAULT 0,
-    shares INT DEFAULT 0,
-    views INT DEFAULT 0,
-    goal DECIMAL(15,2),
-    received DECIMAL(15,2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
-    );
+        FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
+        );
     `);
     io:println("✅ Database tables are ready");
 }
