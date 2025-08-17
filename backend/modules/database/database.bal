@@ -6,6 +6,8 @@ import backend.types;
 import backend.storage;
 import ballerina/io;
 import ballerina/lang.'int;
+import ballerina/lang.value;
+
 
 # Database Client Configuration - optional for development
 configurable string dbHost = ?;
@@ -562,11 +564,293 @@ public isolated function closeDbConnection() returns error? {
     }
     return ();
 }
+public isolated function createDonorPost(int userId, types:DonorPostCreate request) returns int|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    // If database not available, return an error
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    string categoryJson = value:toJson(request.category).toJsonString();
+    string statusJson = value:toJson(request.status).toJsonString();
+    string urgencyJson = value:toJson(request.urgency).toJsonString();
+
+    
+    // Convert complex objects to JSON strings if they exist
+    string? bloodOfferingJson = request.bloodOffering is () ? () : 
+                               value:toJson(request.bloodOffering).toJsonString();
+    string? fundraiserOfferingJson = request.fundraiserOffering is () ? () : 
+                                    value:toJson(request.fundraiserOffering).toJsonString();
+    string? medicineOfferingJson = request.medicineOffering is () ? () : 
+                                  value:toJson(request.medicineOffering).toJsonString();
+    string? organOfferingJson = request.organOffering is () ? () : 
+                               value:toJson(request.organOffering).toJsonString();
+    
+    // Match exactly with the database column names from the CREATE TABLE statement
+    sql:ParameterizedQuery query = `INSERT INTO donor_posts 
+        (donor_id, title, category, content, location, status, urgency, contact, 
+        bloodOffering, fundraiserOffering, medicineOffering, organOffering,
+        likes, comments, shares, views, created_at) 
+        VALUES (${userId}, ${request.title}, ${categoryJson}, ${request.content},
+                ${request.location}, ${statusJson}, ${urgencyJson}, ${request.contact},
+                ${bloodOfferingJson}, ${fundraiserOfferingJson},
+                ${medicineOfferingJson}, ${organOfferingJson},
+                0, 0, 0, 0, CURRENT_TIMESTAMP())`;
+
+
+    sql:ExecutionResult|error result = dbClientInstance->execute(query);
+    if result is error {
+        return result;
+    }
+
+    return <int>result.lastInsertId;
+}
+
+public isolated function getDonorPostById(int id) returns types:DonorPost|error|() {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
+    sql:ParameterizedQuery query = `SELECT * FROM donor_posts WHERE id = ${id}`;
+    stream<record {}, sql:Error?> resultStream = dbClientInstance->query(query);
+
+    // Use proper type casting to handle the result
+    var result = resultStream.next();
+    check resultStream.close();
+
+    if result is sql:Error {
+        return error("Error fetching donor post: " + result.message());
+    } else if result is () {
+        return ();
+    } else {
+        // The result can only be a record at this point
+        var recordResult = <record {|record {} value;|}>result;
+        return mapRowToDonorPost(recordResult.value);
+    }
+}
+
+public isolated function getDonorPosts() returns types:DonorPost[]|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
+    sql:ParameterizedQuery query = `SELECT * FROM donor_posts ORDER BY created_at DESC`;
+    stream<record {}, sql:Error?> resultStream = dbClientInstance->query(query);
+
+    types:DonorPost[] posts = [];
+    
+    // Process each row
+    while (true) {
+        var result = resultStream.next();
+        if result is sql:Error {
+            check resultStream.close();
+            return error("Error fetching donor posts: " + result.message());
+        } else if result is () {
+            break;
+        } else {
+            // The result can only be a record at this point
+            var recordResult = <record {|record {} value;|}>result;
+            types:DonorPost|error post = mapRowToDonorPost(recordResult.value);
+            if post is error {
+                check resultStream.close();
+                return post;
+            }
+            posts.push(post);
+        }
+    }
+    
+    check resultStream.close();
+    return posts;
+}
+
+public isolated function updateDonorPost(int id, types:DonorPostUpdate request) returns boolean|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
+    // Convert complex objects to JSON strings if they exist
+    string? bloodOfferingJson = request.bloodOffering is () ? () : 
+                               value:toJson(request.bloodOffering).toJsonString();
+    string? fundraiserOfferingJson = request.fundraiserOffering is () ? () : 
+                                    value:toJson(request.fundraiserOffering).toJsonString();
+    string? medicineOfferingJson = request.medicineOffering is () ? () : 
+                                  value:toJson(request.medicineOffering).toJsonString();
+    string? organOfferingJson = request.organOffering is () ? () : 
+                               value:toJson(request.organOffering).toJsonString();
+    
+    sql:ParameterizedQuery query = `UPDATE donor_posts SET 
+        title = COALESCE(${request.title}, title),
+        category = COALESCE(${request.category}, category),
+        content = COALESCE(${request.content}, content),
+        status = COALESCE(${request.status}, status),
+        location = COALESCE(${request.location}, location),
+        urgency = COALESCE(${request.urgency}, urgency),
+        contact = COALESCE(${request.contact}, contact),
+        blood_offering = COALESCE(${bloodOfferingJson}, blood_offering),
+        fundraiser_offering = COALESCE(${fundraiserOfferingJson}, fundraiser_offering),
+        medicine_offering = COALESCE(${medicineOfferingJson}, medicine_offering),
+        organ_offering = COALESCE(${organOfferingJson}, organ_offering),
+        updated_at = CURRENT_TIMESTAMP()
+        WHERE id = ${id}`;
+
+    sql:ExecutionResult|error result = dbClientInstance->execute(query);
+    if result is error {
+        return result;
+    }
+
+    return result?.affectedRowCount > 0;
+}
+
+public isolated function deleteDonorPost(int id) returns boolean|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database not available");
+    }
+    
+    mysql:Client dbClientInstance = dbClientResult;
+    
+    sql:ParameterizedQuery query = `DELETE FROM donor_posts WHERE id = ${id}`;
+    sql:ExecutionResult|error result = dbClientInstance->execute(query);
+    if result is error {
+        return result;
+    }
+    return result?.affectedRowCount > 0;
+}
+
+# Mapper Helper for converting database row to DonorPost record
+# + row - Database row containing donor post data
+# + return - DonorPost record or error
+isolated function mapRowToDonorPost(record {} row) returns types:DonorPost|error {
+    // Parse JSON strings to objects
+    types:BloodOffering? bloodOffer = ();
+    types:FundraiserOffering? fundraiserOffer = ();
+    types:MedicineOffering? medicineOffer = ();
+    types:OrganOffering? organOffer = ();
+
+    // --- Offerings ---
+    if row["bloodOffering"] is string {
+        string jsonStr = <string>row["bloodOffering"];
+        if jsonStr.trim() != "" {
+            json jsonData = check value:fromJsonString(jsonStr);
+            bloodOffer = check value:cloneWithType(jsonData);
+        }
+    }
+
+    if row["fundraiserOffering"] is string {
+        string jsonStr = <string>row["fundraiserOffering"];
+        if jsonStr.trim() != "" {
+            json jsonData = check value:fromJsonString(jsonStr);
+            fundraiserOffer = check value:cloneWithType(jsonData);
+        }
+    }
+
+    if row["medicineOffering"] is string {
+        string jsonStr = <string>row["medicineOffering"];
+        if jsonStr.trim() != "" {
+            json jsonData = check value:fromJsonString(jsonStr);
+            medicineOffer = check value:cloneWithType(jsonData);
+        }
+    }
+
+    if row["organOffering"] is string {
+        string jsonStr = <string>row["organOffering"];
+        if jsonStr.trim() != "" {
+            json jsonData = check value:fromJsonString(jsonStr);
+            organOffer = check value:cloneWithType(jsonData);
+        }
+    }
+
+    // --- Core JSON fields ---
+    string status = "";
+    string category = "";
+    string urgency = "";
+
+    if row["status"] is string {
+        string jsonStr = <string>row["status"];
+        if jsonStr.trim() != "" {
+            json parsed = check value:fromJsonString(jsonStr);
+            // unwrap JSON string like `"low"` into plain string
+            if parsed is string {
+                status = parsed;
+            }
+        }
+    }
+
+    if row["category"] is string {
+        string jsonStr = <string>row["category"];
+        if jsonStr.trim() != "" {
+            json parsed = check value:fromJsonString(jsonStr);
+            if parsed is string {
+                category = parsed;
+            } else if parsed is json[] {
+                // if category was stored as an array, take first element (or join them)
+                if parsed.length() > 0 && parsed[0] is string {
+                    category = <string>parsed[0];
+                }
+            }
+        }
+    }
+
+    if row["urgency"] is string {
+        string jsonStr = <string>row["urgency"];
+        if jsonStr.trim() != "" {
+            json parsed = check value:fromJsonString(jsonStr);
+            if parsed is string {
+                urgency = parsed;
+            }
+        }
+    }
+
+    // --- Build DonorPost record ---
+    types:DonorPost donorPost = {
+        id: <int>row["id"],
+        donor_id: <int>row["donor_id"],
+        title: <string>row["title"],
+        status: <types:Status>status,
+        category: <types:Category>category,
+        content: <string>row["content"],
+        location: <string>row["location"],
+        createdAt: <string>row["created_at"],
+        urgency: <types:Urgency>urgency,
+        contact: <string>row["contact"],
+
+        engagement: {
+            likes: row["likes"] is int ? <int>row["likes"] : 0,
+            comments: row["comments"] is int ? <int>row["comments"] : 0,
+            shares: row["shares"] is int ? <int>row["shares"] : 0,
+            views: row["views"] is int ? <int>row["views"] : 0
+        },
+
+        bloodOffering: bloodOffer,
+        fundraiserOffering: fundraiserOffer,
+        medicineOffering: medicineOffer,
+        organOffering: organOffer
+    };
+
+    return donorPost;
+}
+
+
 
 # Description.
 #
-# + dbClient - parameter description
-# + return - return value description
+# + dbClient - MySQL client instance
+# + return - error? if something goes wrong
 public isolated function setupDatabase(mysql:Client dbClient) returns error? {
     // Users table
     sql:ExecutionResult _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS users (
@@ -575,7 +859,7 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         phone_number VARCHAR(20) NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role ENUM('donor', 'recipient', 'admin','organization') NOT NULL,
+        role ENUM('donor', 'recipient', 'admin', 'organization') NOT NULL,
         categories JSON NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -620,7 +904,33 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-    `);
+    )`);
+
+    // Donor posts table
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS donor_posts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        donor_id INT NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        status JSON NOT NULL,
+        category JSON NOT NULL,
+        content TEXT NOT NULL,
+        location VARCHAR(200),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        urgency JSON NOT NULL,
+        likes INT DEFAULT 0,
+        comments INT DEFAULT 0,
+        shares INT DEFAULT 0,
+        views INT DEFAULT 0,
+        contact VARCHAR(300),
+        bloodOffering JSON,
+        fundraiserOffering JSON,
+        medicineOffering JSON,
+        organOffering JSON,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (donor_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_donor_id (donor_id),
+        INDEX idx_created_at (created_at)
+    )`);
+
     io:println("✅ Database tables are ready");
 }

@@ -272,3 +272,125 @@ public type RecipientPostResponse record {|
     string? contact;
     FundraiserDetails? fundraiserDetails;
 |};
+
+public type BloodOffering record {|
+    string bloodType;
+    string availability;
+    string lastDonation;
+|};
+
+
+public type FundraiserOffering record {|
+    int maxAmount;
+    string preferredUse;
+    string requirements;
+|};
+
+
+public type MedicineOffering record {|
+    string[] medicineTypes;
+    string quantity;
+    string expiry;
+|};
+
+
+public type OrganOffering record {|
+    string organType;
+    string healthStatus;
+    string availability;
+|};
+
+
+# Donor Post (DB-facing / response type)
+#
+# + id - field description  
+# + donor_id - field description  
+# + title - field description  
+# + status - field description  
+# + category - field description  
+# + content - field description  
+# + location - field description  
+# + createdAt - field description  
+# + urgency - field description  
+# + engagement - field description  
+# + contact - field description  
+# + bloodOffering - field description  
+# + fundraiserOffering - field description  
+# + medicineOffering - field description  
+# + organOffering - field description
+public type DonorPost record {|  
+    int id;  
+    int donor_id;  
+    string title;  
+    Status status;   
+    Category category;  
+    string content;  
+    string location;  
+    string createdAt;   
+    Urgency urgency;   
+    Engagement engagement;  
+    string contact;  
+
+    BloodOffering? bloodOffering = ();  
+    FundraiserOffering? fundraiserOffering = ();  
+    MedicineOffering? medicineOffering = ();  
+    OrganOffering? organOffering = ();  
+|};  
+
+# Create donor post (input)
+#
+# + donor_id - ID of the donor creating the post  
+# + title - Title of the post  
+# + category - Category of the offering  
+# + status - status of the post  
+# + content - Content/description of the post  
+# + location - Location information  
+# + urgency - Urgency level of the offering  
+# + contact - Contact information  
+# + bloodOffering - Blood donation specific details  
+# + fundraiserOffering - Fundraiser specific details  
+# + medicineOffering - Medicine donation details  
+# + organOffering - Organ donation details
+public type DonorPostCreate record {|  
+    int donor_id;  
+    string title;  
+    Category category;  
+    string content;  
+    string location;  
+    Status status = "pending";  
+    Urgency urgency;  
+    string contact;  
+
+    BloodOffering? bloodOffering = ();  
+    FundraiserOffering? fundraiserOffering = ();  
+    MedicineOffering? medicineOffering = ();  
+    OrganOffering? organOffering = ();  
+|};  
+
+# Update donor post (partial update)
+#
+# + title - Title of the post  
+# + category - Category of the offering  
+# + content - Content/description of the post  
+# + status - Status of the post  
+# + location - Location information  
+# + urgency - Urgency level of the offering  
+# + contact - Contact information  
+# + bloodOffering - Blood donation specific details  
+# + fundraiserOffering - Fundraiser specific details  
+# + medicineOffering - Medicine donation details  
+# + organOffering - Organ donation details
+public type DonorPostUpdate record {|  
+    string? title = ();  
+    Category? category = ();  
+    string? content = ();  
+    Status? status = ();  
+    string? location = ();  
+    Urgency? urgency = ();  
+    string? contact = ();  
+
+    BloodOffering? bloodOffering = ();  
+    FundraiserOffering? fundraiserOffering = ();  
+    MedicineOffering? medicineOffering = ();  
+    OrganOffering? organOffering = ();  
+|};  

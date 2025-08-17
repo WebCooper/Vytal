@@ -1,10 +1,58 @@
-# Returns the string `Hello` with the input string name.
-#
-# + name - name as a string or nil
-# + return - "Hello, " with the input string name
-public function hello(string? name) returns string {
-    if name !is () {
-        return string `Hello, ${name}`;
+import backend.database;
+import backend.types;
+import backend.utils as validation;
+
+# Create a donor post linked to a specific user
+# + userId - ID of the user creating the post
+# + request - Donor post creation payload
+# + return - Created donor post or error
+public isolated function createDonorPost(int userId, types:DonorPostCreate request) returns types:DonorPost|error {
+    // Validate input
+    error? validationResult = validation:validateDonorPostCreate(request);
+    if validationResult is error {
+        return validationResult;
     }
-    return "Hello, World!";
+
+    // Insert into DB (include userId)
+    int|error insertResult = database:createDonorPost(userId, request);
+    if insertResult is error {
+        return error("Failed to create donor post: " + insertResult.message());
+    }
+
+    int newId = <int>insertResult;
+
+    // Retrieve the newly created donor post
+    types:DonorPost|error|() dbPost = database:getDonorPostById(newId);
+
+    if dbPost is error {
+        return error("Failed to fetch donor post after creation: " + dbPost.message());
+    }
+    if dbPost is () {
+        return error("Donor post not found after creation");
+    }
+
+    return <types:DonorPost>dbPost;
+}
+
+
+public isolated function getDonorPost(int id) returns types:DonorPost|error {
+    types:DonorPost|error|() dbPost = database:getDonorPostById(id);
+
+    if dbPost is error {
+        return error("Failed to fetch donor post: " + dbPost.message());
+    }
+    if dbPost is () {
+        return error("Donor post not found");
+    }
+
+    return <types:DonorPost>dbPost;
+}
+
+
+public isolated function getAllDonorPosts() returns types:DonorPost[]|error {
+    types:DonorPost[]|error posts = database:getDonorPosts();
+    if posts is error {
+        return error("Failed to fetch donor posts: " + posts.message());
+    }
+    return posts;
 }
