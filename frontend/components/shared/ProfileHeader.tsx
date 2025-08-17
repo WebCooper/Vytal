@@ -4,7 +4,7 @@ import { FaBell } from 'react-icons/fa'
 import { MdVerified } from 'react-icons/md';
 import { ProfileHeaderProps, UserType } from '../types';
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({user}) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
 
   return (
     <div>
@@ -18,11 +18,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({user}) => {
                 </h1>
               </Link>
               <span className="text-gray-400">|</span>
-                <span className="text-emerald-700 font-semibold">
+              <span className="text-emerald-700 font-semibold">
                 {user.type === UserType.RECIPIENT ? 'Recieve' : 'Donate'}
-                </span>
+              </span>
             </div>
-            
+
             <div className="flex items-center space-x-6">
               {/* <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
@@ -36,7 +36,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({user}) => {
               <Link href="/me">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold">
-                    {user.avatar}
+                    {user.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <div className="flex items-center space-x-1">
