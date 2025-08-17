@@ -478,7 +478,7 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         phone_number VARCHAR(20) NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role ENUM('donor', 'receiver', 'admin','organization') NOT NULL,
+        role ENUM('donor', 'recipient', 'admin','organization') NOT NULL,
         categories JSON NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

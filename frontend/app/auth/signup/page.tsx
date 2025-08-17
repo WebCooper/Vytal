@@ -38,8 +38,13 @@ export default function SignUp() {
 
     try {
       const response = await signUp(formData);
-      if (response.success) {
-        router.push('/dashboard');
+      if (response.success && response.data?.user) {
+        // Redirect based on user role
+        if (response.data.user.role === "donor") {
+          router.push("/donor");
+        } else {
+          router.push("/me");
+        }
       } else {
         setError(response.message || 'Registration failed');
       }
@@ -131,7 +136,8 @@ export default function SignUp() {
                   >
                     <option value="" disabled>Role</option>
                     <option value="donor">Donor</option>
-                    <option value="receiver">Receiver</option>
+                    <option value="recipient">Recipient</option>
+                    {/* <option value="organization">Organization</option> */}
                   </select>
                   <select 
                     name="categories"
@@ -147,9 +153,11 @@ export default function SignUp() {
                     required
                   >
                     <option value="" disabled>Category</option>
-                    <option value="Blood">Blood</option>
-                    <option value="Organs">Organs</option>
-                    <option value="Medicines">Medicines</option>
+                    <option value="blood">Blood</option>
+                    <option value="organs">Organs</option>
+                    <option value="medicines">Medicines</option>
+                    <option value="fundraiser">Fundraiser</option>
+                    <option value="supplies">Supplies</option>
                   </select>
                 </div>
                 <button 

@@ -23,7 +23,7 @@ export default function RecipientDashboard() {
 
   useEffect(() => {
     // Protect the recipient page - only receivers can access
-    if (!isLoading && (!isAuthenticated || user?.role !== 'receiver')) {
+    if (!isLoading && (!isAuthenticated || user?.role !== 'recipient')) {
       router.push('/auth/signin');
     }
   }, [isLoading, isAuthenticated, user, router]);
