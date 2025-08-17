@@ -5,6 +5,7 @@ import ballerina/regex;
 import backend.types;
 import backend.storage;
 import ballerina/io;
+import ballerina/lang.'int;
 
 # Database Client Configuration - optional for development
 configurable string dbHost = ?;
@@ -345,43 +346,60 @@ public isolated function convertJsonToCategories(string categoriesJson) returns 
     
     return categories;
 }
-
-# Get all recipient posts from the database
-# + return - Array of recipient posts or error if the operation fails
 public isolated function getRecipientPosts() returns types:RecipientPost[]|error {
-    mysql:Client|error dbClientResult = getDbClient();
-    if dbClientResult is error {
-        // fallback to memory if needed
-        return [];
-    }
-    mysql:Client dbClientInstance = dbClientResult;
+    mysql:Client dbClientInstance = check getDbClient();
 
-    sql:ParameterizedQuery query = `
-        SELECT id, recipient_id, title, content, category, status,
-               location, urgency, contact, created_at, updated_at,
-               likes, comments, shares, views, goal, received
-        FROM recipient_posts
-        ORDER BY created_at DESC
-    `;
-    
-    stream<types:RecipientPost, sql:Error?> resultStream = dbClientInstance->query(query);
+    sql:ParameterizedQuery query = `SELECT * FROM recipient_posts ORDER BY created_at DESC`;
+    stream<record {}, sql:Error?> resultStream = dbClientInstance->query(query);
+
     types:RecipientPost[] posts = [];
-    
-    error? e = from types:RecipientPost post in resultStream
-        do {
+
+    while (true) {
+        record {|record {} value;|}|sql:Error? result = resultStream.next();
+        if result is sql:Error {
+            return error("Error retrieving posts: " + result.message());
+        } else if result is () {
+            break;
+        } else {
+            var row = result.value;
+            
+            // Parse category, status, and urgency by removing surrounding quotes
+            string categoryClean = regex:replaceAll(row.get("category").toString(), "\"", "");
+            string statusClean = regex:replaceAll(row.get("status").toString(), "\"", "");
+            
+            string? urgencyValue = row.get("urgency") is string ? row.get("urgency").toString() : ();
+            string? urgencyClean = urgencyValue is string ? regex:replaceAll(urgencyValue, "\"", "") : ();
+            
+            types:RecipientPost post = {
+                id: check int:fromString(row.get("id").toString()),
+                recipient_id: check int:fromString(row.get("recipient_id").toString()),
+                title: row.get("title").toString(),
+                content: row.get("content").toString(),
+                category: <types:Category>categoryClean,
+                status: <types:Status>statusClean,
+                location: row.get("location") is string ? row.get("location").toString() : (),
+                urgency: urgencyClean is string ? <types:Urgency>urgencyClean : (),
+                contact: row.get("contact") is string ? row.get("contact").toString() : (),
+                created_at: row.get("created_at") is string ? row.get("created_at").toString() : (),
+                updated_at: row.get("updated_at") is string ? row.get("updated_at").toString() : (),
+                likes: check int:fromString(row.get("likes").toString()),
+                comments: check int:fromString(row.get("comments").toString()),
+                shares: check int:fromString(row.get("shares").toString()),
+                views: check int:fromString(row.get("views").toString()),
+                goal: row.get("goal") is decimal ? <decimal>row.get("goal") : (),
+                received: row.get("received") is decimal ? <decimal>row.get("received") : ()
+            };
             posts.push(post);
-        };
-    check resultStream.close();
-    
-    if e is error {
-        return error("Failed to fetch recipient posts: " + e.message());
+        }
     }
+    
+    check resultStream.close();
+
+    check resultStream.close();
     return posts;
 }
 
-# Get a recipient post by its ID
-# + id - The ID of the recipient post to retrieve
-# + return - The recipient post or null if not found, error if operation fails
+
 public isolated function getRecipientPostById(int id) returns types:RecipientPost?|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -392,31 +410,110 @@ public isolated function getRecipientPostById(int id) returns types:RecipientPos
         FROM recipient_posts
         WHERE id = ${id}
     `;
-    stream<types:RecipientPost, sql:Error?> resultStream = dbClientInstance->query(query);
-    record {|types:RecipientPost value;|}? result = check resultStream.next();
+
+    // Define the record with all required fields
+    stream<record {
+        int id;
+        int recipient_id;
+        string title;
+        string content;
+        string category;
+        string status;
+        string? location;
+        string? urgency;
+        string? contact;
+        string? created_at;
+        string? updated_at;
+        int likes;
+        int comments;
+        int shares;
+        int views;
+        decimal? goal;
+        decimal? received;
+    }, sql:Error?> resultStream = dbClientInstance->query(query);
+
+    record {|record {
+        int id;
+        int recipient_id;
+        string title;
+        string content;
+        string category;
+        string status;
+        string? location;
+        string? urgency;
+        string? contact;
+        string? created_at;
+        string? updated_at;
+        int likes;
+        int comments;
+        int shares;
+        int views;
+        decimal? goal;
+        decimal? received;
+    } value;|}? result = check resultStream.next();
     check resultStream.close();
+
     if result is () {
         return ();
     }
-    return result.value;
+
+    var row = result.value;
+
+    // Parse JSON string fields
+    string categoryClean = regex:replaceAll(row.category, "\"", "");
+    string statusClean = regex:replaceAll(row.status, "\"", "");
+    string? urgencyClean = row.urgency is string 
+    ? regex:replaceAll(row.urgency ?: "", "\"", "") 
+    : ();
+
+
+    // Build the RecipientPost record
+    types:RecipientPost post = {
+        id: row.id,
+        recipient_id: row.recipient_id,
+        title: row.title,
+        content: row.content,
+        category: <types:Category>categoryClean,
+        status: <types:Status>statusClean,
+        location: row.location,
+        urgency: urgencyClean is string ? <types:Urgency>urgencyClean : (),
+        contact: row.contact,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        likes: row.likes,
+        comments: row.comments,
+        shares: row.shares,
+        views: row.views,
+        goal: row.goal,
+        received: row.received
+    };
+
+    return post;
 }
+
 
 # Insert a new recipient post into the database
 # + post - The recipient post data to insert
 # + return - The execution result or error if operation fails
 public isolated function insertRecipientPost(types:RecipientPostCreate post) returns sql:ExecutionResult|error {
     mysql:Client dbClientInstance = check getDbClient();
-    sql:ParameterizedQuery query = `
-        INSERT INTO recipient_posts (
-            recipient_id, title, content, category, status,
-            location, urgency, contact, goal
-        ) VALUES (
-            ${post.recipient_id}, ${post.title}, ${post.content}, ${post.category}, ${post.status},
-            ${post.location}, ${post.urgency}, ${post.contact}, ${post.goal}
-        )
-    `;
+
+    // Serialize enums to string (which will be inserted as JSON strings)
+    string categoryJson = "\"" + post.category.toString() + "\"";
+    string statusJson = "\"" + post.status.toString() + "\"";
+    string? urgencyJson = post.urgency is () ? () : "\"" + post.urgency.toString() + "\"";
+
+    sql:ParameterizedQuery query = `INSERT INTO recipient_posts (
+        recipient_id, title, content, category, status,
+        location, urgency, contact, goal
+    ) VALUES (
+        ${post.recipient_id}, ${post.title}, ${post.content}, ${categoryJson}, ${statusJson},
+        ${post.location}, ${urgencyJson}, ${post.contact}, ${post.goal}
+    )`;
+    
     return dbClientInstance->execute(query);
 }
+
 
 # Update an existing recipient post in the database
 # + id - The ID of the recipient post to update
@@ -429,10 +526,10 @@ public isolated function updateRecipientPost(int id, types:RecipientPostUpdate p
         SET 
             title = COALESCE(${post.title}, title),
             content = COALESCE(${post.content}, content),
-            category = COALESCE(${post.category}, category),
-            status = COALESCE(${post.status}, status),
+            category = COALESCE(${post.category is () ? () : "\"" + post.category.toString() + "\""}, category),
+            status = COALESCE(${post.status is () ? () : "\"" + post.status.toString() + "\""}, status),
             location = COALESCE(${post.location}, location),
-            urgency = COALESCE(${post.urgency}, urgency),
+            urgency = COALESCE(${post.urgency is () ? () : "\"" + post.urgency.toString() + "\""}, urgency),
             contact = COALESCE(${post.contact}, contact),
             goal = COALESCE(${post.goal}, goal),
             received = COALESCE(${post.received}, received),
@@ -509,10 +606,10 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         recipient_id INT NOT NULL,
         title VARCHAR(200) NOT NULL,
         content TEXT NOT NULL,
-        category ENUM('Organs', 'Medicines', 'Blood', 'Fundraiser','Supplies') NOT NULL,
-        status ENUM('open', 'fulfilled', 'cancelled', 'pending') DEFAULT 'pending',
+        category JSON NOT NULL,
+        status JSON,
         location VARCHAR(200),
-        urgency ENUM('low', 'medium', 'high'),
+        urgency JSON,
         contact VARCHAR(300),
         likes INT DEFAULT 0,
         comments INT DEFAULT 0,
