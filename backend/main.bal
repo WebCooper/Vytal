@@ -4,6 +4,7 @@ import ballerina/time;
 import backend.types;
 import backend.userOp as userService;
 import backend.postOp as postService;
+import backend.donorPostOp as donorPostService;
 import backend.token;
 import backend.database;
 import ballerina/io;
@@ -359,6 +360,55 @@ service /api/v1 on new http:Listener(9091) {
         
         return response;
     }
+
+
+    // Create donor post endpoint
+    resource function post donor_post(@http:Header {name: "Authorization"} string? authorization,types:DonorPostCreate request) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token and get user email
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Get user ID from email
+        types:UserResponse|error userResult = userService:getUserProfile(email);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Create donor post (passing request directly)
+        types:DonorPost|error result = donorPostService:createDonorPost(request);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 201;
+            response.setJsonPayload({
+                "message": "Donor post created successfully",
+                "data": result,
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
 }
 
 // Function to handle shutdown
