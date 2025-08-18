@@ -5,9 +5,25 @@ import { CampsSectionProps } from '../types';
 import { FaClock, FaMapMarkerAlt, FaPhone, FaPlus, FaUsers } from 'react-icons/fa';
 import CreateBloodCamp from './CreateBloodCamp';
 
-const CampsSection:React.FC<CampsSectionProps> = ({ bloodCamps, setSelectedCamp, showBloodCampForm, setShowBloodCampForm }) => {
+const CampsSection: React.FC<CampsSectionProps> = ({ 
+  bloodCamps, 
+  setSelectedCamp, 
+  showBloodCampForm, 
+  setShowBloodCampForm,
+  onCampCreated // Add this prop
+}) => {
   const activeCamps = bloodCamps.filter(camp => camp.status === "active");
   const upcomingCamps = bloodCamps.filter(camp => camp.status === "upcoming");
+
+  const handleCampSubmit = (campData: unknown) => {
+    console.log('New blood camp:', campData);
+    setShowBloodCampForm(false);
+    
+    // Call the refresh callback to update the camps list
+    if (onCampCreated) {
+      onCampCreated();
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -36,7 +52,7 @@ const CampsSection:React.FC<CampsSectionProps> = ({ bloodCamps, setSelectedCamp,
                                         </div>
                                         <div className="flex items-center">
                                             <FaClock className="mr-1 text-red-500" />
-                                            <span>{camp.time}</span>
+                                            <span>{camp.time || `${camp.start_time} - ${camp.end_time}`}</span>
                                         </div>
                                         <div className="flex items-center">
                                             <FaUsers className="mr-1 text-red-500" />
@@ -46,14 +62,14 @@ const CampsSection:React.FC<CampsSectionProps> = ({ bloodCamps, setSelectedCamp,
                                     <div className="mt-2">
                                         <span className="text-xs text-gray-500 mr-2">Blood types needed:</span>
                                         <div className="flex flex-wrap gap-1 mt-1">
-                                            {camp.bloodTypes.slice(0, 4).map((type, idx) => (
+                                            {(camp.bloodTypes || camp.blood_types)?.slice(0, 4).map((type, idx) => (
                                                 <span key={idx} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
                                                     {type}
                                                 </span>
                                             ))}
-                                            {camp.bloodTypes.length > 4 && (
+                                            {(camp.bloodTypes || camp.blood_types)?.length > 4 && (
                                                 <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                                                    +{camp.bloodTypes.length - 4} more
+                                                    +{(camp.bloodTypes || camp.blood_types).length - 4} more
                                                 </span>
                                             )}
                                         </div>
@@ -119,7 +135,7 @@ const CampsSection:React.FC<CampsSectionProps> = ({ bloodCamps, setSelectedCamp,
                         <div className="space-y-2 mb-4">
                             <div className="flex items-center text-gray-700 text-sm">
                                 <FaClock className="mr-2 text-emerald-500" />
-                                <span>{new Date(camp.date).toLocaleDateString()} | {camp.time}</span>
+                                <span>{new Date(camp.date).toLocaleDateString()} | {camp.time || `${camp.start_time} - ${camp.end_time}`}</span>
                             </div>
                             <div className="flex items-center text-gray-700 text-sm">
                                 <FaUsers className="mr-2 text-emerald-500" />
@@ -130,14 +146,14 @@ const CampsSection:React.FC<CampsSectionProps> = ({ bloodCamps, setSelectedCamp,
                         <div className="mb-4">
                             <p className="text-sm text-gray-600 mb-2">Accepting blood types:</p>
                             <div className="flex flex-wrap gap-1">
-                                {camp.bloodTypes.slice(0, 6).map((type, idx) => (
+                                {(camp.bloodTypes || camp.blood_types)?.slice(0, 6).map((type, idx) => (
                                     <span key={idx} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
                                         {type}
                                     </span>
                                 ))}
-                                {camp.bloodTypes.length > 6 && (
+                                {(camp.bloodTypes || camp.blood_types)?.length > 6 && (
                                     <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                                        +{camp.bloodTypes.length - 6}
+                                        +{(camp.bloodTypes || camp.blood_types).length - 6}
                                     </span>
                                 )}
                             </div>
@@ -147,8 +163,7 @@ const CampsSection:React.FC<CampsSectionProps> = ({ bloodCamps, setSelectedCamp,
                             <div className="text-sm text-gray-600">
                                 <p className="font-semibold">{camp.organizer}</p>
                                 <p className="flex items-center mt-1">
-                                    <FaPhone
-                                     className="mr-1 text-emerald-500" />
+                                    <FaPhone className="mr-1 text-emerald-500" />
                                     {camp.contact}
                                 </p>
                             </div>
@@ -196,11 +211,8 @@ const CampsSection:React.FC<CampsSectionProps> = ({ bloodCamps, setSelectedCamp,
         <CreateBloodCamp
             isOpen={showBloodCampForm}
             onClose={() => setShowBloodCampForm(false)}
-            onSubmit={(campData) => {
-                console.log('New blood camp:', campData);
-                // Handle the new camp data here - you can add it to your camps array
-                setShowBloodCampForm(false);
-            }}
+            onSubmit={handleCampSubmit}
+            onCampCreated={onCampCreated}
         />
     </div>
   )
