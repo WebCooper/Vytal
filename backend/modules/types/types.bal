@@ -394,3 +394,9 @@ public type DonorPostUpdate record {|
     MedicineOffering? medicineOffering = ();  
     OrganOffering? organOffering = ();  
 |};  
+public type UserPreview record {
+    int id;
+    string name;
+    string email;
+    string role;
+};
