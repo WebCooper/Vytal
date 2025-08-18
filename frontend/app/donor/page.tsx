@@ -3,14 +3,13 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaPlus, FaHeart, FaShare } from "react-icons/fa";
 import ProfileHeader from "@/components/shared/ProfileHeader";
-import { bloodCamps, myDonorPosts } from "../mockData";
+import { myDonorPosts } from "../mockData";
 import { getAllPosts, RecipientPost } from "@/lib/recipientPosts";
 import { useAuth } from "@/contexts/AuthContext";
 import { Category, Post, UserType } from "@/components/types";
 import { useRouter } from "next/navigation";
 import CreateDonorPost from "@/components/donorProfile/donorPost/CreateDonorPost";
 import CampDetailsModal from "@/components/bloodCamps/CampDetailsModal";
-import { BloodCamp } from "@/components/types";
 import Sidebar from "@/components/donorProfile/Sidebar";
 import Filterbar from "@/components/shared/Filterbar";
 import PostsGrid from "@/components/shared/PostsGrid";
@@ -18,7 +17,10 @@ import MapSection from "@/components/bloodCamps/MapSection";
 import CampsSection from "@/components/bloodCamps/CampsSection";
 import GamificationDashboard from "@/components/donorProfile/achievements/GamificationDashboard";
 import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
+import { getAllBloodCamps } from '@/lib/bloodCampsApi';
+import { BloodCamp } from "@/components/types";
 import { getDonorPostsByUser, DonorPost } from "@/lib/donorPosts";
+
 
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
@@ -117,13 +119,17 @@ export default function DonorDashboard() {
     const [isLoadingPosts, setIsLoadingPosts] = useState(true);
     const [isLoadingDonorPosts, setIsLoadingDonorPosts] = useState(true);
 
+    // Blood camps state
+    const [bloodCamps, setBloodCamps] = useState<BloodCamp[]>([]);
+    const [isLoadingCamps, setIsLoadingCamps] = useState(true);
+
     useEffect(() => {
         // Protect the donor page
         if (!isLoading && (!isAuthenticated || user?.role !== 'donor')) {
             router.push('/auth/signin');
         }
     }, [isLoading, isAuthenticated, user, router]);
-    
+
     // Fetch recipient posts from API
     useEffect(() => {
         const fetchPosts = async () => {
@@ -141,7 +147,7 @@ export default function DonorDashboard() {
                 setIsLoadingPosts(false);
             }
         };
-        
+
         if (isAuthenticated && user) {
             fetchPosts();
         }
@@ -172,6 +178,35 @@ export default function DonorDashboard() {
         }
     }, [isAuthenticated, user, activeTab]);
 
+    // Fetch blood camps from API
+    useEffect(() => {
+        const fetchBloodCamps = async () => {
+            try {
+                setIsLoadingCamps(true);
+                const response = await getAllBloodCamps();
+                setBloodCamps(response.data);
+            } catch (error) {
+                console.error('Error fetching blood camps:', error);
+            } finally {
+                setIsLoadingCamps(false);
+            }
+        };
+
+        if (isAuthenticated && user) {
+            fetchBloodCamps();
+        }
+    }, [isAuthenticated, user]);
+
+    // Handle blood camp creation success
+    const handleBloodCampCreated = async () => {
+        try {
+            const response = await getAllBloodCamps();
+            setBloodCamps(response.data);
+        } catch (error) {
+            console.error('Error refreshing blood camps:', error);
+        }
+    };
+
     // Show loading state or return null while checking authentication
     if (isLoading || !user) {
         return (
@@ -189,6 +224,7 @@ export default function DonorDashboard() {
         joinedDate: new Date().toISOString().split('T')[0], // You can get this from user data if available
         type: user.role === 'donor' ? UserType.DONOR : UserType.RECIPIENT // Map role to specific UserType
     };
+
     // Filter functions
     const filteredDonorPosts = filterCategory === "all"
         ? donorPosts
@@ -229,9 +265,9 @@ export default function DonorDashboard() {
                                             {filteredRecipientPosts.length} {filteredRecipientPosts.length === 1 ? 'person needs' : 'people need'} help
                                         </div>
                                     </div>
-                                    <Filterbar 
-                                        posts={recipientPosts} 
-                                        filterCategory={filterCategory} 
+                                    <Filterbar
+                                        posts={recipientPosts}
+                                        filterCategory={filterCategory}
                                         setFilterCategory={setFilterCategory}
                                         urgencyFilter={urgencyFilter}
                                         setUrgencyFilter={setUrgencyFilter}
@@ -292,9 +328,9 @@ export default function DonorDashboard() {
                                         </button>
                                     </div>
 
-                                    <Filterbar 
-                                        posts={myDonorPosts} 
-                                        filterCategory={filterCategory} 
+                                    <Filterbar
+                                        posts={myDonorPosts}
+                                        filterCategory={filterCategory}
                                         setFilterCategory={setFilterCategory}
                                         urgencyFilter={urgencyFilter}
                                         setUrgencyFilter={setUrgencyFilter}
@@ -357,9 +393,24 @@ export default function DonorDashboard() {
                                     </div>
                                 </div>
 
-                                <MapSection bloodCamps={bloodCamps} setSelectedCamp={setSelectedCamp} />
-                                <CampsSection bloodCamps={bloodCamps} setSelectedCamp={setSelectedCamp} showBloodCampForm={showBloodCampForm} setShowBloodCampForm={setShowBloodCampForm} />
-
+                                {isLoadingCamps ? (
+                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                        <div className="animate-pulse w-16 h-16 rounded-full bg-red-400 mx-auto mb-4"></div>
+                                        <h3 className="text-2xl font-bold text-red-700 mb-2">Loading blood camps...</h3>
+                                        <p className="text-gray-600 mb-6">Please wait while we fetch available camps.</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <MapSection bloodCamps={bloodCamps} setSelectedCamp={setSelectedCamp} />
+                                        <CampsSection
+                                            bloodCamps={bloodCamps}
+                                            setSelectedCamp={setSelectedCamp}
+                                            showBloodCampForm={showBloodCampForm}
+                                            setShowBloodCampForm={setShowBloodCampForm}
+                                            onCampCreated={handleBloodCampCreated} // Make sure this is passed
+                                        />
+                                    </>
+                                )}
                             </motion.div>
                         )}
 
@@ -421,6 +472,7 @@ export default function DonorDashboard() {
                                 <p className="text-gray-600 text-lg">Coming soon! Communicate directly with recipients.</p>
                             </motion.div>
                         )}
+
                         {activeTab === "achievements" && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}

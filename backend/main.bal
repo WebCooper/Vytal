@@ -1,14 +1,16 @@
 // Main service file for Vytal Authentication API
-import ballerina/http;
-import ballerina/time;
+
+import backend.database;
+import backend.donorPostOp as donorPostService;
+import backend.messages as msgModule;
+import backend.postOp as postService;
+import backend.token;
 import backend.types;
 import backend.userOp as userService;
-import backend.postOp as postService;
-import backend.donorPostOp as donorPostService;
-import backend.token;
-import backend.database;
+
+import ballerina/http;
 import ballerina/io;
-import backend.messages as msgModule;
+import ballerina/time;
 
 # HTTP service with all authentication endpoints
 @http:ServiceConfig {
@@ -39,9 +41,9 @@ service /api/v1 on new http:Listener(9091) {
     # + return - HTTP response
     resource function post register(types:RegisterRequest request) returns http:Response|error {
         http:Response response = new;
-        
+
         types:UserResponse|error result = userService:registerUser(request);
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -56,16 +58,16 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Login endpoint
     resource function post login(types:LoginRequest request) returns http:Response|error {
         http:Response response = new;
-        
+
         types:LoginResponse|error result = userService:loginUser(request);
-        
+
         if result is error {
             response.statusCode = 401;
             response.setJsonPayload({
@@ -80,16 +82,16 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Get profile endpoint
     resource function get profile(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        
+
         string|error email = token:validateToken(authorization);
-        
+
         if email is error {
             response.statusCode = 401;
             response.setJsonPayload({
@@ -98,9 +100,9 @@ service /api/v1 on new http:Listener(9091) {
             });
             return response;
         }
-        
+
         types:UserResponse|error result = userService:getUserProfile(email);
-        
+
         if result is error {
             response.statusCode = 404;
             response.setJsonPayload({
@@ -114,16 +116,16 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Update profile endpoint
     resource function put profile(@http:Header {name: "Authorization"} string? authorization, types:UserUpdate updatedUser) returns http:Response|error {
         http:Response response = new;
-        
+
         string|error email = token:validateToken(authorization);
-        
+
         if email is error {
             response.statusCode = 401;
             response.setJsonPayload({
@@ -132,7 +134,7 @@ service /api/v1 on new http:Listener(9091) {
             });
             return response;
         }
-        
+
         // For update, we need to pass the current user data
         types:User updateUserData = {
             id: (),
@@ -145,9 +147,9 @@ service /api/v1 on new http:Listener(9091) {
             created_at: (),
             updated_at: ()
         };
-        
+
         types:UserResponse|error result = userService:updateUserProfile(email, updateUserData);
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -162,14 +164,14 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Logout endpoint
     resource function post logout(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        
+
         if authorization is () || !authorization.startsWith("Bearer ") {
             response.statusCode = 401;
             response.setJsonPayload({
@@ -178,10 +180,10 @@ service /api/v1 on new http:Listener(9091) {
             });
             return response;
         }
-        
+
         string tokenValue = authorization.substring(7);
         error? result = userService:logoutUser(tokenValue);
-        
+
         if result is error {
             response.statusCode = 401;
             response.setJsonPayload({
@@ -195,14 +197,14 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Create recipient post endpoint
     resource function post posts(@http:Header {name: "Authorization"} string? authorization, types:RecipientPostCreate request) returns http:Response|error {
         http:Response response = new;
-        
+
         // Validate token and get user email
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -227,7 +229,7 @@ service /api/v1 on new http:Listener(9091) {
 
         // Create the post
         types:RecipientPostResponse|error result = postService:createRecipientPost(userResult.id, request);
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -242,16 +244,16 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Get all recipient posts endpoint
     resource function get posts() returns http:Response|error {
         http:Response response = new;
-        
+
         types:RecipientPostResponse[]|error result = postService:getAllRecipientPosts();
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -265,16 +267,16 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Get posts by user endpoint
     resource function get posts/[int userId]() returns http:Response|error {
         http:Response response = new;
-        
+
         types:RecipientPostResponse[]|error result = postService:getRecipientPostsByUser(userId);
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -288,14 +290,14 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Update recipient post endpoint
     resource function put posts/[int postId](@http:Header {name: "Authorization"} string? authorization, types:RecipientPostUpdate request) returns http:Response|error {
         http:Response response = new;
-        
+
         // Validate token
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -308,7 +310,7 @@ service /api/v1 on new http:Listener(9091) {
         }
 
         types:RecipientPostResponse|error result = postService:updateRecipientPost(postId, request);
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -323,14 +325,14 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Delete recipient post endpoint
     resource function delete posts/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        
+
         // Validate token
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -343,7 +345,7 @@ service /api/v1 on new http:Listener(9091) {
         }
 
         error? result = postService:deleteRecipientPost(postId);
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -357,7 +359,7 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
@@ -411,9 +413,9 @@ service /api/v1 on new http:Listener(9091) {
     // Get all donor posts endpoint
     resource function get donor_post() returns http:Response|error {
         http:Response response = new;
-        
+
         types:DonorPost[]|error result = donorPostService:getAllDonorPosts();
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -427,14 +429,14 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
     // Get donor posts by user ID endpoint
     resource function get donor_post/user/[int userId]() returns http:Response|error {
         http:Response response = new;
-        
+
         // Check if user exists
         types:UserResponse|error userResult = userService:getUserById(userId);
         if userResult is error {
@@ -445,10 +447,10 @@ service /api/v1 on new http:Listener(9091) {
             });
             return response;
         }
-        
+
         // Get posts by user ID
         types:DonorPost[]|error result = donorPostService:getDonorPostsByUser(userId);
-        
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -462,7 +464,7 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         }
-        
+
         return response;
     }
 
@@ -591,6 +593,84 @@ service /api/v1 on new http:Listener(9091) {
             response.statusCode = 200;
             response.setJsonPayload({
                 "message": "Message marked as read",
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    // Create blood camp endpoint
+    resource function post blood\-camps(@http:Header {name: "Authorization"} string? authorization, types:BloodCampCreate request) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:UserResponse|error userResult = userService:getUserProfile(email);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        int|error result = database:createBloodCamp(userResult.id, request);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 201;
+            response.setJsonPayload({
+                "message": "Blood camp created successfully",
+                "id": result,
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    // Get all blood camps endpoint
+    resource function get blood\-camps(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:BloodCamp[]|error result = database:getAllBloodCamps();
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "total": result.length(),
                 "timestamp": time:utcNow()
             });
         }
