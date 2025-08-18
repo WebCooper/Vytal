@@ -2,7 +2,8 @@
 import AdminLayout from "@/components/admin/layout/AdminLayout";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FaUsers, FaFileAlt, FaUserPlus, FaExclamationTriangle, FaChartBar } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { FaUsers, FaFileAlt, FaUserPlus } from "react-icons/fa";
 
 // Mock data - replace with actual API calls
 const mockStats = {
@@ -27,6 +28,7 @@ const mockRecentPosts = [
 ];
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState(mockStats);
   const [recentUsers, setRecentUsers] = useState(mockRecentUsers);
   const [recentPosts, setRecentPosts] = useState(mockRecentPosts);
@@ -158,7 +160,10 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                   <div className="text-center pt-4">
-                    <button className="text-white hover:text-blue-100 text-sm font-medium bg-gradient-to-r from-blue-500 to-blue-700 px-4 py-2 rounded-lg hover:scale-105 transition-all duration-300">
+                    <button 
+                      onClick={() => router.push('/admin/dashboard/users')}
+                      className="text-white hover:text-blue-100 text-sm font-medium bg-gradient-to-r from-blue-500 to-blue-700 px-4 py-2 rounded-lg hover:scale-105 transition-all duration-300"
+                    >
                       View All Users →
                     </button>
                   </div>
@@ -204,36 +209,16 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                   <div className="text-center pt-4">
-                    <button className="text-white hover:text-blue-100 text-sm font-medium bg-gradient-to-r from-blue-500 to-blue-700 px-4 py-2 rounded-lg hover:scale-105 transition-all duration-300">
+                    <button 
+                      onClick={() => router.push('/admin/dashboard/posts')}
+                      className="text-white hover:text-blue-100 text-sm font-medium bg-gradient-to-r from-blue-500 to-blue-700 px-4 py-2 rounded-lg hover:scale-105 transition-all duration-300"
+                    >
                       View All Posts →
                     </button>
                   </div>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
-          <h3 className="text-2xl font-bold text-blue-700 mb-6">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <button className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/40 hover:bg-white/70 transition-all duration-300 transform hover:scale-105 text-center group">
-              <FaUsers className="text-3xl text-blue-600 mx-auto mb-3 group-hover:text-blue-700" />
-              <span className="text-blue-700 font-semibold">Manage Users</span>
-            </button>
-            <button className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/40 hover:bg-white/70 transition-all duration-300 transform hover:scale-105 text-center group">
-              <FaFileAlt className="text-3xl text-blue-600 mx-auto mb-3 group-hover:text-blue-700" />
-              <span className="text-blue-700 font-semibold">Review Posts</span>
-            </button>
-            <button className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/40 hover:bg-white/70 transition-all duration-300 transform hover:scale-105 text-center group">
-              <FaExclamationTriangle className="text-3xl text-blue-600 mx-auto mb-3 group-hover:text-blue-700" />
-              <span className="text-blue-700 font-semibold">Pending Approvals</span>
-            </button>
-            <button className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/40 hover:bg-white/70 transition-all duration-300 transform hover:scale-105 text-center group">
-              <FaChartBar className="text-3xl text-blue-600 mx-auto mb-3 group-hover:text-blue-700" />
-              <span className="text-blue-700 font-semibold">View Reports</span>
-            </button>
           </div>
         </div>
       </motion.div>

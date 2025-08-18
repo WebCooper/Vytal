@@ -29,13 +29,16 @@ type OrganOffering record {|
 
 type OfferingDetails BloodOffering|FundraiserOffering|MedicineOffering|OrganOffering;
 
+# Make the OfferingDetails type public
+public type PublicOfferingDetails BloodOffering|FundraiserOffering|MedicineOffering|OrganOffering;
+
 
 # Description.
 #
 # + id - field description  
 # + donor_id - field description  
 # + title - field description  
-# + status - field description  
+# + status - Status of the post  
 # + category - field description  
 # + content - field description  
 # + location - field description  
@@ -56,7 +59,7 @@ public type DonorPost record {|
     types:Urgency urgency; 
     types:Engagement engagement;
     string contact;
-    OfferingDetails offeringDetails;
+    PublicOfferingDetails offeringDetails;
 |};
 
 # Create donor post (input)
@@ -66,6 +69,7 @@ public type DonorPost record {|
 # + category - Category of the offering  
 # + content - Content/description of the post  
 # + location - Location information  
+# + status - Status of the post (default: pending)
 # + urgency - Urgency level of the offering  
 # + contact - Contact information  
 # + offeringDetails - Details specific to the offering type
@@ -78,7 +82,7 @@ public type DonorPostCreate record {|
     types:Status status = "pending";
     types:Urgency urgency;
     string contact;
-    OfferingDetails offeringDetails;
+    PublicOfferingDetails offeringDetails;
 |};
 
 # Update donor post (partial update)
@@ -99,5 +103,5 @@ public type DonorPostUpdate record {|
     string? location = ();
     types:Urgency? urgency = ();
     string? contact = ();
-    OfferingDetails? offeringDetails = ();
+    PublicOfferingDetails? offeringDetails = ();
 |};

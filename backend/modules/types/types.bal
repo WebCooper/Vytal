@@ -80,6 +80,10 @@ public type User record {|
     # Updated timestamp
     @sql:Column {name: "updated_at"}
     string? updated_at;
+    
+    # User status
+    @sql:Column {name: "status"}
+    string status = "active";
 |};
 
 # User create record type
@@ -137,6 +141,7 @@ public type LoginResponse record {
     string token;
     UserResponse user;
 };
+
 # Engagement metrics for posts
 #
 # + likes - field description  
@@ -272,3 +277,5 @@ public type RecipientPostResponse record {|
     string? contact;
     FundraiserDetails? fundraiserDetails;
 |};
+
+// No admin types here - they are defined in admin_types.bal

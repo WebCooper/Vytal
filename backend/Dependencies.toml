@@ -222,6 +222,9 @@ dependencies = [
 	{org = "ballerina", name = "lang.value"},
 	{org = "ballerina", name = "observe"}
 ]
+modules = [
+	{org = "ballerina", packageName = "log", moduleName = "log"}
+]
 
 [[package]]
 org = "ballerina"
@@ -350,7 +353,7 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "mysql"
-version = "1.13.1"
+version = "1.13.0"
 dependencies = [
 	{org = "ballerina", name = "crypto"},
 	{org = "ballerina", name = "io"},
@@ -379,6 +382,7 @@ dependencies = [
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "io"},
 	{org = "ballerina", name = "lang.int"},
+	{org = "ballerina", name = "log"},
 	{org = "ballerina", name = "os"},
 	{org = "ballerina", name = "regex"},
 	{org = "ballerina", name = "sql"},
@@ -390,6 +394,7 @@ dependencies = [
 ]
 modules = [
 	{org = "cooper", packageName = "backend", moduleName = "backend"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.admin"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.auth"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.database"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.donorPostOp"},

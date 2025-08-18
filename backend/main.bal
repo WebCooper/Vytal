@@ -4,6 +4,7 @@ import ballerina/time;
 import backend.types;
 import backend.userOp as userService;
 import backend.postOp as postService;
+import backend.admin;
 import backend.token;
 import backend.database;
 import ballerina/io;
@@ -358,6 +359,256 @@ service /api/v1 on new http:Listener(9091) {
         }
         
         return response;
+    }
+    
+    # ===== ADMIN ENDPOINTS =====
+    
+# Admin login endpoint
+# + request - Admin login request containing email and password
+# + return - HTTP response with token or error
+resource function post admin/login(types:AdminLoginRequest request) returns http:Response|error {
+    http:Response response = new;
+    
+    types:AdminLoginResponse|error result = admin:adminLogin(request);
+    
+    if result is error {
+        response.statusCode = 401;
+        response.setJsonPayload({
+            "error": result.message(),
+            "timestamp": time:utcNow()
+        });
+    } else {
+        response.statusCode = 200;
+        response.setJsonPayload({
+                "message": "Admin login successful",
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+    
+    # Get all users for admin (with pagination and filtering)
+# + authorization - Bearer token for authorization
+# + page - Page number for pagination
+# + 'limit - Number of items per page
+# + search - Optional search string to filter users
+# + role - Optional role to filter users
+# + status - Optional status to filter users
+# + return - HTTP response with user list or error
+resource function get admin/users(@http:Header {name: "Authorization"} string? authorization,
+                                 int page = 1,
+                                 int 'limit = 10,
+                                 string? search = (),
+                                 string? role = (),
+                                 string? status = ()) returns http:Response|error {
+    http:Response response = new;
+    
+    // Verify admin token
+    if authorization is () || !authorization.startsWith("Bearer ") {
+        response.statusCode = 401;
+        response.setJsonPayload({
+            "error": "Authorization header missing or invalid format",
+            "timestamp": time:utcNow()
+        });
+        return response;
+    }
+        
+        string tokenValue = authorization.substring(7);
+        types:User|error adminUser = admin:verifyAdminToken(tokenValue);
+        if adminUser is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": adminUser.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+        
+        // Create user list request
+        types:UserListRequest listRequest = {
+            page: page,
+            pageLimit: 'limit,
+            search: search,
+            role: role != () ? getRoleFromString(role) : (),
+            status: status
+        };
+        
+        types:UserListResponse|error result = admin:getUserList(listRequest);
+        
+        if result is error {
+            response.statusCode = 500;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+    
+    # Get user details by ID for admin
+    # Get user details by ID for admin
+# + authorization - Bearer token for authorization
+# + userId - ID of the user to retrieve details for
+# + return - HTTP response with user details or error
+resource function get admin/users/[int userId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        
+        // Verify admin token
+        if authorization is () || !authorization.startsWith("Bearer ") {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": "Authorization header missing or invalid format",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+        
+        string tokenValue = authorization.substring(7);
+        types:User|error adminUser = admin:verifyAdminToken(tokenValue);
+        if adminUser is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": adminUser.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+        
+        types:UserDetailsResponse|error result = admin:getUserDetails(userId);
+        
+        if result is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+    
+    # Update user status for admin
+    # + authorization - Bearer token for authorization
+    # + userId - ID of the user to update
+    # + updateRequest - Request body containing status update information
+    # + return - HTTP response with success message or error
+    resource function put admin/users/[int userId]/status(@http:Header {name: "Authorization"} string? authorization, 
+                                                         types:UserStatusUpdate updateRequest) returns http:Response|error {
+        http:Response response = new;
+        
+        // Verify admin token
+        if authorization is () || !authorization.startsWith("Bearer ") {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": "Authorization header missing or invalid format",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+        
+        string tokenValue = authorization.substring(7);
+        types:User|error adminUser = admin:verifyAdminToken(tokenValue);
+        if adminUser is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": adminUser.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+        
+        types:AdminSuccessResponse|error result = admin:updateUserStatus(userId, updateRequest);
+        
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "message": "User status updated successfully",
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+    
+    # Get analytics for admin
+    # + authorization - Bearer token for authorization
+    # + return - HTTP response with analytics overview or error
+    resource function get admin/analytics(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        
+        // Verify admin token
+        if authorization is () || !authorization.startsWith("Bearer ") {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": "Authorization header missing or invalid format",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+        
+        string tokenValue = authorization.substring(7);
+        types:User|error adminUser = admin:verifyAdminToken(tokenValue);
+        if adminUser is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": adminUser.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+        
+        types:AnalyticsOverview|error result = admin:getAnalyticsOverview();
+        
+        if result is error {
+            response.statusCode = 500;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+}
+
+# Helper function to convert string to Role enum
+# + roleStr - String representation of the role
+# + return - Corresponding Role enum value
+function getRoleFromString(string roleStr) returns types:Role {
+    match roleStr {
+        "donor" => { return types:DONOR; }
+        "recipient" => { return types:RECIPIENT; }
+        "organization" => { return types:ORGANIZATION; }
+        "admin" => { return types:ADMIN; }
+        _ => { return types:DONOR; } // default
     }
 }
 

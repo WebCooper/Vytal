@@ -624,3 +624,223 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
     `);
     io:println("✅ Database tables are ready");
 }
+
+# ===== ADMIN DATABASE FUNCTIONS =====
+
+# Get admin by email for authentication
+# + email - Email address of the admin to retrieve
+# + return - User record if admin found, error if not found or operation fails
+public isolated function getAdminByEmail(string email) returns types:User|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database client not initialized");
+    }
+    
+    mysql:Client dbConnection = dbClientResult;
+    
+    sql:ParameterizedQuery query = `SELECT * FROM users WHERE email = ${email} AND role = 'admin'`;
+    stream<types:User, sql:Error?> resultStream = dbConnection->query(query);
+    
+    record {|types:User value;|}? result = check resultStream.next();
+    check resultStream.close();
+    
+    if result is () {
+        return error("Admin not found");
+    }
+    
+    return result.value;
+}
+
+# Update last login timestamp for user
+# + userId - ID of the user to update last login time
+# + return - Error if the operation fails
+public isolated function updateLastLogin(int userId) returns error? {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database client not initialized");
+    }
+    
+    mysql:Client dbConnection = dbClientResult;
+
+    sql:ParameterizedQuery query = `UPDATE users SET updated_at = NOW() WHERE id = ${userId}`;
+    _ = check dbConnection->execute(query);
+    return;
+}
+
+# Get filtered users with pagination for admin
+# + search - Optional search string to filter users
+# + role - Optional role to filter users
+# + status - Optional status to filter users
+# + pageLimit - Number of users per page
+# + offset - Starting offset for pagination
+# + return - Array of user summaries or error
+public isolated function getFilteredUsers(string? search, types:Role? role, string? status, int pageLimit, int offset) returns types:UserSummary[]|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database client not initialized");
+    }
+    
+    mysql:Client dbConnection = dbClientResult;
+
+    // Build the query dynamically
+    sql:ParameterizedQuery query = `SELECT id, name, email, phone_number, role, status, created_at FROM users WHERE 1=1`;
+    
+    if search is string && search.trim() != "" {
+        string searchPattern = "%" + search + "%";
+        query = sql:queryConcat(query, ` AND (name LIKE ${searchPattern} OR email LIKE ${searchPattern})`);
+    }
+    
+    if role is types:Role {
+        string roleStr = role.toString();
+        query = sql:queryConcat(query, ` AND role = ${roleStr}`);
+    }
+    
+    if status is string && status.trim() != "" {
+        query = sql:queryConcat(query, ` AND status = ${status}`);
+    }
+    
+    query = sql:queryConcat(query, ` ORDER BY created_at DESC LIMIT ${pageLimit} OFFSET ${offset}`);
+    
+    stream<record {| int id; string name; string email; string phone_number; string role; string status; string created_at; |}, sql:Error?> resultStream = dbConnection->query(query);
+    
+    types:UserSummary[] users = [];
+    
+    // Use isolated function with check
+    check from record {| int id; string name; string email; string phone_number; string role; string status; string created_at; |} user in resultStream
+        do {
+            types:UserSummary userSummary = {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone_number: user.phone_number,
+                role: getRoleFromString(user.role),
+                status: user.status,
+                created_at: user.created_at,
+                last_login: () // Add last_login tracking if needed
+            };
+            users.push(userSummary);
+        };
+    
+    check resultStream.close();
+    return users;
+}
+
+# Get user count for pagination
+# + search - Optional search string to filter users
+# + role - Optional role to filter users
+# + status - Optional status to filter users
+# + return - Total count of filtered users or error
+public isolated function getUserCount(string? search, types:Role? role, string? status) returns int|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database client not initialized");
+    }
+    
+    mysql:Client dbConnection = dbClientResult;
+
+    // Build the query dynamically
+    sql:ParameterizedQuery query = `SELECT COUNT(*) as count FROM users WHERE 1=1`;
+    
+    if search is string && search.trim() != "" {
+        string searchPattern = "%" + search + "%";
+        query = sql:queryConcat(query, ` AND (name LIKE ${searchPattern} OR email LIKE ${searchPattern})`);
+    }
+    
+    if role is types:Role {
+        string roleStr = role.toString();
+        query = sql:queryConcat(query, ` AND role = ${roleStr}`);
+    }
+    
+    if status is string && status.trim() != "" {
+        query = sql:queryConcat(query, ` AND status = ${status}`);
+    }
+    
+    record {| int count; |}? result = check dbConnection->queryRow(query);
+    
+    if result is () {
+        return 0;
+    }
+    
+    return result.count;
+}
+
+# Get user statistics
+# + userId - ID of the user to get statistics for
+# + return - User stats record or error
+public isolated function getUserStats(int userId) returns types:UserStats|error {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database client not initialized");
+    }
+    
+    mysql:Client dbConnection = dbClientResult;
+
+    sql:ParameterizedQuery query = `
+        SELECT 
+            COUNT(*) as total_posts,
+            SUM(CASE WHEN status = '"open"' THEN 1 ELSE 0 END) as active_posts,
+            SUM(CASE WHEN status = '"fulfilled"' THEN 1 ELSE 0 END) as completed_posts
+        FROM recipient_posts 
+        WHERE recipient_id = ${userId}
+    `;
+    
+    record {| int total_posts; int active_posts; int completed_posts; |}? result = check dbConnection->queryRow(query);
+    
+    if result is () {
+        return {
+            total_posts: 0,
+            active_posts: 0,
+            completed_posts: 0,
+            donations_made: (),
+            donations_received: ()
+        };
+    }
+    
+    return {
+        total_posts: result.total_posts,
+        active_posts: result.active_posts,
+        completed_posts: result.completed_posts,
+        donations_made: (), // Implement when donation tracking is added
+        donations_received: () // Implement when donation tracking is added
+    };
+}
+
+# Update user status
+# + userId - ID of the user to update status
+# + status - New status value (active, inactive, suspended)
+# + reason - Optional reason for status change
+# + return - Error if operation fails
+public isolated function updateUserStatus(int userId, string status, string? reason) returns error? {
+    mysql:Client|error dbClientResult = getDbClient();
+    
+    if dbClientResult is error {
+        return error("Database client not initialized");
+    }
+    
+    mysql:Client dbConnection = dbClientResult;
+
+    sql:ParameterizedQuery query = `UPDATE users SET status = ${status}, updated_at = NOW() WHERE id = ${userId}`;
+    _ = check dbConnection->execute(query);
+    
+    // Log the status change
+    io:println(string `User ${userId} status updated to ${status}. Reason: ${reason ?: "No reason provided"}`);
+    return;
+}
+
+# Helper function to convert string to Role enum
+# + roleStr - String representation of role
+# + return - Role enum value
+isolated function getRoleFromString(string roleStr) returns types:Role {
+    match roleStr {
+        "donor" => { return types:DONOR; }
+        "recipient" => { return types:RECIPIENT; }
+        "organization" => { return types:ORGANIZATION; }
+        "admin" => { return types:ADMIN; }
+        _ => { return types:DONOR; } // default
+    }
+}
