@@ -8,8 +8,15 @@ import FundraiserProgressbar from './FundraiserProgressbar';
 import { MdVerified } from 'react-icons/md';
 import ContactModal from './ContactModal';
 import HelpNowModal from './HelpNowModal';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 
-const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
+interface PostsGridProps {
+  posts: Post[];
+  filterCategory: string;
+}
+
+const PostsGrid: React.FC<PostsGridProps> = ({posts, filterCategory}) => {
+  const { user } = useAuth(); // Get the current user
   const isPostOwner = false; // TODO: Replace with actual logic to check if the user is the post owner
   
   // Modal states
@@ -46,6 +53,7 @@ const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
             setSelectedPost(null);
           }}
           post={selectedPost}
+          currentUserId={user?.id} // Pass the current user ID
         />
       )}
 
@@ -58,6 +66,7 @@ const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
             setSelectedPost(null);
           }}
           post={selectedPost}
+          currentUserId={user?.id} // Pass the current user ID
         />
       )}
 

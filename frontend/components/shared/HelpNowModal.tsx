@@ -6,14 +6,16 @@ import { MdVerified } from 'react-icons/md';
 import { Post, Category } from '../types';
 import { getCategoryIcon, getCategoryColor } from '../utils';
 import FundraiserProgressbar from './FundraiserProgressbar';
+import { sendMessage, CreateMessageRequest } from '../../lib/messages';
 
 interface HelpNowModalProps {
   isOpen: boolean;
   onClose: () => void;
   post: Post;
+  currentUserId?: number; // Add this prop for the logged-in user ID
 }
 
-const HelpNowModal: React.FC<HelpNowModalProps> = ({ isOpen, onClose, post }) => {
+const HelpNowModal: React.FC<HelpNowModalProps> = ({ isOpen, onClose, post, currentUserId }) => {
   const [selectedHelpType, setSelectedHelpType] = useState<string>('');
   const [donationAmount, setDonationAmount] = useState('');
   const [customAmount, setCustomAmount] = useState('');
@@ -46,35 +48,61 @@ const HelpNowModal: React.FC<HelpNowModalProps> = ({ isOpen, onClose, post }) =>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentUserId) {
+      alert('Please log in to offer help');
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const helpData = {
-      postId: post.id,
-      recipientId: post.user.id,
-      helpType: selectedHelpType,
-      donationAmount: selectedHelpType === 'donation' ? (customAmount || donationAmount) : null,
-      helperName,
-      helperEmail,
-      helperPhone,
-      message
-    };
-    
-    console.log('Help offer:', helpData);
-    
-    setIsSubmitting(false);
-    onClose();
-    
-    // Reset form
-    setSelectedHelpType('');
-    setDonationAmount('');
-    setCustomAmount('');
-    setHelperName('');
-    setHelperEmail('');
-    setHelperPhone('');
-    setMessage('');
+    try {
+      const helpAmount = selectedHelpType === 'donation' ? (customAmount || donationAmount) : null;
+      const helpSubject = selectedHelpType === 'donation' 
+        ? `Donation Offer: ${helpAmount} for ${post.title}`
+        : `${helpTypes[selectedHelpType as keyof typeof helpTypes].title} for ${post.title}`;
+      
+      const helpContent = `
+Type: ${helpTypes[selectedHelpType as keyof typeof helpTypes].title}
+${helpAmount ? `Amount: ${helpAmount}` : ''}
+
+Helper Information:
+Name: ${helperName}
+Email: ${helperEmail}
+Phone: ${helperPhone}
+
+Message:
+${message}
+      `;
+      
+      const messageData: CreateMessageRequest = {
+        sender_id: currentUserId,
+        receiver_id: post.user.id,
+        post_id: post.id,
+        subject: helpSubject,
+        content: helpContent.trim(),
+        message_type: 'help_offer'
+      };
+      
+      await sendMessage(messageData);
+      
+      alert('Help offer sent successfully!');
+      onClose();
+      
+      // Reset form
+      setSelectedHelpType('');
+      setDonationAmount('');
+      setCustomAmount('');
+      setHelperName('');
+      setHelperEmail('');
+      setHelperPhone('');
+      setMessage('');
+    } catch (error) {
+      console.error('Error sending help offer:', error);
+      alert('Failed to send help offer. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

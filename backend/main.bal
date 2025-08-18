@@ -8,7 +8,7 @@ import backend.donorPostOp as donorPostService;
 import backend.token;
 import backend.database;
 import ballerina/io;
-
+import backend.messages as msgModule;
 # HTTP service with all authentication endpoints
 @http:ServiceConfig {
     cors: {
@@ -410,6 +410,88 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
+    // MESSAGING ENDPOINTS - Add these to your existing service block in main.bal
+
+    // Send message endpoint
+    resource function post messages(@http:Header {name: "Authorization"} string? authorization, msgModule:CreateMessageRequest request) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        msgModule:MessageResponse|error result = msgModule:sendMessage(request);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 201;
+            response.setJsonPayload(result.toJson());
+        }
+
+        return response;
+    }
+
+    // Get user messages endpoint
+    resource function get messages/user/[int userId](@http:Header {name: "Authorization"} string? authorization, string? status = ()) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        msgModule:MessagesListResponse|error result = msgModule:getMessagesForUser(userId, status);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload(result.toJson());
+        }
+
+        return response;
+    }
+
+    // Get unread count endpoint
+    resource function get messages/user/[int userId]/unread\-count(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        int|error result = msgModule:getUnreadCount(userId);
+
+
     // Get all donor posts endpoint
     resource function get donor_post() returns http:Response|error {
         http:Response response = new;
@@ -425,6 +507,26 @@ service /api/v1 on new http:Listener(9091) {
         } else {
             response.statusCode = 200;
             response.setJsonPayload({
+
+                "count": result,
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    // Mark message as read endpoint
+    resource function put messages/[int messageId]/read(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+
                 "data": result.toJson(),
                 "timestamp": time:utcNow()
             });
@@ -443,14 +545,21 @@ service /api/v1 on new http:Listener(9091) {
             response.statusCode = 404;
             response.setJsonPayload({
                 "error": "User not found",
+
                 "timestamp": time:utcNow()
             });
             return response;
         }
+
+
+        error? result = msgModule:markMessageAsRead(messageId);
+
+
         
         // Get posts by user ID
         types:DonorPost[]|error result = donorPostService:getDonorPostsByUser(userId);
         
+
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -460,11 +569,19 @@ service /api/v1 on new http:Listener(9091) {
         } else {
             response.statusCode = 200;
             response.setJsonPayload({
+
+                "message": "Message marked as read",
+                "timestamp": time:utcNow()
+            });
+        }
+
+
                 "data": result.toJson(),
                 "timestamp": time:utcNow()
             });
         }
         
+
         return response;
     }
 }

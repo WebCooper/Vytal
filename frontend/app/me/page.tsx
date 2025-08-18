@@ -11,6 +11,7 @@ import { getPostsByUser, RecipientPost, PostCategory } from "@/lib/recipientPost
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { UserType, Post, Category } from "@/components/types";
+import MessagesTab from "@/components/messages/MessagesTab";
 
 export default function RecipientDashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -21,12 +22,12 @@ export default function RecipientDashboard() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Function to convert RecipientPost to Post
   const mapRecipientPostToPost = (recipientPost: RecipientPost): Post => {
     // Map PostCategory to Category enum
     const mapCategory = (category: PostCategory): Category => {
-      switch(category) {
+      switch (category) {
         case 'blood': return Category.BLOOD;
         case 'organs': return Category.ORGANS;
         case 'fundraiser': return Category.FUNDRAISER;
@@ -35,7 +36,7 @@ export default function RecipientDashboard() {
         default: return Category.SUPPLIES; // Default fallback
       }
     };
-    
+
     return {
       id: recipientPost.id,
       title: recipientPost.title,
@@ -66,7 +67,7 @@ export default function RecipientDashboard() {
       router.push('/auth/signin');
     }
   }, [isLoading, isAuthenticated, user, router]);
-  
+
   useEffect(() => {
     // Fetch recipient's posts when user is authenticated
     const fetchUserPosts = async () => {
@@ -82,7 +83,7 @@ export default function RecipientDashboard() {
         }
       }
     };
-    
+
     if (isAuthenticated && user) {
       fetchUserPosts();
     }
@@ -124,9 +125,9 @@ export default function RecipientDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
-      <CreateRecipientPost 
+      <CreateRecipientPost
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => setIsModalOpen(false)}
         onPostCreated={handlePostCreated}
       />
       <ProfileHeader user={adaptedUser} />
@@ -152,7 +153,7 @@ export default function RecipientDashboard() {
                       </h2>
                       <p className="text-gray-600">Manage your support requests and track engagement</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setIsModalOpen(true)}
                       className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
                     >
@@ -161,9 +162,9 @@ export default function RecipientDashboard() {
                     </button>
                   </div>
 
-                  <Filterbar 
-                    posts={myPosts} 
-                    filterCategory={filterCategory} 
+                  <Filterbar
+                    posts={myPosts}
+                    filterCategory={filterCategory}
                     setFilterCategory={setFilterCategory}
                     urgencyFilter={urgencyFilter}
                     setUrgencyFilter={setUrgencyFilter}
@@ -171,23 +172,22 @@ export default function RecipientDashboard() {
                 </div>
 
                 <PostsGrid
-                  posts={myPosts} 
+                  posts={myPosts}
                   filterCategory={filterCategory}
                 />
 
               </motion.div>
             )}
 
+            // In your RecipientDashboard component, replace the messages tab section:
+
             {activeTab === "messages" && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
+                className="space-y-6"
               >
-                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-6">
-                  Messages
-                </h2>
-                <p className="text-gray-600 text-lg">Coming soon! Communicate directly with potential donors.</p>
+                <MessagesTab userId={user.id} />
               </motion.div>
             )}
           </div>
