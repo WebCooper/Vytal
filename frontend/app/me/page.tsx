@@ -179,8 +179,6 @@ export default function RecipientDashboard() {
               </motion.div>
             )}
 
-            // In your RecipientDashboard component, replace the messages tab section:
-
             {activeTab === "messages" && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

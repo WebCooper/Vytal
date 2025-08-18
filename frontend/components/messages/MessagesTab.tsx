@@ -133,7 +133,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({ userId }) => {
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-3 py-1 rounded-lg bg-white/20 text-white border border-white/30 text-sm"
+            className="px-3 py-1 rounded-lg text-black bg-white/20 border border-white/30 text-sm"
           >
             <option value="all">All Status</option>
             <option value="unread">Unread</option>
@@ -143,7 +143,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({ userId }) => {
           <select 
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as any)}
-            className="px-3 py-1 rounded-lg bg-white/20 text-white border border-white/30 text-sm"
+            className="px-3 py-1 rounded-lg bg-white/20 text-black border border-white/30 text-sm"
           >
             <option value="all">All Types</option>
             <option value="help_offer">Help Offers</option>
