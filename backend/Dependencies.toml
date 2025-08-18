@@ -397,6 +397,7 @@ modules = [
 	{org = "cooper", packageName = "backend", moduleName = "backend.auth"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.database"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.donorPostOp"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.messages"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.postOp"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.storage"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.token"},

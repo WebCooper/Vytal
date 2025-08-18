@@ -1,13 +1,13 @@
-import ballerinax/mysql;
-import ballerinax/mysql.driver as _; // Import MySQL driver
-import ballerina/sql;
-import ballerina/regex;
-import backend.types;
 import backend.storage;
+import backend.types;
+
 import ballerina/io;
 import ballerina/lang.'int;
 import ballerina/lang.value;
-
+import ballerina/regex;
+import ballerina/sql;
+import ballerinax/mysql;
+import ballerinax/mysql.driver as _; // Import MySQL driver
 
 # Database Client Configuration - optional for development
 configurable string dbHost = ?;
@@ -32,16 +32,16 @@ function init() {
         database: dbDatabase,
         port: dbPort
     };
-    
+
     io:println(string `=== MySQL Connection Test ===`);
     io:println(string `Host: ${config.host}, Port: ${config.port}, Database: ${config.database}, User: ${config.user}`);
     io:println(string `===========================`);
-    
+
     // Set up MySQL options with connection timeout
     mysql:Options mysqlOptions = {
         connectTimeout: connectTimeout
     };
-    
+
     // Configure SSL if enabled
     if useSSL {
         mysql:SSLMode sslModeEnum = getSslMode(sslMode);
@@ -49,26 +49,26 @@ function init() {
             mode: sslModeEnum
         };
     }
-    
+
     // Configure connection pooling
     sql:ConnectionPool connectionPool = {
         maxOpenConnections: 15,
         maxConnectionLifeTime: 1800,
         minIdleConnections: 5
     };
-    
+
     io:println("Connecting to MySQL database at " + config.host + ":" + config.port.toString());
-    
+
     mysql:Client|error clientResult = new (
         host = config.host,
-        user = config.user, 
+        user = config.user,
         password = config.password,
         database = config.database,
         port = config.port,
         options = mysqlOptions,
         connectionPool = connectionPool
     );
-    
+
     if clientResult is mysql:Client {
         lock {
             dbClient = clientResult;
@@ -82,7 +82,6 @@ function init() {
         io:println("⚠️ Will use in-memory fallback storage instead");
     }
 }
-
 
 # Helper function to convert string SSL mode to enum
 # + mode - SSL mode as string
@@ -124,29 +123,29 @@ isolated function getDbClient() returns mysql:Client|error {
 # + return - User record if found, null if not found, or error if operation fails
 public isolated function getUserById(int userId) returns types:User?|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     // If database not available, use in-memory storage
     if dbClientResult is error {
         return error("Database not available");
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     sql:ParameterizedQuery query = `
         SELECT 
             id, name, phone_number, email, password, role, categories, created_at, updated_at
         FROM users 
         WHERE id = ${userId}
     `;
-    
+
     stream<types:User, sql:Error?> resultStream = dbClientInstance->query(query);
     record {|types:User value;|}? result = check resultStream.next();
     check resultStream.close();
-    
+
     if result is () {
         return ();
     }
-    
+
     return result.value;
 }
 
@@ -155,29 +154,29 @@ public isolated function getUserById(int userId) returns types:User?|error {
 # + return - User record if found, null if not found, or error if operation fails
 public isolated function getUserByEmail(string email) returns types:User?|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     // If database not available, use in-memory storage
     if dbClientResult is error {
         return storage:getUser(email);
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     sql:ParameterizedQuery query = `
         SELECT 
             id, name, phone_number, email, password, role, categories, created_at, updated_at
         FROM users 
         WHERE email = ${email}
     `;
-    
+
     stream<types:User, sql:Error?> resultStream = dbClientInstance->query(query);
     record {|types:User value;|}? result = check resultStream.next();
     check resultStream.close();
-    
+
     if result is () {
         return ();
     }
-    
+
     return result.value;
 }
 
@@ -186,26 +185,26 @@ public isolated function getUserByEmail(string email) returns types:User?|error 
 # + return - True if user exists, false if not, or error if operation fails
 public isolated function userExistsByEmail(string email) returns boolean|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     // If database not available, use in-memory storage
     if dbClientResult is error {
         return storage:userExists(email);
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     sql:ParameterizedQuery query = `
         SELECT COUNT(*) as count FROM users WHERE email = ${email}
     `;
-    
+
     stream<record {int count;}, sql:Error?> resultStream = dbClientInstance->query(query);
     record {|record {int count;} value;|}? result = check resultStream.next();
     check resultStream.close();
-    
+
     if result is () {
         return false;
     }
-    
+
     return result.value.count > 0;
 }
 
@@ -215,7 +214,7 @@ public isolated function userExistsByEmail(string email) returns boolean|error {
 # + return - SQL execution result or error if operation fails
 public isolated function insertUser(types:UserCreate user) returns sql:ExecutionResult|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     // If database not available, use in-memory storage
     if dbClientResult is error {
         // Convert UserCreate to User for storage
@@ -231,7 +230,7 @@ public isolated function insertUser(types:UserCreate user) returns sql:Execution
             updated_at: ()
         };
         storage:addUser(user.email, newUser);
-        
+
         // Return a mock execution result
         sql:ExecutionResult mockResult = {
             affectedRowCount: 1,
@@ -239,17 +238,17 @@ public isolated function insertUser(types:UserCreate user) returns sql:Execution
         };
         return mockResult;
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     // Convert categories array to JSON string
     string categoriesJson = convertCategoriesToJson(user.categories);
-    
+
     sql:ParameterizedQuery query = `
         INSERT INTO users (name, phone_number, email, password, role, categories)
         VALUES (${user.name}, ${user.phone_number}, ${user.email}, ${user.password}, ${user.role}, ${categoriesJson})
     `;
-    
+
     return dbClientInstance->execute(query);
 }
 
@@ -260,7 +259,7 @@ public isolated function insertUser(types:UserCreate user) returns sql:Execution
 # + return - SQL execution result or error if operation fails
 public isolated function updateUser(int id, types:UserUpdate user) returns sql:ExecutionResult|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     // If database not available, use in-memory storage
     if dbClientResult is error {
         // For in-memory storage, we need the email to update
@@ -272,14 +271,14 @@ public isolated function updateUser(int id, types:UserUpdate user) returns sql:E
         };
         return mockResult;
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     string? categoriesJson = ();
     if user.categories is types:Category[] {
         categoriesJson = convertCategoriesToJson(<types:Category[]>user.categories);
     }
-    
+
     sql:ParameterizedQuery query = `
         UPDATE users SET 
             name = COALESCE(${user.name}, name),
@@ -289,7 +288,7 @@ public isolated function updateUser(int id, types:UserUpdate user) returns sql:E
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ${id}
     `;
-    
+
     return dbClientInstance->execute(query);
 }
 
@@ -312,14 +311,14 @@ public isolated function convertJsonToCategories(string categoriesJson) returns 
     // Remove brackets and quotes, then split by comma
     string cleaned = categoriesJson.substring(1, categoriesJson.length() - 1);
     cleaned = regex:replaceAll(cleaned, "\"", "");
-    
+
     if cleaned.trim() == "" {
         return [];
     }
-    
+
     string[] categoryStrings = regex:split(cleaned, ",");
     types:Category[] categories = [];
-    
+
     foreach string categoryStr in categoryStrings {
         string trimmed = categoryStr.trim();
         match trimmed {
@@ -345,9 +344,10 @@ public isolated function convertJsonToCategories(string categoriesJson) returns 
             }
         }
     }
-    
+
     return categories;
 }
+
 public isolated function getRecipientPosts() returns types:RecipientPost[]|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -364,14 +364,14 @@ public isolated function getRecipientPosts() returns types:RecipientPost[]|error
             break;
         } else {
             var row = result.value;
-            
+
             // Parse category, status, and urgency by removing surrounding quotes
             string categoryClean = regex:replaceAll(row.get("category").toString(), "\"", "");
             string statusClean = regex:replaceAll(row.get("status").toString(), "\"", "");
-            
+
             string? urgencyValue = row.get("urgency") is string ? row.get("urgency").toString() : ();
             string? urgencyClean = urgencyValue is string ? regex:replaceAll(urgencyValue, "\"", "") : ();
-            
+
             types:RecipientPost post = {
                 id: check int:fromString(row.get("id").toString()),
                 recipient_id: check int:fromString(row.get("recipient_id").toString()),
@@ -394,13 +394,12 @@ public isolated function getRecipientPosts() returns types:RecipientPost[]|error
             posts.push(post);
         }
     }
-    
+
     check resultStream.close();
 
     check resultStream.close();
     return posts;
 }
-
 
 public isolated function getRecipientPostById(int id) returns types:RecipientPost?|error {
     mysql:Client dbClientInstance = check getDbClient();
@@ -434,25 +433,27 @@ public isolated function getRecipientPostById(int id) returns types:RecipientPos
         decimal? received;
     }, sql:Error?> resultStream = dbClientInstance->query(query);
 
-    record {|record {
-        int id;
-        int recipient_id;
-        string title;
-        string content;
-        string category;
-        string status;
-        string? location;
-        string? urgency;
-        string? contact;
-        string? created_at;
-        string? updated_at;
-        int likes;
-        int comments;
-        int shares;
-        int views;
-        decimal? goal;
-        decimal? received;
-    } value;|}? result = check resultStream.next();
+    record {|
+        record {
+            int id;
+            int recipient_id;
+            string title;
+            string content;
+            string category;
+            string status;
+            string? location;
+            string? urgency;
+            string? contact;
+            string? created_at;
+            string? updated_at;
+            int likes;
+            int comments;
+            int shares;
+            int views;
+            decimal? goal;
+            decimal? received;
+        } value;
+    |}? result = check resultStream.next();
     check resultStream.close();
 
     if result is () {
@@ -464,10 +465,9 @@ public isolated function getRecipientPostById(int id) returns types:RecipientPos
     // Parse JSON string fields
     string categoryClean = regex:replaceAll(row.category, "\"", "");
     string statusClean = regex:replaceAll(row.status, "\"", "");
-    string? urgencyClean = row.urgency is string 
-    ? regex:replaceAll(row.urgency ?: "", "\"", "") 
-    : ();
-
+    string? urgencyClean = row.urgency is string
+        ? regex:replaceAll(row.urgency ?: "", "\"", "")
+        : ();
 
     // Build the RecipientPost record
     types:RecipientPost post = {
@@ -493,7 +493,6 @@ public isolated function getRecipientPostById(int id) returns types:RecipientPos
     return post;
 }
 
-
 # Insert a new recipient post into the database
 # + post - The recipient post data to insert
 # + return - The execution result or error if operation fails
@@ -512,10 +511,9 @@ public isolated function insertRecipientPost(types:RecipientPostCreate post) ret
         ${post.recipient_id}, ${post.title}, ${post.content}, ${categoryJson}, ${statusJson},
         ${post.location}, ${urgencyJson}, ${post.contact}, ${post.goal}
     )`;
-    
+
     return dbClientInstance->execute(query);
 }
-
 
 # Update an existing recipient post in the database
 # + id - The ID of the recipient post to update
@@ -550,7 +548,6 @@ public isolated function deleteRecipientPost(int id) returns sql:ExecutionResult
     return dbClientInstance->execute(query);
 }
 
-
 # Close the database client connection
 # Should be called when the application is shutting down
 # + return - Error if closing fails
@@ -564,30 +561,30 @@ public isolated function closeDbConnection() returns error? {
     }
     return ();
 }
+
 public isolated function createDonorPost(int userId, types:DonorPostCreate request) returns int|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     // If database not available, return an error
     if dbClientResult is error {
         return error("Database not available");
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
     string categoryJson = value:toJson(request.category).toJsonString();
     string statusJson = value:toJson(request.status).toJsonString();
     string urgencyJson = value:toJson(request.urgency).toJsonString();
 
-    
     // Convert complex objects to JSON strings if they exist
-    string? bloodOfferingJson = request.bloodOffering is () ? () : 
-                               value:toJson(request.bloodOffering).toJsonString();
-    string? fundraiserOfferingJson = request.fundraiserOffering is () ? () : 
-                                    value:toJson(request.fundraiserOffering).toJsonString();
-    string? medicineOfferingJson = request.medicineOffering is () ? () : 
-                                  value:toJson(request.medicineOffering).toJsonString();
-    string? organOfferingJson = request.organOffering is () ? () : 
-                               value:toJson(request.organOffering).toJsonString();
-    
+    string? bloodOfferingJson = request.bloodOffering is () ? () :
+        value:toJson(request.bloodOffering).toJsonString();
+    string? fundraiserOfferingJson = request.fundraiserOffering is () ? () :
+        value:toJson(request.fundraiserOffering).toJsonString();
+    string? medicineOfferingJson = request.medicineOffering is () ? () :
+        value:toJson(request.medicineOffering).toJsonString();
+    string? organOfferingJson = request.organOffering is () ? () :
+        value:toJson(request.organOffering).toJsonString();
+
     // Match exactly with the database column names from the CREATE TABLE statement
     sql:ParameterizedQuery query = `INSERT INTO donor_posts 
         (donor_id, title, category, content, location, status, urgency, contact, 
@@ -599,7 +596,6 @@ public isolated function createDonorPost(int userId, types:DonorPostCreate reque
                 ${medicineOfferingJson}, ${organOfferingJson},
                 0, 0, 0, 0, CURRENT_TIMESTAMP())`;
 
-
     sql:ExecutionResult|error result = dbClientInstance->execute(query);
     if result is error {
         return result;
@@ -610,13 +606,13 @@ public isolated function createDonorPost(int userId, types:DonorPostCreate reque
 
 public isolated function getDonorPostById(int id) returns types:DonorPost|error|() {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     if dbClientResult is error {
         return error("Database not available");
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     sql:ParameterizedQuery query = `SELECT * FROM donor_posts WHERE id = ${id}`;
     stream<record {}, sql:Error?> resultStream = dbClientInstance->query(query);
 
@@ -637,18 +633,18 @@ public isolated function getDonorPostById(int id) returns types:DonorPost|error|
 
 public isolated function getDonorPosts() returns types:DonorPost[]|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     if dbClientResult is error {
         return error("Database not available");
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     sql:ParameterizedQuery query = `SELECT * FROM donor_posts ORDER BY created_at DESC`;
     stream<record {}, sql:Error?> resultStream = dbClientInstance->query(query);
 
     types:DonorPost[] posts = [];
-    
+
     // Process each row
     while (true) {
         var result = resultStream.next();
@@ -668,30 +664,30 @@ public isolated function getDonorPosts() returns types:DonorPost[]|error {
             posts.push(post);
         }
     }
-    
+
     check resultStream.close();
     return posts;
 }
 
 public isolated function updateDonorPost(int id, types:DonorPostUpdate request) returns boolean|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     if dbClientResult is error {
         return error("Database not available");
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     // Convert complex objects to JSON strings if they exist
-    string? bloodOfferingJson = request.bloodOffering is () ? () : 
-                               value:toJson(request.bloodOffering).toJsonString();
-    string? fundraiserOfferingJson = request.fundraiserOffering is () ? () : 
-                                    value:toJson(request.fundraiserOffering).toJsonString();
-    string? medicineOfferingJson = request.medicineOffering is () ? () : 
-                                  value:toJson(request.medicineOffering).toJsonString();
-    string? organOfferingJson = request.organOffering is () ? () : 
-                               value:toJson(request.organOffering).toJsonString();
-    
+    string? bloodOfferingJson = request.bloodOffering is () ? () :
+        value:toJson(request.bloodOffering).toJsonString();
+    string? fundraiserOfferingJson = request.fundraiserOffering is () ? () :
+        value:toJson(request.fundraiserOffering).toJsonString();
+    string? medicineOfferingJson = request.medicineOffering is () ? () :
+        value:toJson(request.medicineOffering).toJsonString();
+    string? organOfferingJson = request.organOffering is () ? () :
+        value:toJson(request.organOffering).toJsonString();
+
     sql:ParameterizedQuery query = `UPDATE donor_posts SET 
         title = COALESCE(${request.title}, title),
         category = COALESCE(${request.category}, category),
@@ -717,13 +713,13 @@ public isolated function updateDonorPost(int id, types:DonorPostUpdate request) 
 
 public isolated function deleteDonorPost(int id) returns boolean|error {
     mysql:Client|error dbClientResult = getDbClient();
-    
+
     if dbClientResult is error {
         return error("Database not available");
     }
-    
+
     mysql:Client dbClientInstance = dbClientResult;
-    
+
     sql:ParameterizedQuery query = `DELETE FROM donor_posts WHERE id = ${id}`;
     sql:ExecutionResult|error result = dbClientInstance->execute(query);
     if result is error {
@@ -845,7 +841,174 @@ isolated function mapRowToDonorPost(record {} row) returns types:DonorPost|error
     return donorPost;
 }
 
+# Insert message into database
+public isolated function insertMessage(record {
+            int sender_id;
+            int receiver_id;
+            int? post_id;
+            string subject;
+            string content;
+            string message_type;
+        } messageData) returns sql:ExecutionResult|error {
+    mysql:Client dbClientInstance = check getDbClient();
 
+    io:println("Inserting message with data: " + messageData.toString());
+
+    sql:ParameterizedQuery query = `
+        INSERT INTO messages (sender_id, receiver_id, post_id, subject, content, message_type, status, created_at, updated_at)
+        VALUES (${messageData.sender_id}, ${messageData.receiver_id}, ${messageData.post_id}, 
+                ${messageData.subject}, ${messageData.content}, ${messageData.message_type}, 'unread', NOW(), NOW())
+    `;
+
+    sql:ExecutionResult result = check dbClientInstance->execute(query);
+    io:println("Insert result: " + result.toString());
+    io:println("Last insert ID: " + (result.lastInsertId is int ? result.lastInsertId.toString() : "null"));
+    io:println("Affected rows: " + result.affectedRowCount.toString());
+
+    return result;
+}
+
+# Get unread message count
+public isolated function getUnreadMessageCount(int userId) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `
+        SELECT COUNT(*) as count FROM messages WHERE receiver_id = ${userId} AND status = 'unread'
+    `;
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    record {|record {} value;|}? result = check resultStream.next();
+    check resultStream.close();
+
+    if result is record {|record {} value;|} {
+        record {} row = result.value;
+        return <int>row["count"];
+    }
+
+    return 0;
+}
+
+# Get messages for user with full user details
+public isolated function getMessagesForUser(int userId, string? status = ()) returns record {
+    int id;
+    int sender_id;
+    int receiver_id;
+    int? post_id;
+    string subject;
+    string content;
+    string message_type;
+    string status;
+    string created_at;
+    string updated_at;
+    types:UserPreview sender;
+    types:UserPreview receiver;
+    record {int id; string title; string category;}? post?;
+}[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query;
+    if status is string {
+        query = `
+            SELECT 
+                m.id, m.sender_id, m.receiver_id, m.post_id, m.subject, m.content, 
+                m.message_type, m.status, m.created_at, m.updated_at,
+                s.name as sender_name, s.email as sender_email, s.role as sender_role,
+                r.name as receiver_name, r.email as receiver_email, r.role as receiver_role,
+                p.title as post_title, p.category as post_category
+            FROM messages m
+            JOIN users s ON m.sender_id = s.id
+            JOIN users r ON m.receiver_id = r.id
+            LEFT JOIN recipient_posts p ON m.post_id = p.id
+            WHERE m.receiver_id = ${userId} AND m.status = ${status}
+            ORDER BY m.created_at DESC
+        `;
+    } else {
+        query = `
+            SELECT 
+                m.id, m.sender_id, m.receiver_id, m.post_id, m.subject, m.content, 
+                m.message_type, m.status, m.created_at, m.updated_at,
+                s.name as sender_name, s.email as sender_email, s.role as sender_role,
+                r.name as receiver_name, r.email as receiver_email, r.role as receiver_role,
+                p.title as post_title, p.category as post_category
+            FROM messages m
+            JOIN users s ON m.sender_id = s.id
+            JOIN users r ON m.receiver_id = r.id
+            LEFT JOIN recipient_posts p ON m.post_id = p.id
+            WHERE m.receiver_id = ${userId}
+            ORDER BY m.created_at DESC
+        `;
+    }
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    record {
+        int id;
+        int sender_id;
+        int receiver_id;
+        int? post_id;
+        string subject;
+        string content;
+        string message_type;
+        string status;
+        string created_at;
+        string updated_at;
+        types:UserPreview sender;
+        types:UserPreview receiver;
+        record {int id; string title; string category;}? post?;
+    }[] messages = [];
+
+    check from record {} row in resultStream
+        do {
+            record {int id; string title; string category;}? post = ();
+            if row["post_title"] is string {
+                string categoryClean = row["post_category"] is string ?
+                    regex:replaceAll(<string>row["post_category"], "\"", "") : "";
+                post = {
+                    id: <int>row["post_id"],
+                    title: <string>row["post_title"],
+                    category: categoryClean
+                };
+            }
+
+            var message = {
+                id: <int>row["id"],
+                sender_id: <int>row["sender_id"],
+                receiver_id: <int>row["receiver_id"],
+                post_id: row["post_id"] is int ? <int>row["post_id"] : (),
+                subject: <string>row["subject"],
+                content: <string>row["content"],
+                message_type: <string>row["message_type"],
+                status: <string>row["status"],
+                created_at: <string>row["created_at"],
+                updated_at: <string>row["updated_at"],
+                sender: {
+                    id: <int>row["sender_id"],
+                    name: <string>row["sender_name"],
+                    email: <string>row["sender_email"],
+                    role: <string>row["sender_role"]
+                },
+                receiver: {
+                    id: <int>row["receiver_id"],
+                    name: <string>row["receiver_name"],
+                    email: <string>row["receiver_email"],
+                    role: <string>row["receiver_role"]
+                },
+                post: post
+            };
+            messages.push(message);
+        };
+
+    check resultStream.close();
+    return messages;
+}
+
+# Mark message as read
+public isolated function markMessageAsRead(int messageId) returns error? {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    _ = check dbClientInstance->execute(`
+        UPDATE messages SET status = 'read', updated_at = NOW() WHERE id = ${messageId}
+    `);
+}
 
 # Description.
 #
@@ -930,6 +1093,27 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         FOREIGN KEY (donor_id) REFERENCES users(id) ON DELETE CASCADE,
         INDEX idx_donor_id (donor_id),
         INDEX idx_created_at (created_at)
+    )`);
+
+    // Messages table
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        sender_id INT NOT NULL,
+        receiver_id INT NOT NULL,
+        post_id INT NULL,
+        subject VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        message_type ENUM('help_offer', 'contact', 'general') NOT NULL,
+        status ENUM('unread', 'read', 'archived') DEFAULT 'unread',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_receiver_status (receiver_id, status),
+        INDEX idx_sender (sender_id),
+        INDEX idx_post (post_id),
+        INDEX idx_created_at (created_at),
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (post_id) REFERENCES recipient_posts(id) ON DELETE CASCADE
     )`);
 
     io:println("✅ Database tables are ready");
