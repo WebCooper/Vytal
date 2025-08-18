@@ -841,7 +841,11 @@ isolated function mapRowToDonorPost(record {} row) returns types:DonorPost|error
     return donorPost;
 }
 
-# Insert message into database
+
+# Description.
+#
+# + messageData - The data of the message to insert.
+# + return - The result of the insert operation.
 public isolated function insertMessage(record {
             int sender_id;
             int receiver_id;
@@ -868,7 +872,11 @@ public isolated function insertMessage(record {
     return result;
 }
 
-# Get unread message count
+
+# Description.
+#
+# + userId - parameter description
+# + return - return value description
 public isolated function getUnreadMessageCount(int userId) returns int|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -888,7 +896,12 @@ public isolated function getUnreadMessageCount(int userId) returns int|error {
     return 0;
 }
 
-# Get messages for user with full user details
+
+# Description.
+#
+# + userId - The ID of the user for whom to count unread messages.
+# + status - The status of the messages to count (e.g., "unread").
+# + return - The count of unread messages for the user.
 public isolated function getMessagesForUser(int userId, string? status = ()) returns record {
     int id;
     int sender_id;
@@ -1001,7 +1014,11 @@ public isolated function getMessagesForUser(int userId, string? status = ()) ret
     return messages;
 }
 
-# Mark message as read
+
+# Description.
+#
+# + messageId - parameter description
+# + return - return value description
 public isolated function markMessageAsRead(int messageId) returns error? {
     mysql:Client dbClientInstance = check getDbClient();
 

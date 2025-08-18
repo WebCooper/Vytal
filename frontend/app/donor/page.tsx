@@ -19,6 +19,8 @@ import GamificationDashboard from "@/components/donorProfile/achievements/Gamifi
 import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
 import { getAllBloodCamps } from '@/lib/bloodCampsApi';
 import { BloodCamp } from "@/components/types";
+import { getDonorPostsByUser, DonorPost } from "@/lib/donorPosts";
+
 
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
@@ -60,6 +62,48 @@ const mapRecipientPostToPost = (post: RecipientPost): Post => {
     };
 };
 
+// Helper function to map DonorPost to Post type
+const mapDonorPostToPost = (post: DonorPost, user: any): Post => {
+    // Map category enum to Category enum
+    const mapCategory = (category: string): Category => {
+        switch (category) {
+            case 'blood': return Category.BLOOD;
+            case 'organs': return Category.ORGANS;
+            case 'fundraiser': return Category.FUNDRAISER;
+            case 'medicines': return Category.MEDICINES;
+            case 'supplies': return Category.SUPPLIES;
+            default: return Category.BLOOD;
+        }
+    };
+
+    return {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        category: mapCategory(post.category),
+        status: post.status,
+        urgency: post.urgency,
+        createdAt: post.createdAt,
+        engagement: post.engagement,
+        user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.name?.substring(0, 2).toUpperCase() || 'U',
+            verified: true,
+            joinedDate: new Date().toISOString().split('T')[0],
+            type: UserType.DONOR
+        },
+        contact: post.contact,
+        location: post.location,
+        // Add fundraiser details if available
+        fundraiserDetails: post.fundraiserOffering ? {
+            goal: post.fundraiserOffering.maxAmount,
+            received: 0, // Default since API doesn't provide this
+        } : undefined
+    };
+};
+
 export default function DonorDashboard() {
     const { user, isAuthenticated, isLoading } = useAuth();
     const router = useRouter();
@@ -71,7 +115,9 @@ export default function DonorDashboard() {
     const [selectedCamp, setSelectedCamp] = useState<BloodCamp | null>(null);
     const [showCardGenerator, setShowCardGenerator] = useState(false);
     const [recipientPosts, setRecipientPosts] = useState<Post[]>([]);
+    const [donorPosts, setDonorPosts] = useState<Post[]>([]);
     const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+    const [isLoadingDonorPosts, setIsLoadingDonorPosts] = useState(true);
 
     // Blood camps state
     const [bloodCamps, setBloodCamps] = useState<BloodCamp[]>([]);
@@ -106,6 +152,31 @@ export default function DonorDashboard() {
             fetchPosts();
         }
     }, [isAuthenticated, user]);
+    
+    // Fetch donor posts from API when user navigates to "myposts" tab
+    useEffect(() => {
+        const fetchDonorPosts = async () => {
+            if (activeTab !== 'myposts' || !user?.id) return;
+            
+            try {
+                setIsLoadingDonorPosts(true);
+                const response = await getDonorPostsByUser(user.id);
+                if (response && response.data) {
+                    // Map the API response to the Post type expected by our components
+                    const mappedPosts = response.data.map(post => mapDonorPostToPost(post, user));
+                    setDonorPosts(mappedPosts);
+                }
+            } catch (error) {
+                console.error("Error fetching donor posts:", error);
+            } finally {
+                setIsLoadingDonorPosts(false);
+            }
+        };
+        
+        if (isAuthenticated && user) {
+            fetchDonorPosts();
+        }
+    }, [isAuthenticated, user, activeTab]);
 
     // Fetch blood camps from API
     useEffect(() => {
@@ -156,8 +227,8 @@ export default function DonorDashboard() {
 
     // Filter functions
     const filteredDonorPosts = filterCategory === "all"
-        ? myDonorPosts
-        : myDonorPosts.filter(post => post.category === filterCategory);
+        ? donorPosts
+        : donorPosts.filter(post => post.category === filterCategory);
 
     const filteredRecipientPosts = recipientPosts.filter(post => {
         const categoryMatch = filterCategory === "all" || post.category === filterCategory;
@@ -266,21 +337,31 @@ export default function DonorDashboard() {
                                     />
                                 </div>
 
-                                <PostsGrid posts={myDonorPosts} filterCategory={filterCategory} />
-
-                                {filteredDonorPosts.length === 0 && (
+                                {isLoadingDonorPosts ? (
                                     <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
-                                        <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
-                                        <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Yet</h3>
-                                        <p className="text-gray-600 mb-6">Start making a difference by creating your first donation offer.</p>
-                                        <button
-                                            onClick={() => setShowDonorPostForm(true)}
-                                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center mx-auto"
-                                        >
-                                            <FaPlus className="mr-2" />
-                                            Create Your First Post
-                                        </button>
+                                        <div className="animate-pulse w-16 h-16 rounded-full bg-emerald-400 mx-auto mb-4"></div>
+                                        <h3 className="text-2xl font-bold text-emerald-700 mb-2">Loading your posts...</h3>
+                                        <p className="text-gray-600 mb-6">Please wait while we fetch your donation offers.</p>
                                     </div>
+                                ) : (
+                                    <>
+                                        <PostsGrid posts={donorPosts} filterCategory={filterCategory} />
+
+                                        {filteredDonorPosts.length === 0 && (
+                                            <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                                <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
+                                                <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Yet</h3>
+                                                <p className="text-gray-600 mb-6">Start making a difference by creating your first donation offer.</p>
+                                                <button
+                                                    onClick={() => setShowDonorPostForm(true)}
+                                                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center mx-auto"
+                                                >
+                                                    <FaPlus className="mr-2" />
+                                                    Create Your First Post
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </motion.div>
                         )}
@@ -408,11 +489,26 @@ export default function DonorDashboard() {
             {/* Modal Components - Place these at the very end, outside all other content */}
             <CreateDonorPost
                 isOpen={showDonorPostForm}
-                onClose={() => setShowDonorPostForm(false)}
-                onSubmit={(postData) => {
-                    console.log('New donor post:', postData);
-                    // Handle the new post data here - you can add it to your posts array
+                onClose={() => {
                     setShowDonorPostForm(false);
+                    
+                    // Refresh donor posts when modal is closed (in case a new post was created)
+                    if (user?.id && activeTab === 'myposts') {
+                        setIsLoadingDonorPosts(true);
+                        getDonorPostsByUser(user.id)
+                            .then(response => {
+                                if (response && response.data) {
+                                    const mappedPosts = response.data.map(post => mapDonorPostToPost(post, user));
+                                    setDonorPosts(mappedPosts);
+                                }
+                            })
+                            .catch(error => {
+                                console.error("Error refreshing donor posts:", error);
+                            })
+                            .finally(() => {
+                                setIsLoadingDonorPosts(false);
+                            });
+                    }
                 }}
             />
             <CampDetailsModal
