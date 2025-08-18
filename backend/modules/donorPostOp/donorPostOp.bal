@@ -56,3 +56,23 @@ public isolated function getAllDonorPosts() returns types:DonorPost[]|error {
     }
     return posts;
 }
+
+# Get donor posts by user ID
+# + userId - ID of the user whose posts to fetch
+# + return - Array of donor posts or error
+public isolated function getDonorPostsByUser(int userId) returns types:DonorPost[]|error {
+    types:DonorPost[]|error posts = database:getDonorPosts();
+    if posts is error {
+        return error("Failed to fetch donor posts: " + posts.message());
+    }
+    
+    // Filter posts by user ID
+    types:DonorPost[] userPosts = [];
+    foreach types:DonorPost post in posts {
+        if post.donor_id == userId {
+            userPosts.push(post);
+        }
+    }
+    
+    return userPosts;
+}
