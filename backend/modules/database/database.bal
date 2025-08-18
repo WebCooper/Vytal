@@ -1010,6 +1010,75 @@ public isolated function markMessageAsRead(int messageId) returns error? {
     `);
 }
 
+// Create blood camp
+public isolated function createBloodCamp(int organizerId, types:BloodCampCreate request) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    string bloodTypesJson = value:toJson(request.blood_types).toJsonString();
+    string facilitiesJson = request.facilities is () ? "[]" : value:toJson(request.facilities).toJsonString();
+    string coordinatesJson = value:toJson(request.coordinates).toJsonString();
+
+    sql:ParameterizedQuery query = `INSERT INTO blood_camps 
+        (organizer_id, name, organizer, location, address, date, start_time, end_time, 
+         capacity, contact, description, requirements, blood_types, facilities, coordinates) 
+        VALUES (${organizerId}, ${request.name}, ${request.organizer}, ${request.location},
+                ${request.address}, ${request.date}, ${request.start_time}, ${request.end_time},
+                ${request.capacity}, ${request.contact}, ${request.description}, ${request.requirements},
+                ${bloodTypesJson}, ${facilitiesJson}, ${coordinatesJson})`;
+
+    sql:ExecutionResult result = check dbClientInstance->execute(query);
+    return <int>result.lastInsertId;
+}
+
+// Get all blood camps
+public isolated function getAllBloodCamps() returns types:BloodCamp[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `SELECT * FROM blood_camps ORDER BY date ASC`;
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+
+    types:BloodCamp[] camps = [];
+
+    check from record {} row in resultStream
+        do {
+            // Parse JSON fields
+            json bloodTypesJson = check value:fromJsonString(<string>row["blood_types"]);
+            string[] bloodTypes = check value:cloneWithType(bloodTypesJson);
+
+            json facilitiesJson = check value:fromJsonString(<string>row["facilities"]);
+            string[]? facilities = check value:cloneWithType(facilitiesJson);
+
+            json coordinatesJson = check value:fromJsonString(<string>row["coordinates"]);
+            decimal[] coordinates = check value:cloneWithType(coordinatesJson);
+
+            types:BloodCamp camp = {
+                id: <int>row["id"],
+                organizer_id: <int>row["organizer_id"],
+                name: <string>row["name"],
+                organizer: <string>row["organizer"],
+                location: <string>row["location"],
+                address: <string>row["address"],
+                date: <string>row["date"],
+                start_time: <string>row["start_time"],
+                end_time: <string>row["end_time"],
+                capacity: <int>row["capacity"],
+                contact: <string>row["contact"],
+                description: <string>row["description"],
+                requirements: <string?>row["requirements"],
+                blood_types: bloodTypes,
+                facilities: facilities,
+                status: <string>row["status"],
+                coordinates: coordinates,
+                created_at: <string?>row["created_at"],
+                updated_at: <string?>row["updated_at"]
+            };
+            camps.push(camp);
+        };
+
+    check resultStream.close();
+    return camps;
+}
+
 # Description.
 #
 # + dbClient - MySQL client instance
@@ -1115,6 +1184,33 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
         FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (post_id) REFERENCES recipient_posts(id) ON DELETE CASCADE
     )`);
+
+    // Blood camps table
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS blood_camps (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    organizer_id INT NOT NULL,
+    name VARCHAR(200) NOT NULL,
+    organizer VARCHAR(200) NOT NULL,
+    location VARCHAR(200) NOT NULL,
+    address TEXT NOT NULL,
+    date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    capacity INT NOT NULL,
+    contact VARCHAR(300) NOT NULL,
+    description TEXT NOT NULL,
+    requirements TEXT,
+    blood_types JSON NOT NULL,
+    facilities JSON,
+    status ENUM('active', 'upcoming', 'completed') DEFAULT 'upcoming',
+    coordinates JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_organizer_id (organizer_id),
+    INDEX idx_status (status),
+    INDEX idx_date (date)
+)`);
 
     io:println("✅ Database tables are ready");
 }
