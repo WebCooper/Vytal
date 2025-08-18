@@ -400,3 +400,41 @@ public type UserPreview record {
     string email;
     string role;
 };
+public type BloodCamp record {
+    int id;
+    int organizer_id;
+    string name;
+    string organizer;
+    string location;
+    string address;
+    string date;
+    string start_time;
+    string end_time;
+    int capacity;
+    string contact;
+    string description;
+    string? requirements;
+    string[] blood_types;
+    string[]? facilities;
+    string status;
+    decimal[] coordinates; // [latitude, longitude]
+    string? created_at;
+    string? updated_at;
+};
+
+public type BloodCampCreate record {
+    string name;
+    string organizer;
+    string location;
+    string address;
+    string date;
+    string start_time;
+    string end_time;
+    int capacity;
+    string contact;
+    string description;
+    string? requirements;
+    string[] blood_types;
+    string[]? facilities;
+    decimal[] coordinates;
+};
