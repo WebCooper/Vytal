@@ -409,6 +409,64 @@ service /api/v1 on new http:Listener(9091) {
 
         return response;
     }
+
+    // Get all donor posts endpoint
+    resource function get donor_post() returns http:Response|error {
+        http:Response response = new;
+        
+        types:DonorPost[]|error result = donorPostService:getAllDonorPosts();
+        
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+
+    // Get donor posts by user ID endpoint
+    resource function get donor_post/user/[int userId]() returns http:Response|error {
+        http:Response response = new;
+        
+        // Check if user exists
+        types:UserResponse|error userResult = userService:getUserById(userId);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+        
+        // Get posts by user ID
+        types:DonorPost[]|error result = donorPostService:getDonorPostsByUser(userId);
+        
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
 }
 
 // Function to handle shutdown
