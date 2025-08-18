@@ -20,6 +20,6 @@ export const getAllDonorPosts = async (): Promise<CommunityPostsResponse> => {
     data: any[];
     total: number;
     timestamp: string;
-  }>('/donor-posts');
+  }>('/donor_post');
   return response.data;
 };
