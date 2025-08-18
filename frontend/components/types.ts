@@ -86,18 +86,48 @@ export interface PostGridProps {
     filterCategory: string;
 }
 
+// components/types.ts - Update your BloodCamp interface to match the API
+
 export interface BloodCamp {
-    id: number;
-    name: string;
-    location: string;
-    coordinates: Array<number>; // [latitude, longitude]
-    date: string; // ISO date string
-    time: string; // Time in HH:MM format
-    status: string;
-    organizer: string;
-    contact: string; // Phone number or email
-    capacity: number; // Number of donors expected
-    bloodTypes: Array<string>; // e.g., "A+", "O-", etc.
+  id: number;
+  organizer_id: number;
+  name: string;
+  organizer: string;
+  location: string;
+  address: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  contact: string;
+  description: string;
+  requirements?: string;
+  blood_types: string[];
+  facilities?: string[];
+  status: 'active' | 'upcoming' | 'completed';
+  coordinates: [number, number];
+  created_at?: string;
+  updated_at?: string;
+  // Computed properties for backward compatibility
+  time?: string; // Computed from start_time and end_time
+  bloodTypes?: string[]; // Alias for blood_types
+}
+
+export interface BloodCampCreateRequest {
+  name: string;
+  organizer: string;
+  location: string;
+  address: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  contact: string;
+  description: string;
+  requirements?: string;
+  blood_types: string[];
+  facilities?: string[];
+  coordinates: [number, number];
 }
 
 export interface SriLankaMapProps {
@@ -132,10 +162,11 @@ export interface MapSectionProps {
 }
 
 export interface CampsSectionProps {
-    bloodCamps: Array<BloodCamp>;
-    setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
-    showBloodCampForm: boolean;
-    setShowBloodCampForm: React.Dispatch<React.SetStateAction<boolean>>;
+  bloodCamps: BloodCamp[];
+  setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
+  showBloodCampForm: boolean;
+  setShowBloodCampForm: React.Dispatch<React.SetStateAction<boolean>>;
+  onCampCreated?: () => void | Promise<void>; // Add this line
 }
 
 export interface CampsListProps {
