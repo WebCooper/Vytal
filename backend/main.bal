@@ -409,6 +409,7 @@ service /api/v1 on new http:Listener(9091) {
 
         return response;
     }
+
     // MESSAGING ENDPOINTS - Add these to your existing service block in main.bal
 
     // Send message endpoint
@@ -490,6 +491,13 @@ service /api/v1 on new http:Listener(9091) {
 
         int|error result = msgModule:getUnreadCount(userId);
 
+
+    // Get all donor posts endpoint
+    resource function get donor_post() returns http:Response|error {
+        http:Response response = new;
+        
+        types:DonorPost[]|error result = donorPostService:getAllDonorPosts();
+        
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({
@@ -499,6 +507,7 @@ service /api/v1 on new http:Listener(9091) {
         } else {
             response.statusCode = 200;
             response.setJsonPayload({
+
                 "count": result,
                 "timestamp": time:utcNow()
             });
@@ -517,12 +526,39 @@ service /api/v1 on new http:Listener(9091) {
             response.statusCode = 401;
             response.setJsonPayload({
                 "error": email.message(),
+
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
+        return response;
+    }
+
+    // Get donor posts by user ID endpoint
+    resource function get donor_post/user/[int userId]() returns http:Response|error {
+        http:Response response = new;
+        
+        // Check if user exists
+        types:UserResponse|error userResult = userService:getUserById(userId);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+
                 "timestamp": time:utcNow()
             });
             return response;
         }
 
+
         error? result = msgModule:markMessageAsRead(messageId);
+
+
+        
+        // Get posts by user ID
+        types:DonorPost[]|error result = donorPostService:getDonorPostsByUser(userId);
+        
 
         if result is error {
             response.statusCode = 400;
@@ -533,10 +569,18 @@ service /api/v1 on new http:Listener(9091) {
         } else {
             response.statusCode = 200;
             response.setJsonPayload({
+
                 "message": "Message marked as read",
                 "timestamp": time:utcNow()
             });
         }
+
+
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
+        
 
         return response;
     }
