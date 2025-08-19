@@ -61,11 +61,15 @@ const CampsList: React.FC<CampsListProps> = ({bloodCamps, selectedCamp, setSelec
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">Accepting blood types:</p>
               <div className="flex flex-wrap gap-1">
-                {camp.bloodTypes.map((type, idx) => (
+                {camp.bloodTypes?.map((type, idx) => (
                   <span key={idx} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
                     {type}
                   </span>
-                ))}
+                )) || (
+                  <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs font-semibold">
+                    All blood types
+                  </span>
+                )}
               </div>
             </div>
 

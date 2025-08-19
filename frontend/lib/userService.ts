@@ -35,9 +35,9 @@ export interface SignInData {
   password: string;
 }
 
-const request = async <T = any>(
+const request = async <T = unknown>(
   endpoint: string,
-  options: { method?: string; data?: any } = {}
+  options: { method?: string; data?: unknown } = {}
 ): Promise<T> => {
   const { method = 'GET', data } = options;
 
@@ -55,9 +55,10 @@ export const signUp = async (data: SignUpData): Promise<AuthResponse> => {
   try {
     const response = await request<AuthResponse>('/register', { method: 'POST', data });
     return { ...response, success: true };
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Registration failed';
     return {
-      message: error.message || 'Registration failed',
+      message: errorMessage,
       timestamp: [Math.floor(Date.now() / 1000), 0],
       success: false,
     };
@@ -73,9 +74,10 @@ export const signIn = async (data: SignInData): Promise<AuthResponse> => {
     }
 
     return { ...response, success: true };
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
     return {
-      message: error.message || 'Sign in failed',
+      message: errorMessage,
       timestamp: [Math.floor(Date.now() / 1000), 0],
       success: false,
     };

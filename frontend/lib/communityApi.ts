@@ -17,9 +17,9 @@ export const getAllRecipientPosts = async (): Promise<CommunityPostsResponse> =>
 // Get all donor posts
 export const getAllDonorPosts = async (): Promise<CommunityPostsResponse> => {
   const response = await axiosInstance.get<{
-    data: any[];
+    data: Post[];
     total: number;
     timestamp: string;
-  }>('/donor-posts');
+  }>('/donor_post');
   return response.data;
 };

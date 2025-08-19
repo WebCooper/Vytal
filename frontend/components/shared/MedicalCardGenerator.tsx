@@ -887,7 +887,7 @@ Generated via Vytal - Community Donation Platform`
 
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
-                <strong>💡 Pro Tip:</strong> Use "Download Image + Copy Text" → Follow the step-by-step instructions → Share both image and text on WhatsApp for maximum impact!
+                <strong>💡 Pro Tip:</strong> Use &ldquo;Download Image + Copy Text&rdquo; → Follow the step-by-step instructions → Share both image and text on WhatsApp for maximum impact!
               </p>
             </div>
           </motion.div>

@@ -5,10 +5,8 @@ import {
   FaEnvelope, 
   FaEnvelopeOpen, 
   FaClock, 
-  FaUser, 
   FaReply, 
   FaTrash, 
-  FaFilter,
   FaInbox,
   FaHeart,
   FaHandHoldingHeart,
@@ -22,7 +20,8 @@ interface MessagesTabProps {
 }
 
 const MessagesTab: React.FC<MessagesTabProps> = ({ userId }) => {
-  const { user } = useAuth();
+  // We're not using user from useAuth() yet, but keeping it for future use
+  const { /* user */ } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -30,7 +29,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({ userId }) => {
   const [typeFilter, setTypeFilter] = useState<'all' | 'help_offer' | 'contact'>('all');
 
   // Fetch messages
-  const fetchMessages = async () => {
+  const fetchMessages = React.useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await getUserMessages(userId);
@@ -40,11 +39,11 @@ const MessagesTab: React.FC<MessagesTabProps> = ({ userId }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchMessages();
-  }, [userId]);
+  }, [fetchMessages]);
 
   // Filter messages
   const filteredMessages = messages.filter(message => {
@@ -132,8 +131,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({ userId }) => {
         <div className="mt-4 flex flex-wrap gap-2">
           <select 
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-3 py-1 rounded-lg bg-white/20 text-white border border-white/30 text-sm"
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'unread' | 'read')}
+            className="px-3 py-1 rounded-lg text-black bg-white/20 border border-white/30 text-sm"
           >
             <option value="all">All Status</option>
             <option value="unread">Unread</option>
@@ -142,8 +141,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({ userId }) => {
           
           <select 
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
-            className="px-3 py-1 rounded-lg bg-white/20 text-white border border-white/30 text-sm"
+            onChange={(e) => setTypeFilter(e.target.value as 'all' | 'help_offer' | 'contact')}
+            className="px-3 py-1 rounded-lg bg-white/20 text-black border border-white/30 text-sm"
           >
             <option value="all">All Types</option>
             <option value="help_offer">Help Offers</option>

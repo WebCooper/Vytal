@@ -7,11 +7,7 @@ import {
   Category, 
   Urgency, 
   Status,
-  DonorPostCreate, 
-  BloodOffering,
-  OrganOffering,
-  FundraiserOffering,
-  MedicineOffering,
+  DonorPostCreate,
   createDonorPost
 } from "@/lib/donorPosts";
 import { useAuth } from "@/contexts/AuthContext";

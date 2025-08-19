@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FaDownload, FaShare, FaTimes, FaHeartbeat, FaMapMarkerAlt, FaPhone, FaCopy, FaWhatsapp, FaQrcode, FaGift } from 'react-icons/fa';
-import { MdBloodtype, MdLocalHospital, MdMedication, MdVolunteerActivism } from 'react-icons/md';
+import { MdBloodtype, MdVolunteerActivism } from 'react-icons/md';
 
 interface DonorCardGeneratorProps {
   isOpen: boolean;
@@ -895,7 +895,7 @@ Generated via Vytal - Community Donation Platform`
 
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
-                <strong>💡 Pro Tip:</strong> Use "Download Image + Copy Text" → Follow the step-by-step instructions → Share both image and text on WhatsApp to let people know you're available to help!
+                <strong>💡 Pro Tip:</strong> Use &ldquo;Download Image + Copy Text&rdquo; → Follow the step-by-step instructions → Share both image and text on WhatsApp to let people know you&rsquo;re available to help!
               </p>
             </div>
           </motion.div>
