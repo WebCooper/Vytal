@@ -99,7 +99,13 @@ export default function SignIn() {
                   <div></div>
                   <Link href="#" className="text-emerald-600 text-xs hover:underline transition">Forgot password?</Link>
                 </div>
-                <button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200">Login</button>
+                <button 
+  type="submit" 
+  disabled={isLoading}
+  className={`w-full bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all duration-200 ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-105 hover:shadow-xl'}`}
+>
+  {isLoading ? 'Signing in...' : 'Login'}
+</button>
                 <div className="flex items-center my-2">
                   <div className="flex-1 h-px bg-gray-200" />
                   <span className="mx-2 text-gray-400 text-xs">or login with social platforms</span>

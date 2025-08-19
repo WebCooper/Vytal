@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaTimes, FaPlus } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
 import { MdBloodtype, MdLocalHospital, MdMedication } from 'react-icons/md';
 import { createPost, CreatePostInput, PostCategory, PostUrgency } from '@/lib/recipientPosts';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,7 +36,7 @@ export default function CreateRecipientPost({
 
   if (!isOpen) return null;
 
-  const handleInputChange = (field: keyof CreatePostInput, value: any) => {
+  const handleInputChange = (field: keyof CreatePostInput, value: string | number | undefined) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -66,7 +66,7 @@ export default function CreateRecipientPost({
       await createPost(formData);
       onPostCreated();
       onClose();
-    } catch (err) {
+    } catch {
       alert('Failed to create post. Please try again.');
     } finally {
       setSubmitting(false);
