@@ -1,21 +1,75 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaHeart, FaComment, FaShare, FaEye, FaClock, FaTrash, FaUser } from "react-icons/fa";
-import React from 'react'
-import { Post, Category, PostGridProps } from '../types';
+import React, { useState } from 'react'
+import { Post, Category } from '../types';
 import Link from 'next/link';
 import { formatDate, getCategoryColor, getCategoryIcon, getUrgencyColor, getStatusColor } from '../utils';
 import FundraiserProgressbar from './FundraiserProgressbar';
 import { MdVerified } from 'react-icons/md';
+import ContactModal from './ContactModal';
+import HelpNowModal from './HelpNowModal';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
 
-const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
+interface PostsGridProps {
+  posts: Post[];
+  filterCategory: string;
+}
+
+const PostsGrid: React.FC<PostsGridProps> = ({posts, filterCategory}) => {
+  const { user } = useAuth(); // Get the current user
   const isPostOwner = false; // TODO: Replace with actual logic to check if the user is the post owner
+  
+  // Modal states
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   const filteredPosts = filterCategory === "all" 
     ? posts 
     : posts.filter(post => post.category === filterCategory);
 
+  const handleContactClick = (e: React.MouseEvent, post: Post) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedPost(post);
+    setContactModalOpen(true);
+  };
+
+  const handleHelpClick = (e: React.MouseEvent, post: Post) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedPost(post);
+    setHelpModalOpen(true);
+  };
+
   return (
     <div>
+      {/* Contact Modal */}
+      {selectedPost && (
+        <ContactModal
+          isOpen={contactModalOpen}
+          onClose={() => {
+            setContactModalOpen(false);
+            setSelectedPost(null);
+          }}
+          post={selectedPost}
+          currentUserId={user?.id} // Pass the current user ID
+        />
+      )}
+
+      {/* Help Now Modal */}
+      {selectedPost && (
+        <HelpNowModal
+          isOpen={helpModalOpen}
+          onClose={() => {
+            setHelpModalOpen(false);
+            setSelectedPost(null);
+          }}
+          post={selectedPost}
+          currentUserId={user?.id} // Pass the current user ID
+        />
+      )}
+
       <div className="space-y-6">
         <AnimatePresence>
         {filteredPosts.map((post: Post, index: number) => {
@@ -57,12 +111,19 @@ const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
                         <FaTrash />
                       </button>
                       ) : (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                        {post.user.avatar}
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {post.user.name.charAt(0).toUpperCase()}
+                          </span>
                         </div>
-                        <span className="text-sm text-gray-600">{post.user.name}</span>
-                        {post.user.verified && <MdVerified className="text-emerald-500 text-sm" />}
+                        <div>
+                          <div className="flex items-center space-x-1">
+                            <span className="text-sm font-semibold text-gray-700">{post.user.name}</span>
+                            {post.user.verified && <MdVerified className="text-emerald-500 text-sm" />}
+                          </div>
+                          <p className="text-xs text-gray-500">{post.user.email}</p>
+                        </div>
                       </div>
                       )}
                     </div>
@@ -97,10 +158,16 @@ const PostsGrid: React.FC<PostGridProps> = ({posts, filterCategory}) => {
                       <FaShare className="text-emerald-400" />
                       <span>{post.engagement.shares}</span>
                     </div>
-                    <button className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors text-sm">
+                    <button 
+                      onClick={(e) => handleHelpClick(e, post)}
+                      className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors text-sm"
+                    >
                         Help Now
                     </button>
-                    <button className="px-4 py-2 text-emerald-600 border border-emerald-300 font-semibold rounded-lg hover:bg-emerald-50 transition-colors text-sm">
+                    <button 
+                      onClick={(e) => handleContactClick(e, post)}
+                      className="px-4 py-2 text-emerald-600 border border-emerald-300 font-semibold rounded-lg hover:bg-emerald-50 transition-colors text-sm"
+                    >
                         Contact
                     </button>
                   </div>

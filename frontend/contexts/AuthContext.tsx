@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, apiClient, AuthResponse } from '@/lib/api';
+import { User, signIn as apiSignIn, signUp as apiSignUp, logout, AuthResponse } from '@/lib/userService';
 
 interface AuthContextType {
   user: User | null;
@@ -11,10 +11,10 @@ interface AuthContextType {
   signUp: (data: {
     name: string;
     email: string;
-    phone: string;
+    phone_number: string;
     password: string;
     role?: string;
-    category?: string;
+    categories?: string[];
   }) => Promise<AuthResponse>;
   signOut: () => void;
 }
@@ -32,7 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (savedUser && savedToken) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        // Set the authorization token in axios instance
+        import('@/lib/axiosInstance').then(({ setAuthorizationToken }) => {
+          setAuthorizationToken(savedToken);
+        });
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('vytal_user');
@@ -47,12 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      const response = await apiClient.signIn({ email, password });
+      const response = await apiSignIn({ email, password });
       
-      if (response.success && response.user && response.token) {
-        setUser(response.user);
-        localStorage.setItem('vytal_user', JSON.stringify(response.user));
-        localStorage.setItem('vytal_token', response.token);
+      if (response.data?.user && response.data?.token) {
+        setUser(response.data.user);
+        localStorage.setItem('vytal_user', JSON.stringify(response.data.user));
+        localStorage.setItem('vytal_token', response.data.token);
       }
       
       return response;
@@ -64,20 +69,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (data: {
     name: string;
     email: string;
-    phone: string;
+    phone_number: string;
     password: string;
     role?: string;
-    category?: string;
+    categories?: string[];
   }): Promise<AuthResponse> => {
     setIsLoading(true);
     
     try {
-      const response = await apiClient.signUp(data);
+      const response = await apiSignUp(data);
       
-      if (response.success && response.user && response.token) {
-        setUser(response.user);
-        localStorage.setItem('vytal_user', JSON.stringify(response.user));
-        localStorage.setItem('vytal_token', response.token);
+      if (response.success && response.data?.user) {
+        setUser(response.data.user);
+        localStorage.setItem('vytal_user', JSON.stringify(response.data.user));
+        if (response.data.token) {
+          localStorage.setItem('vytal_token', response.data.token);
+        }
       }
       
       return response;
@@ -90,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('vytal_user');
     localStorage.removeItem('vytal_token');
+    logout();
   };
 
   const value: AuthContextType = {

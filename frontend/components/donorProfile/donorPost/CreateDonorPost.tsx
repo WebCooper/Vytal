@@ -3,29 +3,68 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FaTimes, FaHeart, FaPlus } from "react-icons/fa";
 import { MdBloodtype, MdLocalHospital, MdMedication } from "react-icons/md";
+import { 
+  Category, 
+  Urgency, 
+  Status,
+  DonorPostCreate,
+  createDonorPost
+} from "@/lib/donorPosts";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CreateDonorPostProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (postData: any) => void;
 }
 
-export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDonorPostProps) {
-  const [formData, setFormData] = useState({
+type FormDataType = {
+  title: string;
+  category: Category;
+  content: string;
+  location: string;
+  urgency: Urgency;
+  contact: string;
+  // Blood/Organ specific fields
+  bloodType: string;
+  availability: string;
+  lastDonation: string;
+  organType: string;
+  healthStatus: string;
+  // Fundraiser specific fields
+  maxAmount: string;
+  preferredUse: string;
+  requirements: string;
+  // Medicine specific fields
+  medicineTypes: string[];
+  quantity: string;
+  expiry: string;
+};
+
+export default function CreateDonorPost({ isOpen, onClose }: CreateDonorPostProps) {
+  // Get the current user from AuthContext
+  const { user, isAuthenticated } = useAuth();
+  
+  const [formData, setFormData] = useState<FormDataType>({
     title: '',
-    category: 'organs',
+    category: Category.ORGANS,
     content: '',
     location: '',
-    urgency: 'medium',
+    urgency: Urgency.MEDIUM,
     contact: '',
-    // Category-specific fields
+    // Blood/Organ specific fields
     bloodType: '',
-    organType: '',
-    maxAmount: '',
-    medicineTypes: [''],
     availability: '',
+    lastDonation: '',
+    organType: '',
+    healthStatus: 'excellent',
+    // Fundraiser specific fields
+    maxAmount: '',
+    preferredUse: '',
     requirements: '',
-    healthStatus: 'excellent'
+    // Medicine specific fields
+    medicineTypes: [''],
+    quantity: '',
+    expiry: ''
   });
 
   interface FormErrors {
@@ -36,9 +75,18 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
     bloodOrOrgan?: string;
     maxAmount?: string;
     medicineTypes?: string;
+    [key: string]: string | undefined; // Index signature to fix TypeScript error
   }
 
   const [errors, setErrors] = useState<FormErrors>({});
+  
+  // Check if user is authenticated on component mount
+  React.useEffect(() => {
+    if (isOpen && !isAuthenticated) {
+      alert('You must be logged in to create a donation offer.');
+      onClose();
+    }
+  }, [isOpen, isAuthenticated, onClose]);
 
   if (!isOpen) return null;
 
@@ -82,70 +130,176 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
   const validateForm = () => {
     const newErrors: FormErrors = {};
     
+    // Common validations for all categories
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.content.trim()) newErrors.content = 'Description is required';
     if (!formData.location.trim()) newErrors.location = 'Location is required';
     if (!formData.contact.trim()) newErrors.contact = 'Contact information is required';
 
     // Category-specific validations
-    if (formData.category === 'organs') {
-      if (!formData.bloodType && !formData.organType) {
-        newErrors.bloodOrOrgan = 'Please specify blood type or organ type';
-      }
-    }
-    
-    if (formData.category === 'fundraiser') {
-      if (!formData.maxAmount || isNaN(Number(formData.maxAmount))) {
-        newErrors.maxAmount = 'Please enter a valid amount';
-      }
-    }
-    
-    if (formData.category === 'medicines') {
-      if (formData.medicineTypes.every(type => !type.trim())) {
-        newErrors.medicineTypes = 'Please specify at least one medicine type';
-      }
+    switch (formData.category) {
+      case Category.ORGANS:
+        if (!formData.organType) {
+          newErrors.organType = 'Please specify organ type';
+        }
+        break;
+        
+      case Category.BLOOD:
+        if (!formData.bloodType) {
+          newErrors.bloodType = 'Please specify blood type';
+        }
+        break;
+        
+      case Category.FUNDRAISER:
+        if (!formData.maxAmount || isNaN(Number(formData.maxAmount)) || Number(formData.maxAmount) <= 0) {
+          newErrors.maxAmount = 'Please enter a valid amount';
+        }
+        break;
+        
+      case Category.MEDICINES:
+        if (formData.medicineTypes.every(type => !type.trim())) {
+          newErrors.medicineTypes = 'Please specify at least one medicine type';
+        }
+        break;
+        
+      case Category.SUPPLIES:
+        if (!formData.quantity) {
+          newErrors.quantity = 'Please specify quantity';
+        }
+        break;
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      const postData = {
-        ...formData,
-        id: Date.now(), // Temporary ID generation
-        status: 'available',
-        createdAt: new Date().toISOString(),
-        engagement: { likes: 0, comments: 0, shares: 0, views: 0 }
-      };
-      onSubmit(postData);
-      onClose();
-      // Reset form
-      setFormData({
-        title: '',
-        category: 'organs',
-        content: '',
-        location: '',
-        urgency: 'medium',
-        contact: '',
-        bloodType: '',
-        organType: '',
-        maxAmount: '',
-        medicineTypes: [''],
-        availability: '',
-        requirements: '',
-        healthStatus: 'excellent'
-      });
-    }
-  };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) {
+    return;
+  }
+  
+  // Ensure user is logged in
+  if (!user || !user.id) {
+    alert('You must be logged in to create a post');
+    return;
+  }
 
-  const getCategoryIcon = (category: string) => {
+  console.log('Submitting form with user ID:', user.id);
+  
+  try {
+    // Base donor post data without any offering fields
+    const basePostData = {
+      donor_id: user.id,
+      title: formData.title,
+      category: formData.category,
+      content: formData.content,
+      location: formData.location,
+      status: Status.OPEN,
+      urgency: formData.urgency,
+      contact: formData.contact,
+    };
+
+    // Create donor post data with only the relevant offering based on category
+    let donorPostData: DonorPostCreate;
+
+    switch (formData.category) {
+      case Category.BLOOD:
+        donorPostData = {
+          ...basePostData,
+          bloodOffering: {
+            bloodType: formData.bloodType,
+            availability: formData.availability,
+            lastDonation: formData.lastDonation
+          }
+        };
+        break;
+      case Category.ORGANS:
+        donorPostData = {
+          ...basePostData,
+          organOffering: {
+            organType: formData.organType,
+            healthStatus: formData.healthStatus,
+            availability: formData.availability
+          }
+        };
+        break;
+      case Category.FUNDRAISER:
+        donorPostData = {
+          ...basePostData,
+          fundraiserOffering: {
+            maxAmount: parseFloat(formData.maxAmount),
+            preferredUse: formData.preferredUse,
+            requirements: formData.requirements
+          }
+        };
+        break;
+      case Category.MEDICINES:
+        donorPostData = {
+          ...basePostData,
+          medicineOffering: {
+            medicineTypes: formData.medicineTypes.filter(type => type.trim() !== ''),
+            quantity: formData.quantity,
+            expiry: formData.expiry
+          }
+        };
+        break;
+      case Category.SUPPLIES:
+        // Default case for supplies
+        donorPostData = basePostData;
+        break;
+      default:
+        donorPostData = basePostData;
+        break;
+    }
+
+    // Debug the final payload
+    console.log('Submitting donor post with data:', JSON.stringify(donorPostData, null, 2));
+
+    // Always call the API directly
+    console.log('Calling API directly with createDonorPost');
+    const response = await createDonorPost(donorPostData);
+    console.log('Post created successfully:', response);
+    
+    // Show success message
+    alert('Donation offer created successfully!');
+    
+    // Only close and reset on success
+    onClose();
+    
+    // Reset form
+    setFormData({
+      title: '',
+      category: Category.ORGANS,
+      content: '',
+      location: '',
+      urgency: Urgency.MEDIUM,
+      contact: '',
+      bloodType: '',
+      organType: '',
+      maxAmount: '',
+      medicineTypes: [''],
+      availability: '',
+      lastDonation: '',
+      requirements: '',
+      preferredUse: '',
+      healthStatus: 'excellent',
+      quantity: '',
+      expiry: ''
+    });
+  } catch (error) {
+    console.error('Error creating donor post:', error);
+    alert('Failed to create post. Please try again.');
+  }
+};
+
+  const getCategoryIcon = (category: Category) => {
     switch (category) {
-      case 'organs': return MdBloodtype;
-      case 'fundraiser': return MdLocalHospital;
-      case 'medicines': return MdMedication;
+      case Category.ORGANS: return MdBloodtype;
+      case Category.BLOOD: return MdBloodtype;
+      case Category.FUNDRAISER: return MdLocalHospital;
+      case Category.MEDICINES: return MdMedication;
+      case Category.SUPPLIES: 
       default: return FaHeart;
     }
   };
@@ -188,11 +342,13 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               What are you offering? *
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { value: 'organs', label: 'Blood/Organs', icon: MdBloodtype, color: 'red' },
-                { value: 'fundraiser', label: 'Financial Help', icon: MdLocalHospital, color: 'blue' },
-                { value: 'medicines', label: 'Medicines', icon: MdMedication, color: 'yellow' }
+                { value: Category.ORGANS, label: 'Organs', icon: MdBloodtype, color: 'red' },
+                { value: Category.BLOOD, label: 'Blood', icon: MdBloodtype, color: 'red' },
+                { value: Category.FUNDRAISER, label: 'Financial Help', icon: MdLocalHospital, color: 'blue' },
+                { value: Category.MEDICINES, label: 'Medicines', icon: MdMedication, color: 'yellow' },
+                { value: Category.SUPPLIES, label: 'Supplies', icon: FaHeart, color: 'green' }
               ].map((category) => {
                 const Icon = category.icon;
                 return (
@@ -230,7 +386,7 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
               placeholder="e.g., Offering Blood Donation - Type O+ Available"
-              className={`w-full px-4 py-3 rounded-xl border ${
+              className={`w-full px-4 py-3 rounded-xl border text-black ${
                 errors.title ? 'border-red-300' : 'border-gray-300'
               } focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
             />
@@ -238,16 +394,62 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
           </div>
 
           {/* Category-Specific Fields */}
-          {formData.category === 'organs' && (
+          {formData.category === Category.ORGANS && (
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Blood Type
+                  Organ Type *
+                </label>
+                <select
+                  value={formData.organType}
+                  onChange={(e) => handleInputChange('organType', e.target.value)}
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                >
+                  <option value="">Select organ type</option>
+                  <option value="kidney">Kidney</option>
+                  <option value="liver">Liver (partial)</option>
+                  <option value="bone_marrow">Bone Marrow</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Health Status
+                </label>
+                <select
+                  value={formData.healthStatus}
+                  onChange={(e) => handleInputChange('healthStatus', e.target.value)}
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Availability
+                </label>
+                <input
+                  type="text"
+                  value={formData.availability}
+                  onChange={(e) => handleInputChange('availability', e.target.value)}
+                  placeholder="When are you available for donation?"
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+
+          {formData.category === Category.BLOOD && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Blood Type *
                 </label>
                 <select
                   value={formData.bloodType}
                   onChange={(e) => handleInputChange('bloodType', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 >
                   <option value="">Select blood type</option>
                   <option value="A+">A+</option>
@@ -262,42 +464,102 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Organ Type
+                  Availability
                 </label>
-                <select
-                  value={formData.organType}
-                  onChange={(e) => handleInputChange('organType', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                >
-                  <option value="">Select organ (if applicable)</option>
-                  <option value="kidney">Kidney</option>
-                  <option value="liver">Liver (partial)</option>
-                  <option value="bone_marrow">Bone Marrow</option>
-                </select>
+                <input
+                  type="text"
+                  value={formData.availability}
+                  onChange={(e) => handleInputChange('availability', e.target.value)}
+                  placeholder="When are you available for donation?"
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Last Donation Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.lastDonation}
+                  onChange={(e) => handleInputChange('lastDonation', e.target.value)}
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
               </div>
             </div>
           )}
 
-          {formData.category === 'fundraiser' && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Maximum Amount (LKR) *
-              </label>
-              <input
-                type="number"
-                value={formData.maxAmount}
-                onChange={(e) => handleInputChange('maxAmount', e.target.value)}
-                placeholder="e.g., 500000"
-                className={`w-full px-4 py-3 rounded-xl border ${
-                  errors.maxAmount ? 'border-red-300' : 'border-gray-300'
-                } focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
-              />
-              {errors.maxAmount && <p className="text-red-500 text-sm mt-1">{errors.maxAmount}</p>}
+          {formData.category === Category.FUNDRAISER && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Maximum Amount (LKR) *
+                </label>
+                <input
+                  type="number"
+                  value={formData.maxAmount}
+                  onChange={(e) => handleInputChange('maxAmount', e.target.value)}
+                  placeholder="e.g., 500000"
+                  className={`w-full px-4 py-3 text-black rounded-xl border ${
+                    errors.maxAmount ? 'border-red-300' : 'border-gray-300'
+                  } focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
+                />
+                {errors.maxAmount && <p className="text-red-500 text-sm mt-1">{errors.maxAmount}</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Preferred Use
+                </label>
+                <input
+                  type="text"
+                  value={formData.preferredUse}
+                  onChange={(e) => handleInputChange('preferredUse', e.target.value)}
+                  placeholder="How should the funds be used?"
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Requirements
+                </label>
+                <input
+                  type="text"
+                  value={formData.requirements}
+                  onChange={(e) => handleInputChange('requirements', e.target.value)}
+                  placeholder="Any conditions for the recipient?"
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
             </div>
           )}
 
-          {formData.category === 'medicines' && (
+          {formData.category === Category.MEDICINES && (
             <div>
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Quantity
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.quantity}
+                    onChange={(e) => handleInputChange('quantity', e.target.value)}
+                    placeholder="e.g., 30 tablets, 3 bottles"
+                    className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Expiry Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.expiry}
+                    onChange={(e) => handleInputChange('expiry', e.target.value)}
+                    className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Medicine Types Available *
               </label>
@@ -309,7 +571,7 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
                       value={medicine}
                       onChange={(e) => handleMedicineTypeChange(index, e.target.value)}
                       placeholder="e.g., Insulin, Blood pressure medication"
-                      className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="flex-1 px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                     {formData.medicineTypes.length > 1 && (
                       <button
@@ -334,6 +596,35 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
               {errors.medicineTypes && <p className="text-red-500 text-sm mt-1">{errors.medicineTypes}</p>}
             </div>
           )}
+          
+          {formData.category === Category.SUPPLIES && (
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Quantity
+                </label>
+                <input
+                  type="text"
+                  value={formData.quantity}
+                  onChange={(e) => handleInputChange('quantity', e.target.value)}
+                  placeholder="e.g., 5 boxes, 10 units"
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Availability
+                </label>
+                <input
+                  type="text"
+                  value={formData.availability}
+                  onChange={(e) => handleInputChange('availability', e.target.value)}
+                  placeholder="When are the supplies available?"
+                  className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           <div>
@@ -345,7 +636,7 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
               onChange={(e) => handleInputChange('content', e.target.value)}
               rows={4}
               placeholder="Describe what you're offering, any conditions, and how people can benefit from your help..."
-              className={`w-full px-4 py-3 rounded-xl border ${
+              className={`w-full px-4 py-3 text-black rounded-xl border ${
                 errors.content ? 'border-red-300' : 'border-gray-300'
               } focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none`}
             />
@@ -363,7 +654,7 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
                 value={formData.location}
                 onChange={(e) => handleInputChange('location', e.target.value)}
                 placeholder="e.g., Colombo"
-                className={`w-full px-4 py-3 rounded-xl border ${
+                className={`w-full px-4 py-3 text-black rounded-xl border ${
                   errors.location ? 'border-red-300' : 'border-gray-300'
                 } focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
               />
@@ -371,16 +662,16 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Availability
+                Urgency
               </label>
               <select
                 value={formData.urgency}
-                onChange={(e) => handleInputChange('urgency', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                onChange={(e) => handleInputChange('urgency', e.target.value as Urgency)}
+                className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
-                <option value="high">Can help immediately</option>
-                <option value="medium">Available soon</option>
-                <option value="low">Flexible timing</option>
+                <option value={Urgency.HIGH}>High (Immediate)</option>
+                <option value={Urgency.MEDIUM}>Medium (Soon)</option>
+                <option value={Urgency.LOW}>Low (Flexible)</option>
               </select>
             </div>
           </div>
@@ -396,7 +687,7 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
                 value={formData.contact}
                 onChange={(e) => handleInputChange('contact', e.target.value)}
                 placeholder="Phone: +94771234567, Email: your.email@example.com"
-                className={`w-full px-4 py-3 rounded-xl border ${
+                className={`w-full px-4 py-3 text-black rounded-xl border ${
                   errors.contact ? 'border-red-300' : 'border-gray-300'
                 } focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
               />
@@ -411,7 +702,7 @@ export default function CreateDonorPost({ isOpen, onClose, onSubmit }: CreateDon
                 value={formData.requirements}
                 onChange={(e) => handleInputChange('requirements', e.target.value)}
                 placeholder="e.g., Medical documentation required"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-3 text-black rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
           </div>

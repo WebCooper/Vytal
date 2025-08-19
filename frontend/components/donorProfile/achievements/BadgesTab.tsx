@@ -24,14 +24,14 @@ const BadgesTab = ({ achievements }: { achievements: Achievement[] })  => {
     MdVerified
   };
 
-  const getRarityColor = (rarity: AchievementRarity) => {
-    const colors = {
+  const getRarityColor = (rarity: Badge['rarity']) => {
+    const colors: Record<Badge['rarity'], string> = {
       common: 'from-gray-400 to-gray-600',
       rare: 'from-blue-400 to-blue-600', 
       epic: 'from-purple-400 to-purple-600',
       legendary: 'from-yellow-400 to-orange-500'
     };
-    return colors[rarity] || colors.common;
+    return colors[rarity];
   };
 
   const getRarityBorder = (rarity: AchievementRarity) => {
@@ -41,7 +41,7 @@ const BadgesTab = ({ achievements }: { achievements: Achievement[] })  => {
       epic: 'border-purple-300', 
       legendary: 'border-yellow-300'
     };
-    return colors[rarity] || colors.common;
+    return colors[rarity];
   };
 
   // Compute earned badges for this user
@@ -55,10 +55,19 @@ const BadgesTab = ({ achievements }: { achievements: Achievement[] })  => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+<<<<<<< HEAD
       >
         {badges.map((badge, index) => {
           const IconComponent = iconMap[badge.icon as keyof typeof iconMap] || FaHeart;
           return (
+=======
+        >
+        {badges.map((badge: Badge, index: number) => {
+            // Get the icon component from the string name
+            const IconComponent = getIconComponent(badge.icon);
+            
+            return (
+>>>>>>> 084134686ecb40b8b6f6ec70e9b27cdd76e3ca93
             <motion.div
               key={badge.id}
               initial={{ opacity: 0, scale: 0.8 }}

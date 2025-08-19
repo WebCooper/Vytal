@@ -53,7 +53,7 @@ modules = [
 [[package]]
 org = "ballerina"
 name = "data.jsondata"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.object"}
@@ -111,6 +111,9 @@ dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.value"}
 ]
+modules = [
+	{org = "ballerina", packageName = "io", moduleName = "io"}
+]
 
 [[package]]
 org = "ballerina"
@@ -167,6 +170,9 @@ dependencies = [
 	{org = "ballerina", name = "lang.__internal"},
 	{org = "ballerina", name = "lang.object"}
 ]
+modules = [
+	{org = "ballerina", packageName = "lang.int", moduleName = "lang.int"}
+]
 
 [[package]]
 org = "ballerina"
@@ -204,6 +210,9 @@ name = "lang.value"
 version = "0.0.0"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
+]
+modules = [
+	{org = "ballerina", packageName = "lang.value", moduleName = "lang.value"}
 ]
 
 [[package]]
@@ -257,6 +266,9 @@ dependencies = [
 	{org = "ballerina", name = "io"},
 	{org = "ballerina", name = "jballerina.java"}
 ]
+modules = [
+	{org = "ballerina", packageName = "os", moduleName = "os"}
+]
 
 [[package]]
 org = "ballerina"
@@ -268,6 +280,20 @@ dependencies = [
 ]
 modules = [
 	{org = "ballerina", packageName = "regex", moduleName = "regex"}
+]
+
+[[package]]
+org = "ballerina"
+name = "sql"
+version = "1.16.0"
+dependencies = [
+	{org = "ballerina", name = "io"},
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "lang.object"},
+	{org = "ballerina", name = "time"}
+]
+modules = [
+	{org = "ballerina", packageName = "sql", moduleName = "sql"}
 ]
 
 [[package]]
@@ -325,18 +351,58 @@ modules = [
 ]
 
 [[package]]
+org = "ballerinax"
+name = "mysql"
+version = "1.13.0"
+dependencies = [
+	{org = "ballerina", name = "crypto"},
+	{org = "ballerina", name = "io"},
+	{org = "ballerina", name = "jballerina.java"},
+	{org = "ballerina", name = "sql"},
+	{org = "ballerina", name = "time"}
+]
+modules = [
+	{org = "ballerinax", packageName = "mysql", moduleName = "mysql"}
+]
+
+[[package]]
+org = "ballerinax"
+name = "mysql.driver"
+version = "1.5.0"
+modules = [
+	{org = "ballerinax", packageName = "mysql.driver", moduleName = "mysql.driver"}
+]
+
+[[package]]
 org = "cooper"
 name = "backend"
 version = "0.1.0"
 dependencies = [
 	{org = "ballerina", name = "crypto"},
 	{org = "ballerina", name = "http"},
+	{org = "ballerina", name = "io"},
+	{org = "ballerina", name = "lang.int"},
+	{org = "ballerina", name = "lang.value"},
+	{org = "ballerina", name = "os"},
 	{org = "ballerina", name = "regex"},
+	{org = "ballerina", name = "sql"},
 	{org = "ballerina", name = "time"},
 	{org = "ballerina", name = "uuid"},
-	{org = "ballerinai", name = "observe"}
+	{org = "ballerinai", name = "observe"},
+	{org = "ballerinax", name = "mysql"},
+	{org = "ballerinax", name = "mysql.driver"}
 ]
 modules = [
-	{org = "cooper", packageName = "backend", moduleName = "backend"}
+	{org = "cooper", packageName = "backend", moduleName = "backend"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.auth"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.database"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.donorPostOp"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.messages"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.postOp"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.storage"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.token"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.types"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.userOp"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.utils"}
 ]
 

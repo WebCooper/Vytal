@@ -3,16 +3,17 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { FaUser, FaLock, FaGoogle, FaFacebookF, FaLinkedinIn, FaPhone, FaEnvelope } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
     name: "",
-    phone: "",
+    phone_number: "",
     email: "",
     password: "",
     role: "",
-    category: ""
+    categories: [] as string[]
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,19 +29,26 @@ export default function SignUp() {
     setError(""); // Clear error when user types
   };
 
+  const { signUp } = useAuth();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const response = await register(formData);
-      if (response.success) {
-        router.push('/dashboard');
+      const response = await signUp(formData);
+      if (response.success && response.data?.user) {
+        // Redirect based on user role
+        if (response.data.user.role === "donor") {
+          router.push("/donor");
+        } else {
+          router.push("/me");
+        }
       } else {
         setError(response.message || 'Registration failed');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -69,37 +77,101 @@ export default function SignUp() {
             {/* Form Panel */}
             <div className="flex-1 flex flex-col justify-center p-8 bg-white/80 backdrop-blur-md">
               <h2 className="text-3xl font-extrabold mb-6 text-center tracking-wider font-sans bg-gradient-to-r from-emerald-500 to-emerald-700 bg-clip-text text-transparent drop-shadow-lg">Sign Up</h2>
-              <form className="flex flex-col gap-3">
+              <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
                 <div className="relative">
-                  <input type="text" placeholder="Name" className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" required />
+                  <input 
+                    type="text" 
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Name" 
+                    className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" 
+                    required 
+                  />
                   <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
                 </div>
                 <div className="relative">
-                  <input type="tel" placeholder="Phone Number" className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" required />
+                  <input 
+                    type="tel" 
+                    name="phone_number"
+                    value={formData.phone_number}
+                    onChange={handleInputChange}
+                    placeholder="Phone Number" 
+                    className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" 
+                    required 
+                  />
                   <FaPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
                 </div>
                 <div className="relative">
-                  <input type="email" placeholder="Email" className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" required />
-                  <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+                  <input 
+                    type="email" 
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="Email" 
+                    className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" 
+                    required 
+                  />
+                  <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
                 </div>
                 <div className="relative">
-                  <input type="password" placeholder="Password" className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" required />
+                  <input 
+                    type="password" 
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="Password" 
+                    className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" 
+                    required 
+                  />
                   <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
                 </div>
                 <div className="flex gap-2">
-                  <select className="flex-1 px-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" value={role} onChange={e => setRole(e.target.value)} required>
+                  <select 
+                    name="role"
+                    value={formData.role} 
+                    onChange={handleInputChange}
+                    className="flex-1 px-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" 
+                    required
+                  >
                     <option value="" disabled>Role</option>
                     <option value="donor">Donor</option>
-                    <option value="receiver">Receiver</option>
+                    <option value="recipient">Recipient</option>
+                    {/* <option value="organization">Organization</option> */}
                   </select>
-                  <select className="flex-1 px-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" value={category} onChange={e => setCategory(e.target.value)} required>
+                  <select 
+                    name="categories"
+                    value={formData.categories[0] || ""} 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        categories: value ? [value] : []
+                      }));
+                    }}
+                    className="flex-1 px-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" 
+                    required
+                  >
                     <option value="" disabled>Category</option>
+                    <option value="blood">Blood</option>
                     <option value="organs">Organs</option>
                     <option value="medicines">Medicines</option>
-                    <option value="blood">Blood</option>
+                    <option value="fundraiser">Fundraiser</option>
+                    <option value="supplies">Supplies</option>
                   </select>
                 </div>
-                <button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200">Register</button>
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Registering...' : 'Register'}
+                </button>
+                {error && (
+                  <div className="text-red-500 text-sm text-center mt-2">
+                    {error}
+                  </div>
+                )}
                 <div className="flex items-center my-2">
                   <div className="flex-1 h-px bg-gray-200" />
                   <span className="mx-2 text-gray-400 text-xs">or register with social platforms</span>

@@ -3,7 +3,8 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { FaUser, FaLock, FaGoogle, FaFacebookF, FaLinkedinIn } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SignIn() {
   const pathname = usePathname();
@@ -23,8 +24,13 @@ export default function SignIn() {
     try {
       const response = await signIn(formData.email, formData.password);
       
-      if (response.success) {
-        router.push("/dashboard"); // Redirect to dashboard after successful login
+      if (response.success && response.data?.user) {
+        // Redirect based on user role
+        if (response.data.user.role === "donor") {
+          router.push("/donor");
+        } else {
+          router.push("/me");
+        }
       } else {
         setError(response.message || "Sign in failed");
       }
@@ -63,20 +69,43 @@ export default function SignIn() {
             {/* Form Panel */}
             <div className="flex-1 flex flex-col justify-center p-8 bg-white/80 backdrop-blur-md">
               <h2 className="text-3xl font-extrabold mb-6 text-center tracking-wider font-sans bg-gradient-to-r from-emerald-500 to-emerald-700 bg-clip-text text-transparent drop-shadow-lg">Sign In</h2>
-              <form className="flex flex-col gap-3">
+              {error && <div className="text-red-500 text-sm mb-4 text-center">{error}</div>}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <div className="relative">
-                  <input type="text" placeholder="Email or Phone Number" className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" required />
+                  <input 
+                    type="text"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Email"
+                    className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md"
+                    required
+                  />
                   <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
                 </div>
                 <div className="relative">
-                  <input type="password" placeholder="Password" className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md" required />
+                  <input 
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Password"
+                    className="w-full pl-10 pr-3 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 text-base text-black placeholder-gray-700 bg-white/80 transition-all duration-200 shadow-sm focus:shadow-md"
+                    required
+                  />
                   <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" />
                 </div>
                 <div className="flex justify-between items-center mt-1 mb-2">
                   <div></div>
                   <Link href="#" className="text-emerald-600 text-xs hover:underline transition">Forgot password?</Link>
                 </div>
-                <button type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200">Login</button>
+                <button 
+  type="submit" 
+  disabled={isLoading}
+  className={`w-full bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all duration-200 ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-105 hover:shadow-xl'}`}
+>
+  {isLoading ? 'Signing in...' : 'Login'}
+</button>
                 <div className="flex items-center my-2">
                   <div className="flex-1 h-px bg-gray-200" />
                   <span className="mx-2 text-gray-400 text-xs">or login with social platforms</span>

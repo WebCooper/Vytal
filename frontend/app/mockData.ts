@@ -254,7 +254,6 @@ export const myDonorPosts = [
     urgency: "medium", // How quickly they can help
     engagement: { likes: 15, comments: 4, shares: 8, views: 89 },
     contact: "phone: +94771122334, email: john.smith@email.com",
-    // For donor posts, we might have "offering details" instead of fundraiser details
     offeringDetails: {
       bloodType: "O+",
       availability: "Weekends & Evenings",
