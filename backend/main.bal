@@ -15,7 +15,7 @@ import ballerina/time;
 # HTTP service with all authentication endpoints
 @http:ServiceConfig {
     cors: {
-        allowOrigins: ["http://localhost:3000", "http://127.0.0.1:3000", "https://your-frontend-domain.com"],
+        allowOrigins: ["http://localhost:3000", "http://127.0.0.1:3000","https://iwb25-198-nova.vercel.app"],
         allowCredentials: true,
         allowHeaders: ["Authorization", "Content-Type"],
         exposeHeaders: ["X-CUSTOM-HEADER"],
