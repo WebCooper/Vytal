@@ -57,8 +57,61 @@ const getCoordinatesForLocation = (location: string): [number, number] => {
   return [6.9271, 79.8612];
 };
 
+interface FormErrors {
+  name?: string;
+  organizer?: string;
+  location?: string;
+  address?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  capacity?: string;
+  contact?: string;
+  description?: string;
+  bloodTypes?: string;
+  submit?: string;
+  [key: string]: string | undefined;
+}
+
+interface BloodTypes {
+  'A+': boolean;
+  'A-': boolean;
+  'B+': boolean;
+  'B-': boolean;
+  'O+': boolean;
+  'O-': boolean;
+  'AB+': boolean;
+  'AB-': boolean;
+  [key: string]: boolean;
+}
+
+interface Facilities {
+  parking: boolean;
+  refreshments: boolean;
+  certificates: boolean;
+  medical_screening: boolean;
+  air_conditioning: boolean;
+  [key: string]: boolean;
+}
+
+interface FormData {
+  name: string;
+  organizer: string;
+  location: string;
+  address: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  capacity: string;
+  contact: string;
+  description: string;
+  requirements: string;
+  bloodTypes: BloodTypes;
+  facilities: Facilities;
+}
+
 export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreated }: CreateBloodCampProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     organizer: '',
     location: '',
@@ -89,7 +142,7 @@ export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreat
     }
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -106,7 +159,7 @@ export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreat
     }
   };
 
-  const handleBloodTypeChange = (bloodType: string, checked: boolean) => {
+  const handleBloodTypeChange = (bloodType: keyof BloodTypes, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
       bloodTypes: {
@@ -116,7 +169,7 @@ export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreat
     }));
   };
 
-  const handleFacilityChange = (facility: string, checked: boolean) => {
+  const handleFacilityChange = (facility: keyof Facilities, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
       facilities: {
@@ -167,7 +220,7 @@ export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreat
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: FormErrors = {};
     
     if (!formData.name.trim()) newErrors.name = 'Camp name is required';
     if (!formData.organizer.trim()) newErrors.organizer = 'Organizer name is required';
@@ -218,12 +271,12 @@ export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreat
 
     try {
       const selectedBloodTypes = Object.entries(formData.bloodTypes)
-        .filter(([_, selected]) => selected)
-        .map(([bloodType, _]) => bloodType);
+        .filter(([, selected]) => selected)
+        .map(([bloodType]) => bloodType);
 
       const selectedFacilities = Object.entries(formData.facilities)
-        .filter(([_, selected]) => selected)
-        .map(([facility, _]) => facility.replace('_', ' '));
+        .filter(([, selected]) => selected)
+        .map(([facility]) => facility.replace('_', ' '));
 
       // Get coordinates for the location
       const coordinates = getCoordinatesForLocation(formData.location);
@@ -267,14 +320,22 @@ export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreat
         handleClose();
       }, 2000);
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating blood camp:', error);
       let errorMessage = 'Failed to create blood camp. Please try again.';
       
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
+      if (typeof error === 'object' && error !== null) {
+        if ('response' in error && 
+            typeof error.response === 'object' && 
+            error.response !== null && 
+            'data' in error.response && 
+            typeof error.response.data === 'object' &&
+            error.response.data !== null &&
+            'error' in error.response.data) {
+          errorMessage = String(error.response.data.error);
+        } else if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message;
+        }
       }
       
       setErrors({ submit: errorMessage });
@@ -283,13 +344,13 @@ export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreat
     }
   };
 
-  const bloodTypeOptions = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+  const bloodTypeOptions = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] as const;
   const facilityOptions = [
-    { key: 'parking', label: 'Free Parking' },
-    { key: 'refreshments', label: 'Refreshments Provided' },
-    { key: 'certificates', label: 'Donation Certificates' },
-    { key: 'medical_screening', label: 'Medical Screening' },
-    { key: 'air_conditioning', label: 'Air Conditioning' }
+    { key: 'parking' as keyof Facilities, label: 'Free Parking' },
+    { key: 'refreshments' as keyof Facilities, label: 'Refreshments Provided' },
+    { key: 'certificates' as keyof Facilities, label: 'Donation Certificates' },
+    { key: 'medical_screening' as keyof Facilities, label: 'Medical Screening' },
+    { key: 'air_conditioning' as keyof Facilities, label: 'Air Conditioning' }
   ];
 
   // Popular Sri Lankan cities for location suggestions
@@ -536,28 +597,28 @@ export default function CreateBloodCamp({ isOpen, onClose, onSubmit, onCampCreat
                       <label
                         key={bloodType}
                         className={`flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                          formData.bloodTypes[bloodType]
+                          formData.bloodTypes[bloodType as keyof BloodTypes]
                             ? 'border-red-500 bg-red-50'
                             : 'border-gray-300 hover:border-gray-400 bg-white'
                         }`}
                       >
                         <input
                           type="checkbox"
-                          checked={formData.bloodTypes[bloodType]}
-                          onChange={(e) => handleBloodTypeChange(bloodType, e.target.checked)}
+                          checked={formData.bloodTypes[bloodType as keyof BloodTypes]}
+                          onChange={(e) => handleBloodTypeChange(bloodType as keyof BloodTypes, e.target.checked)}
                           className="sr-only"
                         />
                         <div className={`w-5 h-5 rounded-full border-2 mr-2 flex items-center justify-center ${
-                          formData.bloodTypes[bloodType]
+                          formData.bloodTypes[bloodType as keyof BloodTypes]
                             ? 'border-red-500 bg-red-500'
                             : 'border-gray-400'
                         }`}>
-                          {formData.bloodTypes[bloodType] && (
+                          {formData.bloodTypes[bloodType as keyof BloodTypes] && (
                             <div className="w-2 h-2 rounded-full bg-white"></div>
                           )}
                         </div>
                         <span className={`font-semibold ${
-                          formData.bloodTypes[bloodType] ? 'text-red-700' : 'text-gray-700'
+                          formData.bloodTypes[bloodType as keyof BloodTypes] ? 'text-red-700' : 'text-gray-700'
                         }`}>
                           {bloodType}
                         </span>

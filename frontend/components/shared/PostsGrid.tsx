@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaHeart, FaComment, FaShare, FaEye, FaClock, FaTrash, FaUser } from "react-icons/fa";
 import React, { useState } from 'react'
-import { Post, Category, PostGridProps } from '../types';
+import { Post, Category } from '../types';
 import Link from 'next/link';
 import { formatDate, getCategoryColor, getCategoryIcon, getUrgencyColor, getStatusColor } from '../utils';
 import FundraiserProgressbar from './FundraiserProgressbar';

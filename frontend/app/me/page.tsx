@@ -179,8 +179,6 @@ export default function RecipientDashboard() {
               </motion.div>
             )}
 
-            
-
             {activeTab === "messages" && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

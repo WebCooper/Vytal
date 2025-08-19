@@ -48,7 +48,7 @@ export default function SignUp() {
       } else {
         setError(response.message || 'Registration failed');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);

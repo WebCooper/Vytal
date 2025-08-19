@@ -63,7 +63,7 @@ const mapRecipientPostToPost = (post: RecipientPost): Post => {
 };
 
 // Helper function to map DonorPost to Post type
-const mapDonorPostToPost = (post: DonorPost, user: any): Post => {
+const mapDonorPostToPost = (post: DonorPost, user: { id: number; name: string; email: string; role?: string }): Post => {
     // Map category enum to Category enum
     const mapCategory = (category: string): Category => {
         switch (category) {

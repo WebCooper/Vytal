@@ -33,7 +33,7 @@ const GamificationDashboard = () => {
       <AnimatePresence mode="wait">
         {/* Badges Tab */}
         {activeTab === 'badges' && (
-          <BadgesTab badges={badges} />
+          <BadgesTab badges={badges as import('@/components/types').Badges[]} />
         )}
 
         {/* Achievements Tab */}

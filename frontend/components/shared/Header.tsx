@@ -20,6 +20,7 @@ const Header = () => {
             <button onClick={() => scrollToSection('services')} className="text-emerald-700 hover:text-emerald-500 font-semibold transition">Services</button>
             <button onClick={() => scrollToSection('testimonials')} className="text-emerald-700 hover:text-emerald-500 font-semibold transition">Stories</button>
             <button onClick={() => scrollToSection('contact')} className="text-emerald-700 hover:text-emerald-500 font-semibold transition">Contact</button>
+            <Link href="/community" className="text-emerald-700 hover:text-emerald-500 font-semibold transition">Community</Link>
           </div>
           <div className="flex gap-2">
             <Link href="/auth/signin" passHref>

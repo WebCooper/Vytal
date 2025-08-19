@@ -644,19 +644,9 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
-    // Get all blood camps endpoint
-    resource function get blood\-camps(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+    // Get all blood camps endpoint (public access - no authorization required)
+    resource function get blood\-camps() returns http:Response|error {
         http:Response response = new;
-
-        string|error email = token:validateToken(authorization);
-        if email is error {
-            response.statusCode = 401;
-            response.setJsonPayload({
-                "error": email.message(),
-                "timestamp": time:utcNow()
-            });
-            return response;
-        }
 
         types:BloodCamp[]|error result = database:getAllBloodCamps();
 

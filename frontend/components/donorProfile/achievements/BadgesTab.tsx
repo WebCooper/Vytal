@@ -4,10 +4,21 @@ import {
   FaTrophy, FaMedal, FaHeart, FaFire, FaStar, FaGift,
   FaUsers, FaShareAlt, FaCrown
 } from 'react-icons/fa';
-import Badges from '@/components/types';
+import { Badges as Badge } from '@/components/types';
 
-const BadgesTab = ({ badges }: { badges: Badges }) => {
-    const iconMap = {
+// Define BadgeArray type as an array of Badge objects
+type BadgeArray = Badge[];
+
+const BadgesTab = ({ badges }: { badges: BadgeArray }) => {
+    // Define icon props interface with common props used by react-icons
+    interface IconProps {
+      className?: string;
+      size?: string | number;
+      color?: string;
+      title?: string;
+    }
+    
+    const iconMap: Record<string, React.ComponentType<IconProps>> = {
     FaHeart,
     FaMedal, 
     FaFire,
@@ -21,24 +32,24 @@ const BadgesTab = ({ badges }: { badges: Badges }) => {
     MdVerified
     };
 
-  const getRarityColor = (rarity: string) => {
-    const colors = {
+  const getRarityColor = (rarity: Badge['rarity']) => {
+    const colors: Record<Badge['rarity'], string> = {
       common: 'from-gray-400 to-gray-600',
       rare: 'from-blue-400 to-blue-600', 
       epic: 'from-purple-400 to-purple-600',
       legendary: 'from-yellow-400 to-orange-500'
     };
-    return colors[rarity] || colors.common;
+    return colors[rarity];
   };
 
-  const getRarityBorder = (rarity: string) => {
-    const colors = {
+  const getRarityBorder = (rarity: Badge['rarity']) => {
+    const colors: Record<Badge['rarity'], string> = {
       common: 'border-gray-300',
       rare: 'border-blue-300',
       epic: 'border-purple-300', 
       legendary: 'border-yellow-300'
     };
-    return colors[rarity] || colors.common;
+    return colors[rarity];
   };
 
   // Function to get icon component from string name
@@ -55,7 +66,7 @@ const BadgesTab = ({ badges }: { badges: Badges }) => {
         exit={{ opacity: 0, y: -20 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-        {badges.map((badge, index) => {
+        {badges.map((badge: Badge, index: number) => {
             // Get the icon component from the string name
             const IconComponent = getIconComponent(badge.icon);
             

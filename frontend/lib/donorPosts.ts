@@ -112,7 +112,7 @@ export const createDonorPost = async (post: DonorPostCreate): Promise<ApiRespons
     const response = await axiosInstance.post<ApiResponse<DonorPost>>('/donor_post', post);
     console.log('API Response:', response);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to create donor post:', error);
     // Log more detailed error information
     if (axios.isAxiosError(error)) {
