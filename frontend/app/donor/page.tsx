@@ -20,7 +20,7 @@ import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
 import { getAllBloodCamps } from '@/lib/bloodCampsApi';
 import { BloodCamp } from "@/components/types";
 import { getDonorPostsByUser, DonorPost } from "@/lib/donorPosts";
-
+import DonorMessagesTab from "@/components/messages/DonorMessagesTab";
 
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
@@ -152,12 +152,12 @@ export default function DonorDashboard() {
             fetchPosts();
         }
     }, [isAuthenticated, user]);
-    
+
     // Fetch donor posts from API when user navigates to "myposts" tab
     useEffect(() => {
         const fetchDonorPosts = async () => {
             if (activeTab !== 'myposts' || !user?.id) return;
-            
+
             try {
                 setIsLoadingDonorPosts(true);
                 const response = await getDonorPostsByUser(user.id);
@@ -172,7 +172,7 @@ export default function DonorDashboard() {
                 setIsLoadingDonorPosts(false);
             }
         };
-        
+
         if (isAuthenticated && user) {
             fetchDonorPosts();
         }
@@ -464,12 +464,9 @@ export default function DonorDashboard() {
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
+                                className="space-y-6"
                             >
-                                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-6">
-                                    Messages
-                                </h2>
-                                <p className="text-gray-600 text-lg">Coming soon! Communicate directly with recipients.</p>
+                                <DonorMessagesTab userId={user.id} />
                             </motion.div>
                         )}
 
@@ -491,7 +488,7 @@ export default function DonorDashboard() {
                 isOpen={showDonorPostForm}
                 onClose={() => {
                     setShowDonorPostForm(false);
-                    
+
                     // Refresh donor posts when modal is closed (in case a new post was created)
                     if (user?.id && activeTab === 'myposts') {
                         setIsLoadingDonorPosts(true);
