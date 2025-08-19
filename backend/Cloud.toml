@@ -1,0 +1,7 @@
+[container.image]
+repository="cooperjsk" # Docker hub name
+name="iwb25-198-nova" # container name
+tag="0.1.0"
+
+[settings]
+buildImage=true # you can make this false if you don't want to build the image and you just need the Dockerfile

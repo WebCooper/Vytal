@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FaDownload, FaShare, FaTimes, FaHeartbeat, FaMapMarkerAlt, FaPhone, FaCopy, FaWhatsapp, FaQrcode, FaHandHoldingHeart } from 'react-icons/fa';
-import { MdBloodtype, MdLocalHospital, MdMedication, MdEmergency } from 'react-icons/md';
+import { MdBloodtype, MdLocalHospital, MdEmergency } from 'react-icons/md';
 
 interface RecipientCardGeneratorProps {
   isOpen: boolean;
@@ -975,7 +975,7 @@ Generated via Vytal - Community Donation Platform`
 
             <div className={`mt-4 p-3 ${cardData.urgency === 'high' ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'} border rounded-lg`}>
               <p className={`text-sm ${cardData.urgency === 'high' ? 'text-red-800' : 'text-blue-800'}`}>
-                <strong>Emergency Tip:</strong> Use "Download Image + Copy Text" then follow the step-by-step instructions to share both image and text on WhatsApp to spread awareness about your urgent need for help!
+                <strong>Emergency Tip:</strong> Use &quot;Download Image + Copy Text&quot; then follow the step-by-step instructions to share both image and text on WhatsApp to spread awareness about your urgent need for help!
               </p>
             </div>
           </motion.div>
