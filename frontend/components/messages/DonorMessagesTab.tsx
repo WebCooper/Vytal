@@ -5,10 +5,8 @@ import {
   FaEnvelope, 
   FaEnvelopeOpen, 
   FaClock, 
-  FaUser, 
   FaReply, 
   FaTrash, 
-  FaFilter,
   FaInbox,
   FaHeart,
   FaHandHoldingHeart,
@@ -23,15 +21,16 @@ interface DonorMessagesTabProps {
 }
 
 const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
-  const { user } = useAuth();
+  // Not using user from auth context in this component (used in child components)
+  useAuth(); // Keep the hook call as children might need the context
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'help_offer' | 'contact'>('all');
 
-  // Fetch messages
-  const fetchMessages = async () => {
+  // Fetch messages with useCallback to avoid dependency issues
+  const fetchMessages = React.useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await getUserMessages(userId);
@@ -41,11 +40,11 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchMessages();
-  }, [userId]);
+  }, [userId, fetchMessages]);
 
   // Filter messages
   const filteredMessages = messages.filter(message => {
@@ -145,7 +144,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
         <div className="mt-4 flex flex-wrap gap-2">
           <select 
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'unread' | 'read')}
             className="px-3 py-1 rounded-lg bg-white/20 text-white border border-white/30 text-sm"
           >
             <option value="all">All Status</option>
@@ -155,7 +154,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
           
           <select 
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
+            onChange={(e) => setTypeFilter(e.target.value as 'all' | 'help_offer' | 'contact')}
             className="px-3 py-1 rounded-lg bg-white/20 text-white border border-white/30 text-sm"
           >
             <option value="all">All Types</option>
