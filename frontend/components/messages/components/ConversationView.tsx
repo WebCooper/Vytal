@@ -40,6 +40,32 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   messagesEndRef,
   userType
 }) => {
+  // Enhanced scroll to bottom function
+  const scrollToBottom = React.useCallback((behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ 
+      behavior,
+      block: 'end',
+      inline: 'nearest'
+    });
+  }, [messagesEndRef]);
+
+  // Scroll to bottom when messages change or component mounts
+  React.useEffect(() => {
+    // Use setTimeout to ensure DOM is updated
+    const timeoutId = setTimeout(() => {
+      scrollToBottom('auto'); // Instant scroll on initial load
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [messages.length, scrollToBottom]); // Include scrollToBottom dependency
+
+  // Scroll to bottom when new messages arrive
+  React.useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom('smooth'); // Smooth scroll for new messages
+    }
+  }, [messages, scrollToBottom]); // Include scrollToBottom dependency
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -121,10 +147,15 @@ const MessagesArea: React.FC<MessagesAreaProps> = ({
   getUserInitials,
   messagesEndRef
 }) => {
+  // Sort messages by creation time to ensure chronological order
+  const sortedMessages = [...messages].sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
       <AnimatePresence>
-        {messages.map((message, index) => (
+        {sortedMessages.map((message, index) => (
           <MessageBubble
             key={message.id}
             message={message}
@@ -137,7 +168,12 @@ const MessagesArea: React.FC<MessagesAreaProps> = ({
           />
         ))}
       </AnimatePresence>
-      <div ref={messagesEndRef} />
+      {/* This div acts as the scroll target */}
+      <div 
+        ref={messagesEndRef} 
+        style={{ height: '1px', marginTop: '8px' }}
+        aria-hidden="true"
+      />
     </div>
   );
 };
