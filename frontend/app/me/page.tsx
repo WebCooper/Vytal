@@ -11,7 +11,7 @@ import { getPostsByUser, RecipientPost, PostCategory } from "@/lib/recipientPost
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { UserType, Post, Category } from "@/components/types";
-import MessagesTab from "@/components/messages/MessagesTab";
+import RecipientMessagesTab from "@/components/messages/RecipientMessagesTab";
 import RecipientCardGenerator from '@/components/recipientProfile/RecipientCardGenerator';
 
 export default function RecipientDashboard() {
@@ -308,7 +308,7 @@ export default function RecipientDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <MessagesTab userId={user.id} />
+                <RecipientMessagesTab userId={user.id} />
               </motion.div>
             )}
 
