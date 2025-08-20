@@ -522,7 +522,7 @@ export default function DonorDashboard() {
 
                                             <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
                                                 <h4 className="font-bold text-green-800 mb-2">Donation History</h4>
-                                                <p className="text-green-700 text-sm mb-3">Track your contribution history and see the impact you've made.</p>
+                                                <p className="text-green-700 text-sm mb-3">Track your contribution history and see the impact you&apos;ve made.</p>
                                                 <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                                                     View History
                                                 </button>
