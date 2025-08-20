@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FaEnvelope, 
-  FaEnvelopeOpen, 
-  FaClock, 
-  FaReply, 
+import {
+  FaEnvelope,
+  FaEnvelopeOpen,
+  FaClock,
+  FaReply,
   FaInbox,
   FaHeart,
   FaHandHoldingHeart,
@@ -18,8 +18,8 @@ import {
   FaUser,
   FaCircle
 } from 'react-icons/fa';
-import { 
-  getUserMessages, 
+import {
+  getUserMessages,
   getSentMessages,
   getUserConversations,
   getConversation,
@@ -32,6 +32,7 @@ import {
   getOtherUser
 } from '@/lib/messages';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMessages } from '@/contexts/MessagesContext';
 
 interface RecipientMessagesTabProps {
   userId: number;
@@ -41,6 +42,7 @@ type ViewMode = 'conversations' | 'inbox' | 'sent' | 'conversation';
 
 const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) => {
   const { user } = useAuth();
+  const { decrementUnreadCount, refreshUnreadCount } = useMessages();
   const [viewMode, setViewMode] = useState<ViewMode>('conversations');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,6 +59,21 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // When marking a message as read
+  const handleMarkAsRead = async (messageId: number) => {
+    try {
+      await markMessageAsRead(messageId);
+      decrementUnreadCount(1); // Immediately update the sidebar count
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === messageId ? { ...msg, status: 'read' } : msg
+        )
+      );
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+  };
 
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
@@ -75,7 +92,7 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
   const fetchMessages = useCallback(async (mode: 'inbox' | 'sent') => {
     try {
       setIsLoading(true);
-      const response = mode === 'inbox' 
+      const response = mode === 'inbox'
         ? await getUserMessages(userId)
         : await getSentMessages(userId);
       setMessages(response.data);
@@ -86,27 +103,28 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
     }
   }, [userId]);
 
-  // Fetch conversation thread
+  // Fetch conversation thread with context integration
   const fetchConversationThread = useCallback(async (otherUserId: number) => {
     try {
       setIsLoading(true);
       const response = await getConversation(userId, otherUserId);
       setMessages(response.data);
-      
+
       await markConversationAsRead(userId, otherUserId);
+      refreshUnreadCount(); // Refresh the count after marking conversation as read
     } catch (error) {
       console.error('Error fetching conversation:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, refreshUnreadCount]);
 
   // Handle view changes
   const handleViewChange = (mode: ViewMode) => {
     setViewMode(mode);
     setSelectedConversation(null);
     setMessages([]);
-    
+
     switch (mode) {
       case 'conversations':
         fetchConversations();
@@ -130,11 +148,11 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
   // Handle reply
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user || !selectedConversation || !replyText.trim()) return;
-    
+
     setIsSending(true);
-    
+
     try {
       await sendMessage({
         sender_id: user.id,
@@ -144,7 +162,7 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
         content: replyText,
         message_type: 'general'
       });
-      
+
       setReplyText('');
       fetchConversationThread(selectedConversation.other_user.id);
     } catch (error) {
@@ -164,7 +182,7 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
     const diffInHours = Math.floor(diffInMinutes / 60);
     const diffInDays = Math.floor(diffInHours / 24);
-    
+
     if (diffInMinutes < 1) {
       return 'Just now';
     } else if (diffInMinutes < 60) {
@@ -185,20 +203,20 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
   const getMessageTypeInfo = (type: string) => {
     switch (type) {
       case 'help_offer':
-        return { 
-          icon: <FaHeart className="text-red-500" />, 
+        return {
+          icon: <FaHeart className="text-red-500" />,
           color: 'bg-red-100 text-red-800 border-red-200',
           label: 'Help Offer'
         };
       case 'contact':
-        return { 
-          icon: <FaHandHoldingHeart className="text-blue-500" />, 
+        return {
+          icon: <FaHandHoldingHeart className="text-blue-500" />,
           color: 'bg-blue-100 text-blue-800 border-blue-200',
           label: 'Contact Message'
         };
       default:
-        return { 
-          icon: <FaEnvelope className="text-gray-500" />, 
+        return {
+          icon: <FaEnvelope className="text-gray-500" />,
           color: 'bg-gray-100 text-gray-800 border-gray-200',
           label: 'General Message'
         };
@@ -250,27 +268,24 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
             <div className="flex space-x-1">
               <button
                 onClick={() => handleViewChange('conversations')}
-                className={`px-3 py-2 rounded-lg transition-colors text-sm ${
-                  viewMode === 'conversations' ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
-                }`}
+                className={`px-3 py-2 rounded-lg transition-colors text-sm ${viewMode === 'conversations' ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
+                  }`}
               >
                 <FaComments className="inline mr-1" />
                 Chats
               </button>
               <button
                 onClick={() => handleViewChange('inbox')}
-                className={`px-3 py-2 rounded-lg transition-colors text-sm ${
-                  viewMode === 'inbox' ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
-                }`}
+                className={`px-3 py-2 rounded-lg transition-colors text-sm ${viewMode === 'inbox' ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
+                  }`}
               >
                 <FaInbox className="inline mr-1" />
                 Offers
               </button>
               <button
                 onClick={() => handleViewChange('sent')}
-                className={`px-3 py-2 rounded-lg transition-colors text-sm ${
-                  viewMode === 'sent' ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
-                }`}
+                className={`px-3 py-2 rounded-lg transition-colors text-sm ${viewMode === 'sent' ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
+                  }`}
               >
                 <FaPaperPlane className="inline mr-1" />
                 Replies
@@ -283,7 +298,7 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {viewMode === 'conversations' && (
-          <RecipientConversationsView 
+          <RecipientConversationsView
             conversations={conversations}
             onConversationSelect={handleConversationSelect}
             formatTime={formatTime}
@@ -292,13 +307,14 @@ const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) =
         )}
 
         {(viewMode === 'inbox' || viewMode === 'sent') && (
-          <RecipientMessagesListView 
+          <RecipientMessagesListView
             messages={messages}
             currentUserId={userId}
             viewMode={viewMode}
             formatTime={formatTime}
             getMessageTypeInfo={getMessageTypeInfo}
             getUserInitials={getUserInitials}
+            onMarkAsRead={handleMarkAsRead}
           />
         )}
 
@@ -369,7 +385,7 @@ const RecipientConversationsView: React.FC<{
                 </div>
               )}
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-sm font-semibold text-gray-900 truncate">
@@ -379,11 +395,11 @@ const RecipientConversationsView: React.FC<{
                   {formatTime(conversation.last_activity)}
                 </span>
               </div>
-              
+
               <p className="text-sm text-gray-600 truncate mb-1">
                 {conversation.latest_message.content}
               </p>
-              
+
               <div className="flex items-center justify-between">
                 <span className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">
                   Offering help
@@ -408,7 +424,8 @@ const RecipientMessagesListView: React.FC<{
   formatTime: (date: string) => string;
   getMessageTypeInfo: (type: string) => any;
   getUserInitials: (name: string) => string;
-}> = ({ messages, currentUserId, viewMode, formatTime, getMessageTypeInfo, getUserInitials }) => {
+  onMarkAsRead: (messageId: number) => void;
+}> = ({ messages, currentUserId, viewMode, formatTime, getMessageTypeInfo, getUserInitials, onMarkAsRead }) => {
   if (messages.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 h-full flex items-center justify-center">
@@ -416,7 +433,7 @@ const RecipientMessagesListView: React.FC<{
           <FaEnvelope className="text-6xl mx-auto mb-4 text-gray-300" />
           <p className="text-lg font-medium">No {viewMode === 'inbox' ? 'help offers' : 'replies'} yet</p>
           <p className="text-sm mt-2">
-            {viewMode === 'inbox' 
+            {viewMode === 'inbox'
               ? 'Help offers for your posts will appear here'
               : 'Your replies to help offers will appear here'
             }
@@ -432,7 +449,7 @@ const RecipientMessagesListView: React.FC<{
         const direction = getMessageDirection(message, currentUserId);
         const otherUser = getOtherUser(message, currentUserId);
         const typeInfo = getMessageTypeInfo(message.message_type);
-        
+
         return (
           <motion.div
             key={message.id}
@@ -440,9 +457,13 @@ const RecipientMessagesListView: React.FC<{
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1 }}
             whileHover={{ backgroundColor: 'rgba(16, 185, 129, 0.05)' }}
-            className={`p-4 transition-all duration-200 border-b border-gray-100 ${
-              message.status === 'unread' && direction === 'received' ? 'bg-emerald-50/50' : ''
-            }`}
+            className={`p-4 transition-all duration-200 border-b border-gray-100 cursor-pointer ${message.status === 'unread' && direction === 'received' ? 'bg-emerald-50/50' : ''
+              }`}
+            onClick={() => {
+              if (message.status === 'unread' && direction === 'received') {
+                onMarkAsRead(message.id);
+              }
+            }}
           >
             <div className="flex items-start space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center">
@@ -450,7 +471,7 @@ const RecipientMessagesListView: React.FC<{
                   {getUserInitials(otherUser.name)}
                 </span>
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-2">
@@ -467,21 +488,21 @@ const RecipientMessagesListView: React.FC<{
                     {formatTime(message.created_at)}
                   </span>
                 </div>
-                
+
                 <h4 className="text-sm font-medium text-gray-800 mb-1 truncate">
                   {message.subject}
                 </h4>
-                
+
                 <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                   {message.content}
                 </p>
-                
+
                 <div className="flex items-center justify-between">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${typeInfo.color}`}>
                     {typeInfo.icon}
                     <span className="ml-1">{typeInfo.label}</span>
                   </span>
-                  
+
                   {direction === 'received' && message.status === 'unread' && (
                     <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
                   )}
@@ -523,121 +544,118 @@ const RecipientConversationView: React.FC<{
   getUserInitials,
   messagesEndRef
 }) => {
-  if (isLoading) {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Chat Header */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center">
-          <span className="text-white font-bold text-sm">
-            {getUserInitials(otherUser.name)}
-          </span>
+      <div className="flex flex-col h-full">
+        {/* Chat Header */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-bold text-sm">
+              {getUserInitials(otherUser.name)}
+            </span>
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900">{otherUser.name}</h3>
+            <p className="text-sm text-gray-500">{otherUser.email}</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-medium text-gray-900">{otherUser.name}</h3>
-          <p className="text-sm text-gray-500">{otherUser.email}</p>
-        </div>
-      </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-        <AnimatePresence>
-          {messages.map((message, index) => {
-            const isSent = message.sender_id === currentUserId;
-            
-            return (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isSent ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    isSent 
-                      ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' 
-                      : 'bg-gradient-to-br from-gray-400 to-gray-600'
-                  }`}>
-                    <span className="text-white font-bold text-xs">
-                      {isSent ? getUserInitials(currentUser?.name || 'You') : getUserInitials(otherUser.name)}
-                    </span>
-                  </div>
-                  
-                  <div
-                    className={`px-4 py-3 rounded-2xl shadow-sm ${
-                      isSent
-                        ? 'bg-emerald-600 text-white rounded-br-md'
-                        : 'bg-white text-gray-900 border border-gray-200 rounded-bl-md'
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed break-words">{message.content}</p>
-                    <p
-                      className={`text-xs mt-2 ${
-                        isSent ? 'text-emerald-100' : 'text-gray-500'
-                      }`}
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <AnimatePresence>
+            {messages.map((message, index) => {
+              const isSent = message.sender_id === currentUserId;
+
+              return (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isSent ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isSent
+                        ? 'bg-gradient-to-br from-emerald-400 to-emerald-600'
+                        : 'bg-gradient-to-br from-gray-400 to-gray-600'
+                      }`}>
+                      <span className="text-white font-bold text-xs">
+                        {isSent ? getUserInitials(currentUser?.name || 'You') : getUserInitials(otherUser.name)}
+                      </span>
+                    </div>
+
+                    <div
+                      className={`px-4 py-3 rounded-2xl shadow-sm ${isSent
+                          ? 'bg-emerald-600 text-white rounded-br-md'
+                          : 'bg-white text-gray-900 border border-gray-200 rounded-bl-md'
+                        }`}
                     >
-                      {formatTime(message.created_at)}
-                    </p>
+                      <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                      <p
+                        className={`text-xs mt-2 ${isSent ? 'text-emerald-100' : 'text-gray-500'
+                          }`}
+                      >
+                        {formatTime(message.created_at)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-        <div ref={messagesEndRef} />
-      </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+          <div ref={messagesEndRef} />
+        </div>
 
-      {/* Help Tip */}
-      <div className="px-4 py-3 bg-green-50 border-t border-green-100">
-        <p className="text-sm text-green-700">
-          <strong>Remember:</strong> Share specific details about your needs, timeline, and how they can help you best.
-        </p>
-      </div>
+        {/* Help Tip */}
+        <div className="px-4 py-3 bg-green-50 border-t border-green-100">
+          <p className="text-sm text-green-700">
+            <strong>Remember:</strong> Share specific details about your needs, timeline, and how they can help you best.
+          </p>
+        </div>
 
-      {/* Reply Form */}
-      <div className="p-4 border-t border-gray-200 bg-white">
-        <div className="flex space-x-3">
-          <div className="flex-1">
-            <div className="relative">
-              <input
-                type="text"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder={`Thank ${otherUser.name} and share your needs...`}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors text-gray-900 placeholder-gray-500 bg-white"
-                disabled={isSending}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) {
-                    e.preventDefault();
-                    onReply(e);
-                  }
-                }}
-              />
-              <button
-                onClick={onReply}
-                disabled={isSending || !replyText.trim()}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSending ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                ) : (
-                  <FaPaperPlane className="text-sm" />
-                )}
-              </button>
+        {/* Reply Form */}
+        <div className="p-4 border-t border-gray-200 bg-white">
+          <div className="flex space-x-3">
+            <div className="flex-1">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder={`Thank ${otherUser.name} and share your needs...`}
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors text-gray-900 placeholder-gray-500 bg-white"
+                  disabled={isSending}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) {
+                      e.preventDefault();
+                      onReply(e);
+                    }
+                  }}
+                />
+                <button
+                  onClick={onReply}
+                  disabled={isSending || !replyText.trim()}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSending ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  ) : (
+                    <FaPaperPlane className="text-sm" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 export default RecipientMessagesTab;
