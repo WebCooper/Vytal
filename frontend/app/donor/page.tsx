@@ -21,6 +21,7 @@ import { getAllBloodCamps } from '@/lib/bloodCampsApi';
 import { BloodCamp } from "@/components/types";
 import { getDonorPostsByUser, DonorPost } from "@/lib/donorPosts";
 import DonorMessagesTab from "@/components/messages/DonorMessagesTab";
+import { MessagesProvider } from '@/contexts/MessagesContext';
 
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
@@ -237,287 +238,289 @@ export default function DonorDashboard() {
     });
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
-            <ProfileHeader user={adaptedUser} />
+        <MessagesProvider userId={user.id}>
+            <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
+                <ProfileHeader user={adaptedUser} />
 
-            <div className="max-w-7xl mx-auto px-4 py-8">
-                <div className="grid lg:grid-cols-4 gap-8">
-                    <Sidebar user={adaptedUser} activeTab={activeTab} setActiveTab={setActiveTab} />
+                <div className="max-w-7xl mx-auto px-4 py-8">
+                    <div className="grid lg:grid-cols-4 gap-8">
+                        <Sidebar user={adaptedUser} activeTab={activeTab} setActiveTab={setActiveTab} />
 
-                    {/* Main Content */}
-                    <div className="lg:col-span-3">
-                        {activeTab === "explore" && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-6"
-                            >
-                                {/* Header */}
-                                <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
-                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                        <div>
-                                            <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
-                                                Explore Donation Opportunities
-                                            </h2>
-                                            <p className="text-gray-600">Find people who need your help and make a difference</p>
+                        {/* Main Content */}
+                        <div className="lg:col-span-3">
+                            {activeTab === "explore" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="space-y-6"
+                                >
+                                    {/* Header */}
+                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                            <div>
+                                                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
+                                                    Explore Donation Opportunities
+                                                </h2>
+                                                <p className="text-gray-600">Find people who need your help and make a difference</p>
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                {filteredRecipientPosts.length} {filteredRecipientPosts.length === 1 ? 'person needs' : 'people need'} help
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-gray-500">
-                                            {filteredRecipientPosts.length} {filteredRecipientPosts.length === 1 ? 'person needs' : 'people need'} help
+                                        <Filterbar
+                                            posts={recipientPosts}
+                                            filterCategory={filterCategory}
+                                            setFilterCategory={setFilterCategory}
+                                            urgencyFilter={urgencyFilter}
+                                            setUrgencyFilter={setUrgencyFilter}
+                                        />
+                                    </div>
+                                    {isLoadingPosts ? (
+                                        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                            <div className="animate-pulse w-16 h-16 rounded-full bg-emerald-400 mx-auto mb-4"></div>
+                                            <h3 className="text-2xl font-bold text-emerald-700 mb-2">Loading posts...</h3>
+                                            <p className="text-gray-600 mb-6">Please wait while we fetch donation opportunities.</p>
                                         </div>
-                                    </div>
-                                    <Filterbar
-                                        posts={recipientPosts}
-                                        filterCategory={filterCategory}
-                                        setFilterCategory={setFilterCategory}
-                                        urgencyFilter={urgencyFilter}
-                                        setUrgencyFilter={setUrgencyFilter}
-                                    />
-                                </div>
-                                {isLoadingPosts ? (
-                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
-                                        <div className="animate-pulse w-16 h-16 rounded-full bg-emerald-400 mx-auto mb-4"></div>
-                                        <h3 className="text-2xl font-bold text-emerald-700 mb-2">Loading posts...</h3>
-                                        <p className="text-gray-600 mb-6">Please wait while we fetch donation opportunities.</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <PostsGrid posts={recipientPosts} filterCategory={filterCategory} />
+                                    ) : (
+                                        <>
+                                            <PostsGrid posts={recipientPosts} filterCategory={filterCategory} />
 
-                                        {filteredRecipientPosts.length === 0 && (
-                                            <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
-                                                <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
-                                                <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Found</h3>
-                                                <p className="text-gray-600 mb-6">Try adjusting your filters to see more donation opportunities.</p>
+                                            {filteredRecipientPosts.length === 0 && (
+                                                <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                                    <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
+                                                    <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Found</h3>
+                                                    <p className="text-gray-600 mb-6">Try adjusting your filters to see more donation opportunities.</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            setFilterCategory("all");
+                                                            setUrgencyFilter("all");
+                                                        }}
+                                                        className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200"
+                                                    >
+                                                        Clear All Filters
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </motion.div>
+                            )}
+
+                            {activeTab === "myposts" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="space-y-6"
+                                >
+                                    {/* Header */}
+                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                            <div>
+                                                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
+                                                    My Posts
+                                                </h2>
+                                                <p className="text-gray-600">Manage your donation offers and track responses</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowDonorPostForm(true)}
+                                                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
+                                            >
+                                                <FaPlus className="mr-2" />
+                                                Create Donor Post
+                                            </button>
+                                        </div>
+
+                                        <Filterbar
+                                            posts={myDonorPosts}
+                                            filterCategory={filterCategory}
+                                            setFilterCategory={setFilterCategory}
+                                            urgencyFilter={urgencyFilter}
+                                            setUrgencyFilter={setUrgencyFilter}
+                                        />
+                                    </div>
+
+                                    {isLoadingDonorPosts ? (
+                                        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                            <div className="animate-pulse w-16 h-16 rounded-full bg-emerald-400 mx-auto mb-4"></div>
+                                            <h3 className="text-2xl font-bold text-emerald-700 mb-2">Loading your posts...</h3>
+                                            <p className="text-gray-600 mb-6">Please wait while we fetch your donation offers.</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <PostsGrid posts={donorPosts} filterCategory={filterCategory} />
+
+                                            {filteredDonorPosts.length === 0 && (
+                                                <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                                    <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
+                                                    <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Yet</h3>
+                                                    <p className="text-gray-600 mb-6">Start making a difference by creating your first donation offer.</p>
+                                                    <button
+                                                        onClick={() => setShowDonorPostForm(true)}
+                                                        className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center mx-auto"
+                                                    >
+                                                        <FaPlus className="mr-2" />
+                                                        Create Your First Post
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </motion.div>
+                            )}
+
+                            {activeTab === "bloodcamps" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="space-y-6"
+                                >
+                                    {/* Header */}
+                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                            <div>
+                                                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
+                                                    Blood Donation Camps
+                                                </h2>
+                                                <p className="text-gray-600">Find nearby camps or organize your own blood drive</p>
+                                            </div>
+                                            <div className="flex items-center space-x-4">
                                                 <button
-                                                    onClick={() => {
-                                                        setFilterCategory("all");
-                                                        setUrgencyFilter("all");
-                                                    }}
-                                                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200"
+                                                    onClick={() => setShowBloodCampForm(true)}
+                                                    className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
                                                 >
-                                                    Clear All Filters
+                                                    <FaPlus className="mr-2" />
+                                                    Create Blood Camp
                                                 </button>
                                             </div>
-                                        )}
-                                    </>
-                                )}
-                            </motion.div>
-                        )}
+                                        </div>
+                                    </div>
 
-                        {activeTab === "myposts" && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-6"
-                            >
-                                {/* Header */}
-                                <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
+                                    {isLoadingCamps ? (
+                                        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                            <div className="animate-pulse w-16 h-16 rounded-full bg-red-400 mx-auto mb-4"></div>
+                                            <h3 className="text-2xl font-bold text-red-700 mb-2">Loading blood camps...</h3>
+                                            <p className="text-gray-600 mb-6">Please wait while we fetch available camps.</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <MapSection bloodCamps={bloodCamps} setSelectedCamp={setSelectedCamp} />
+                                            <CampsSection
+                                                bloodCamps={bloodCamps}
+                                                setSelectedCamp={setSelectedCamp}
+                                                showBloodCampForm={showBloodCampForm}
+                                                setShowBloodCampForm={setShowBloodCampForm}
+                                                onCampCreated={handleBloodCampCreated} // Make sure this is passed
+                                            />
+                                        </>
+                                    )}
+                                </motion.div>
+                            )}
+
+                            {activeTab === "donations" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
+                                >
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                         <div>
                                             <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
-                                                My Posts
+                                                My Donor Posts
                                             </h2>
                                             <p className="text-gray-600">Manage your donation offers and track responses</p>
                                         </div>
-                                        <button
-                                            onClick={() => setShowDonorPostForm(true)}
-                                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
-                                        >
-                                            <FaPlus className="mr-2" />
-                                            Create Donor Post
-                                        </button>
-                                    </div>
-
-                                    <Filterbar
-                                        posts={myDonorPosts}
-                                        filterCategory={filterCategory}
-                                        setFilterCategory={setFilterCategory}
-                                        urgencyFilter={urgencyFilter}
-                                        setUrgencyFilter={setUrgencyFilter}
-                                    />
-                                </div>
-
-                                {isLoadingDonorPosts ? (
-                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
-                                        <div className="animate-pulse w-16 h-16 rounded-full bg-emerald-400 mx-auto mb-4"></div>
-                                        <h3 className="text-2xl font-bold text-emerald-700 mb-2">Loading your posts...</h3>
-                                        <p className="text-gray-600 mb-6">Please wait while we fetch your donation offers.</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <PostsGrid posts={donorPosts} filterCategory={filterCategory} />
-
-                                        {filteredDonorPosts.length === 0 && (
-                                            <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
-                                                <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
-                                                <h3 className="text-2xl font-bold text-emerald-700 mb-2">No Posts Yet</h3>
-                                                <p className="text-gray-600 mb-6">Start making a difference by creating your first donation offer.</p>
-                                                <button
-                                                    onClick={() => setShowDonorPostForm(true)}
-                                                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center mx-auto"
-                                                >
-                                                    <FaPlus className="mr-2" />
-                                                    Create Your First Post
-                                                </button>
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </motion.div>
-                        )}
-
-                        {activeTab === "bloodcamps" && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-6"
-                            >
-                                {/* Header */}
-                                <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
-                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                        <div>
-                                            <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
-                                                Blood Donation Camps
-                                            </h2>
-                                            <p className="text-gray-600">Find nearby camps or organize your own blood drive</p>
-                                        </div>
-                                        <div className="flex items-center space-x-4">
+                                        <div className="flex space-x-3">
                                             <button
-                                                onClick={() => setShowBloodCampForm(true)}
-                                                className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
+                                                onClick={() => setShowCardGenerator(true)}
+                                                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
+                                            >
+                                                <FaShare className="mr-2" />
+                                                Create Shareable Card
+                                            </button>
+                                            <button
+                                                onClick={() => setShowDonorPostForm(true)}
+                                                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
                                             >
                                                 <FaPlus className="mr-2" />
-                                                Create Blood Camp
+                                                Create Donor Post
                                             </button>
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
+                            )}
 
-                                {isLoadingCamps ? (
-                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
-                                        <div className="animate-pulse w-16 h-16 rounded-full bg-red-400 mx-auto mb-4"></div>
-                                        <h3 className="text-2xl font-bold text-red-700 mb-2">Loading blood camps...</h3>
-                                        <p className="text-gray-600 mb-6">Please wait while we fetch available camps.</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <MapSection bloodCamps={bloodCamps} setSelectedCamp={setSelectedCamp} />
-                                        <CampsSection
-                                            bloodCamps={bloodCamps}
-                                            setSelectedCamp={setSelectedCamp}
-                                            showBloodCampForm={showBloodCampForm}
-                                            setShowBloodCampForm={setShowBloodCampForm}
-                                            onCampCreated={handleBloodCampCreated} // Make sure this is passed
-                                        />
-                                    </>
-                                )}
-                            </motion.div>
-                        )}
+                            {activeTab === "analytics" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
+                                >
+                                    <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-6">
+                                        Messages
+                                    </h2>
+                                    <p className="text-gray-600 text-lg">Coming soon! Communicate directly with recipients.</p>
+                                </motion.div>
+                            )}
 
-                        {activeTab === "donations" && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
-                            >
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                    <div>
-                                        <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
-                                            My Donor Posts
-                                        </h2>
-                                        <p className="text-gray-600">Manage your donation offers and track responses</p>
-                                    </div>
-                                    <div className="flex space-x-3">
-                                        <button
-                                            onClick={() => setShowCardGenerator(true)}
-                                            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
-                                        >
-                                            <FaShare className="mr-2" />
-                                            Create Shareable Card
-                                        </button>
-                                        <button
-                                            onClick={() => setShowDonorPostForm(true)}
-                                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
-                                        >
-                                            <FaPlus className="mr-2" />
-                                            Create Donor Post
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
+                            {activeTab === "messages" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="space-y-6"
+                                >
+                                    <DonorMessagesTab userId={user.id} />
+                                </motion.div>
+                            )}
 
-                        {activeTab === "analytics" && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
-                            >
-                                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-6">
-                                    Messages
-                                </h2>
-                                <p className="text-gray-600 text-lg">Coming soon! Communicate directly with recipients.</p>
-                            </motion.div>
-                        )}
-
-                        {activeTab === "messages" && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-6"
-                            >
-                                <DonorMessagesTab userId={user.id} />
-                            </motion.div>
-                        )}
-
-                        {activeTab === "achievements" && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-6"
-                            >
-                                <GamificationDashboard />
-                            </motion.div>
-                        )}
+                            {activeTab === "achievements" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="space-y-6"
+                                >
+                                    <GamificationDashboard />
+                                </motion.div>
+                            )}
+                        </div>
                     </div>
                 </div>
+
+                {/* Modal Components - Place these at the very end, outside all other content */}
+                <CreateDonorPost
+                    isOpen={showDonorPostForm}
+                    onClose={() => {
+                        setShowDonorPostForm(false);
+
+                        // Refresh donor posts when modal is closed (in case a new post was created)
+                        if (user?.id && activeTab === 'myposts') {
+                            setIsLoadingDonorPosts(true);
+                            getDonorPostsByUser(user.id)
+                                .then(response => {
+                                    if (response && response.data) {
+                                        const mappedPosts = response.data.map(post => mapDonorPostToPost(post, user));
+                                        setDonorPosts(mappedPosts);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error("Error refreshing donor posts:", error);
+                                })
+                                .finally(() => {
+                                    setIsLoadingDonorPosts(false);
+                                });
+                        }
+                    }}
+                />
+                <CampDetailsModal
+                    selectedCamp={selectedCamp}
+                    setSelectedCamp={setSelectedCamp}
+                />
+                <DonorCardGenerator
+                    isOpen={showCardGenerator}
+                    onClose={() => setShowCardGenerator(false)}
+                    userType="donor"
+                    userData={adaptedUser}
+                />
             </div>
-
-            {/* Modal Components - Place these at the very end, outside all other content */}
-            <CreateDonorPost
-                isOpen={showDonorPostForm}
-                onClose={() => {
-                    setShowDonorPostForm(false);
-
-                    // Refresh donor posts when modal is closed (in case a new post was created)
-                    if (user?.id && activeTab === 'myposts') {
-                        setIsLoadingDonorPosts(true);
-                        getDonorPostsByUser(user.id)
-                            .then(response => {
-                                if (response && response.data) {
-                                    const mappedPosts = response.data.map(post => mapDonorPostToPost(post, user));
-                                    setDonorPosts(mappedPosts);
-                                }
-                            })
-                            .catch(error => {
-                                console.error("Error refreshing donor posts:", error);
-                            })
-                            .finally(() => {
-                                setIsLoadingDonorPosts(false);
-                            });
-                    }
-                }}
-            />
-            <CampDetailsModal
-                selectedCamp={selectedCamp}
-                setSelectedCamp={setSelectedCamp}
-            />
-            <DonorCardGenerator
-                isOpen={showCardGenerator}
-                onClose={() => setShowCardGenerator(false)}
-                userType="donor"
-                userData={adaptedUser}
-            />
-        </div>
+        </MessagesProvider>
     );
 }
