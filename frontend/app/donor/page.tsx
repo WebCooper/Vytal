@@ -16,7 +16,7 @@ import PostsGrid from "@/components/shared/PostsGrid";
 import MapSection from "@/components/bloodCamps/MapSection";
 import CampsSection from "@/components/bloodCamps/CampsSection";
 import GamificationDashboard from "@/components/donorProfile/achievements/GamificationDashboard";
-import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
+import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator/DonorCardGenerator";
 import { getAllBloodCamps } from '@/lib/bloodCampsApi';
 import { BloodCamp } from "@/components/types";
 import { getDonorPostsByUser, DonorPost } from "@/lib/donorPosts";
