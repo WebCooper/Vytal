@@ -841,7 +841,6 @@ isolated function mapRowToDonorPost(record {} row) returns types:DonorPost|error
     return donorPost;
 }
 
-
 # Description.
 #
 # + messageData - The data of the message to insert.
@@ -872,7 +871,6 @@ public isolated function insertMessage(record {
     return result;
 }
 
-
 # Description.
 #
 # + userId - parameter description
@@ -895,7 +893,6 @@ public isolated function getUnreadMessageCount(int userId) returns int|error {
 
     return 0;
 }
-
 
 # Description.
 #
@@ -1014,7 +1011,6 @@ public isolated function getMessagesForUser(int userId, string? status = ()) ret
     return messages;
 }
 
-
 # Description.
 #
 # + messageId - parameter description
@@ -1024,6 +1020,404 @@ public isolated function markMessageAsRead(int messageId) returns error? {
 
     _ = check dbClientInstance->execute(`
         UPDATE messages SET status = 'read', updated_at = NOW() WHERE id = ${messageId}
+    `);
+}
+
+// Get sent messages for user
+public isolated function getSentMessagesForUser(int userId, string? status = ()) returns record {
+    int id;
+    int sender_id;
+    int receiver_id;
+    int? post_id;
+    string subject;
+    string content;
+    string message_type;
+    string status;
+    string created_at;
+    string updated_at;
+    types:UserPreview sender;
+    types:UserPreview receiver;
+    record {int id; string title; string category;}? post?;
+}[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query;
+    if status is string {
+        query = `
+            SELECT 
+                m.id, m.sender_id, m.receiver_id, m.post_id, m.subject, m.content, 
+                m.message_type, m.status, m.created_at, m.updated_at,
+                s.name as sender_name, s.email as sender_email, s.role as sender_role,
+                r.name as receiver_name, r.email as receiver_email, r.role as receiver_role,
+                p.title as post_title, p.category as post_category
+            FROM messages m
+            JOIN users s ON m.sender_id = s.id
+            JOIN users r ON m.receiver_id = r.id
+            LEFT JOIN recipient_posts p ON m.post_id = p.id
+            WHERE m.sender_id = ${userId} AND m.status = ${status}
+            ORDER BY m.created_at DESC
+        `;
+    } else {
+        query = `
+            SELECT 
+                m.id, m.sender_id, m.receiver_id, m.post_id, m.subject, m.content, 
+                m.message_type, m.status, m.created_at, m.updated_at,
+                s.name as sender_name, s.email as sender_email, s.role as sender_role,
+                r.name as receiver_name, r.email as receiver_email, r.role as receiver_role,
+                p.title as post_title, p.category as post_category
+            FROM messages m
+            JOIN users s ON m.sender_id = s.id
+            JOIN users r ON m.receiver_id = r.id
+            LEFT JOIN recipient_posts p ON m.post_id = p.id
+            WHERE m.sender_id = ${userId}
+            ORDER BY m.created_at DESC
+        `;
+    }
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    record {
+        int id;
+        int sender_id;
+        int receiver_id;
+        int? post_id;
+        string subject;
+        string content;
+        string message_type;
+        string status;
+        string created_at;
+        string updated_at;
+        types:UserPreview sender;
+        types:UserPreview receiver;
+        record {int id; string title; string category;}? post?;
+    }[] messages = [];
+
+    check from record {} row in resultStream
+        do {
+            record {int id; string title; string category;}? post = ();
+            if row["post_title"] is string {
+                string categoryClean = row["post_category"] is string ?
+                    regex:replaceAll(<string>row["post_category"], "\"", "") : "";
+                post = {
+                    id: <int>row["post_id"],
+                    title: <string>row["post_title"],
+                    category: categoryClean
+                };
+            }
+
+            var message = {
+                id: <int>row["id"],
+                sender_id: <int>row["sender_id"],
+                receiver_id: <int>row["receiver_id"],
+                post_id: row["post_id"] is int ? <int>row["post_id"] : (),
+                subject: <string>row["subject"],
+                content: <string>row["content"],
+                message_type: <string>row["message_type"],
+                status: <string>row["status"],
+                created_at: <string>row["created_at"],
+                updated_at: <string>row["updated_at"],
+                sender: {
+                    id: <int>row["sender_id"],
+                    name: <string>row["sender_name"],
+                    email: <string>row["sender_email"],
+                    role: <string>row["sender_role"]
+                },
+                receiver: {
+                    id: <int>row["receiver_id"],
+                    name: <string>row["receiver_name"],
+                    email: <string>row["receiver_email"],
+                    role: <string>row["receiver_role"]
+                },
+                post: post
+            };
+            messages.push(message);
+        };
+
+    check resultStream.close();
+    return messages;
+}
+
+// Get conversation between two users
+public isolated function getConversationBetweenUsers(int userId1, int userId2) returns record {
+    int id;
+    int sender_id;
+    int receiver_id;
+    int? post_id;
+    string subject;
+    string content;
+    string message_type;
+    string status;
+    string created_at;
+    string updated_at;
+    types:UserPreview sender;
+    types:UserPreview receiver;
+    record {int id; string title; string category;}? post?;
+}[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `
+        SELECT 
+            m.id, m.sender_id, m.receiver_id, m.post_id, m.subject, m.content, 
+            m.message_type, m.status, m.created_at, m.updated_at,
+            s.name as sender_name, s.email as sender_email, s.role as sender_role,
+            r.name as receiver_name, r.email as receiver_email, r.role as receiver_role,
+            p.title as post_title, p.category as post_category
+        FROM messages m
+        JOIN users s ON m.sender_id = s.id
+        JOIN users r ON m.receiver_id = r.id
+        LEFT JOIN recipient_posts p ON m.post_id = p.id
+        WHERE (m.sender_id = ${userId1} AND m.receiver_id = ${userId2}) 
+           OR (m.sender_id = ${userId2} AND m.receiver_id = ${userId1})
+        ORDER BY m.created_at ASC
+    `;
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    record {
+        int id;
+        int sender_id;
+        int receiver_id;
+        int? post_id;
+        string subject;
+        string content;
+        string message_type;
+        string status;
+        string created_at;
+        string updated_at;
+        types:UserPreview sender;
+        types:UserPreview receiver;
+        record {int id; string title; string category;}? post?;
+    }[] messages = [];
+
+    check from record {} row in resultStream
+        do {
+            record {int id; string title; string category;}? post = ();
+            if row["post_title"] is string {
+                string categoryClean = row["post_category"] is string ?
+                    regex:replaceAll(<string>row["post_category"], "\"", "") : "";
+                post = {
+                    id: <int>row["post_id"],
+                    title: <string>row["post_title"],
+                    category: categoryClean
+                };
+            }
+
+            var message = {
+                id: <int>row["id"],
+                sender_id: <int>row["sender_id"],
+                receiver_id: <int>row["receiver_id"],
+                post_id: row["post_id"] is int ? <int>row["post_id"] : (),
+                subject: <string>row["subject"],
+                content: <string>row["content"],
+                message_type: <string>row["message_type"],
+                status: <string>row["status"],
+                created_at: <string>row["created_at"],
+                updated_at: <string>row["updated_at"],
+                sender: {
+                    id: <int>row["sender_id"],
+                    name: <string>row["sender_name"],
+                    email: <string>row["sender_email"],
+                    role: <string>row["sender_role"]
+                },
+                receiver: {
+                    id: <int>row["receiver_id"],
+                    name: <string>row["receiver_name"],
+                    email: <string>row["receiver_email"],
+                    role: <string>row["receiver_role"]
+                },
+                post: post
+            };
+            messages.push(message);
+        };
+
+    check resultStream.close();
+    return messages;
+}
+
+// Get user conversations (summary view)
+// Replace the getUserConversations function in your database.bal file with this version
+
+public isolated function getUserConversations(int userId) returns record {
+    int other_user_id;
+    types:UserPreview other_user;
+    record {
+        int id;
+        int sender_id;
+        int receiver_id;
+        int? post_id;
+        string subject;
+        string content;
+        string message_type;
+        string status;
+        string created_at;
+        string updated_at;
+        types:UserPreview sender;
+        types:UserPreview receiver;
+        record {int id; string title; string category;}? post?;
+    } latest_message;
+    int unread_count;
+    string last_activity;
+}[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    // Simplified query to get conversations with latest message ordered by timestamp
+    sql:ParameterizedQuery conversationQuery = `
+        SELECT 
+            CASE 
+                WHEN latest.sender_id = ${userId} THEN latest.receiver_id 
+                ELSE latest.sender_id 
+            END as other_user_id,
+            latest.latest_message_id,
+            latest.created_at as last_activity,
+            (SELECT COUNT(*) FROM messages m2 
+             WHERE m2.receiver_id = ${userId} 
+               AND m2.status = 'unread'
+               AND (m2.sender_id = other_user_id)
+            ) as unread_count
+        FROM (
+            SELECT 
+                m.sender_id,
+                m.receiver_id,
+                m.created_at,
+                m.id as latest_message_id,
+                CASE 
+                    WHEN m.sender_id = ${userId} THEN m.receiver_id 
+                    ELSE m.sender_id 
+                END as conversation_partner,
+                ROW_NUMBER() OVER (
+                    PARTITION BY CASE 
+                        WHEN m.sender_id = ${userId} THEN m.receiver_id 
+                        ELSE m.sender_id 
+                    END 
+                    ORDER BY m.created_at DESC
+                ) as rn
+            FROM messages m
+            WHERE m.sender_id = ${userId} OR m.receiver_id = ${userId}
+        ) latest
+        WHERE latest.rn = 1
+        ORDER BY latest.created_at DESC
+    `;
+
+    stream<record {}, error?> conversationStream = dbClientInstance->query(conversationQuery);
+    
+    record {
+        int other_user_id;
+        types:UserPreview other_user;
+        record {
+            int id;
+            int sender_id;
+            int receiver_id;
+            int? post_id;
+            string subject;
+            string content;
+            string message_type;
+            string status;
+            string created_at;
+            string updated_at;
+            types:UserPreview sender;
+            types:UserPreview receiver;
+            record {int id; string title; string category;}? post?;
+        } latest_message;
+        int unread_count;
+        string last_activity;
+    }[] conversations = [];
+
+    check from record {} convRow in conversationStream
+        do {
+            int otherUserId = <int>convRow["other_user_id"];
+            int latestMessageId = <int>convRow["latest_message_id"];
+            int unreadCount = <int>convRow["unread_count"];
+            string lastActivity = <string>convRow["last_activity"];
+
+            // Get the full message details for the latest message
+            sql:ParameterizedQuery messageQuery = `
+                SELECT 
+                    m.id, m.sender_id, m.receiver_id, m.post_id, m.subject, m.content, 
+                    m.message_type, m.status, m.created_at, m.updated_at,
+                    s.name as sender_name, s.email as sender_email, s.role as sender_role,
+                    r.name as receiver_name, r.email as receiver_email, r.role as receiver_role,
+                    p.title as post_title, p.category as post_category,
+                    u.name as other_user_name, u.email as other_user_email, u.role as other_user_role
+                FROM messages m
+                JOIN users s ON m.sender_id = s.id
+                JOIN users r ON m.receiver_id = r.id
+                JOIN users u ON u.id = ${otherUserId}
+                LEFT JOIN recipient_posts p ON m.post_id = p.id
+                WHERE m.id = ${latestMessageId}
+            `;
+
+            stream<record {}, error?> messageStream = dbClientInstance->query(messageQuery);
+            record {|record {} value;|}? messageResult = check messageStream.next();
+            check messageStream.close();
+
+            if messageResult is record {|record {} value;|} {
+                record {} msgRow = messageResult.value;
+
+                record {int id; string title; string category;}? post = ();
+                if msgRow["post_title"] is string {
+                    string categoryClean = msgRow["post_category"] is string ?
+                        regex:replaceAll(<string>msgRow["post_category"], "\"", "") : "";
+                    post = {
+                        id: <int>msgRow["post_id"],
+                        title: <string>msgRow["post_title"],
+                        category: categoryClean
+                    };
+                }
+
+                var conversation = {
+                    other_user_id: otherUserId,
+                    other_user: {
+                        id: otherUserId,
+                        name: <string>msgRow["other_user_name"],
+                        email: <string>msgRow["other_user_email"],
+                        role: <string>msgRow["other_user_role"]
+                    },
+                    latest_message: {
+                        id: <int>msgRow["id"],
+                        sender_id: <int>msgRow["sender_id"],
+                        receiver_id: <int>msgRow["receiver_id"],
+                        post_id: msgRow["post_id"] is int ? <int>msgRow["post_id"] : (),
+                        subject: <string>msgRow["subject"],
+                        content: <string>msgRow["content"],
+                        message_type: <string>msgRow["message_type"],
+                        status: <string>msgRow["status"],
+                        created_at: <string>msgRow["created_at"],
+                        updated_at: <string>msgRow["updated_at"],
+                        sender: {
+                            id: <int>msgRow["sender_id"],
+                            name: <string>msgRow["sender_name"],
+                            email: <string>msgRow["sender_email"],
+                            role: <string>msgRow["sender_role"]
+                        },
+                        receiver: {
+                            id: <int>msgRow["receiver_id"],
+                            name: <string>msgRow["receiver_name"],
+                            email: <string>msgRow["receiver_email"],
+                            role: <string>msgRow["receiver_role"]
+                        },
+                        post: post
+                    },
+                    unread_count: unreadCount,
+                    last_activity: lastActivity
+                };
+                conversations.push(conversation);
+            }
+        };
+
+    check conversationStream.close();
+
+    // No need to sort since we already ordered in the SQL query
+    return conversations;
+}
+
+// Mark conversation as read (mark all messages in conversation as read for current user)
+public isolated function markConversationAsRead(int currentUserId, int otherUserId) returns error? {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    _ = check dbClientInstance->execute(`
+        UPDATE messages 
+        SET status = 'read', updated_at = NOW() 
+        WHERE receiver_id = ${currentUserId} 
+          AND sender_id = ${otherUserId} 
+          AND status = 'unread'
     `);
 }
 
