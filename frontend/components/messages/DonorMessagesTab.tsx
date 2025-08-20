@@ -32,6 +32,7 @@ import {
   getOtherUser
 } from '@/lib/messages';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMessages } from '@/contexts/MessagesContext';
 
 interface DonorMessagesTabProps {
   userId: number;
@@ -41,6 +42,7 @@ type ViewMode = 'conversations' | 'inbox' | 'sent' | 'conversation';
 
 const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
   const { user } = useAuth();
+  const { decrementUnreadCount, refreshUnreadCount } = useMessages();
   const [viewMode, setViewMode] = useState<ViewMode>('conversations');
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,6 +59,21 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // When marking a message as read
+  const handleMarkAsRead = async (messageId: number) => {
+    try {
+      await markMessageAsRead(messageId);
+      decrementUnreadCount(1); // Immediately update the sidebar count
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === messageId ? { ...msg, status: 'read' } : msg
+        )
+      );
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+  };
 
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
@@ -86,7 +103,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
     }
   }, [userId]);
 
-  // Fetch conversation thread
+  // Fetch conversation thread with context integration
   const fetchConversationThread = useCallback(async (otherUserId: number) => {
     try {
       setIsLoading(true);
@@ -94,12 +111,13 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
       setMessages(response.data);
       
       await markConversationAsRead(userId, otherUserId);
+      refreshUnreadCount(); // Refresh the count after marking conversation as read
     } catch (error) {
       console.error('Error fetching conversation:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, refreshUnreadCount]);
 
   // Handle view changes
   const handleViewChange = (mode: ViewMode) => {
@@ -299,6 +317,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
             formatTime={formatTime}
             getMessageTypeInfo={getMessageTypeInfo}
             getUserInitials={getUserInitials}
+            onMarkAsRead={handleMarkAsRead}
           />
         )}
 
@@ -408,7 +427,8 @@ const EnhancedMessagesListView: React.FC<{
   formatTime: (date: string) => string;
   getMessageTypeInfo: (type: string) => any;
   getUserInitials: (name: string) => string;
-}> = ({ messages, currentUserId, viewMode, formatTime, getMessageTypeInfo, getUserInitials }) => {
+  onMarkAsRead: (messageId: number) => void;
+}> = ({ messages, currentUserId, viewMode, formatTime, getMessageTypeInfo, getUserInitials, onMarkAsRead }) => {
   if (messages.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 h-full flex items-center justify-center">
@@ -440,9 +460,14 @@ const EnhancedMessagesListView: React.FC<{
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1 }}
             whileHover={{ backgroundColor: 'rgba(16, 185, 129, 0.05)' }}
-            className={`p-4 transition-all duration-200 border-b border-gray-100 ${
+            className={`p-4 transition-all duration-200 border-b border-gray-100 cursor-pointer ${
               message.status === 'unread' && direction === 'received' ? 'bg-emerald-50/50' : ''
             }`}
+            onClick={() => {
+              if (message.status === 'unread' && direction === 'received') {
+                onMarkAsRead(message.id);
+              }
+            }}
           >
             <div className="flex items-start space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center">
