@@ -468,9 +468,6 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
-    // MESSAGING ENDPOINTS
-
-    // Send message endpoint
     resource function post messages(@http:Header {name: "Authorization"} string? authorization, msgModule:CreateMessageRequest request) returns http:Response|error {
         http:Response response = new;
 
