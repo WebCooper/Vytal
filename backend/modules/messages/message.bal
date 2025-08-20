@@ -23,7 +23,7 @@ public type MessageWithUsers record {
     string updated_at;
     types:UserPreview sender;
     types:UserPreview receiver;
-    PostPreview? post; // ✅ corrected: nullable, but field always exists
+    PostPreview? post; // Keep as PostPreview?
 };
 
 public type CreateMessageRequest record {
@@ -46,6 +46,66 @@ public type MessagesListResponse record {
     int total;
     string timestamp;
 };
+
+// New types for conversation handling
+public type ConversationSummary record {
+    int other_user_id;
+    types:UserPreview other_user;
+    MessageWithUsers latest_message;
+    int unread_count;
+    string last_activity;
+};
+
+public type ConversationsListResponse record {
+    ConversationSummary[] data;
+    int total;
+    string timestamp;
+};
+
+// Helper function to convert database record to PostPreview
+function convertToPostPreview(record {int id; string title; string category;}? dbPost) returns PostPreview? {
+    if dbPost is () {
+        return ();
+    }
+    return {
+        id: dbPost.id,
+        title: dbPost.title,
+        category: dbPost.category
+    };
+}
+
+// Helper function to convert database message to MessageWithUsers
+function convertDbMessageToMessageWithUsers(record {
+    int id;
+    int sender_id;
+    int receiver_id;
+    int? post_id;
+    string subject;
+    string content;
+    string message_type;
+    string status;
+    string created_at;
+    string updated_at;
+    types:UserPreview sender;
+    types:UserPreview receiver;
+    record {int id; string title; string category;}? post?;
+} dbMsg) returns MessageWithUsers {
+    return {
+        id: dbMsg.id,
+        sender_id: dbMsg.sender_id,
+        receiver_id: dbMsg.receiver_id,
+        post_id: dbMsg.post_id,
+        subject: dbMsg.subject,
+        content: dbMsg.content,
+        message_type: dbMsg.message_type,
+        status: dbMsg.status,
+        created_at: dbMsg.created_at,
+        updated_at: dbMsg.updated_at,
+        sender: dbMsg.sender,
+        receiver: dbMsg.receiver,
+        post: convertToPostPreview(dbMsg?.post)
+    };
+}
 
 // Send a new message - saves to database
 public function sendMessage(CreateMessageRequest messageData) returns MessageResponse|error {
@@ -105,21 +165,7 @@ public function getMessagesForUser(int userId, string? status = ()) returns Mess
     // Convert database records to MessageWithUsers
     MessageWithUsers[] convertedMessages = [];
     foreach var msg in messages {
-        MessageWithUsers converted = {
-            id: msg.id,
-            sender_id: msg.sender_id,
-            receiver_id: msg.receiver_id,
-            post_id: msg.post_id,
-            subject: msg.subject,
-            content: msg.content,
-            message_type: msg.message_type,
-            status: msg.status,
-            created_at: msg.created_at,
-            updated_at: msg.updated_at,
-            sender: msg.sender,
-            receiver: msg.receiver,
-            post: msg?.post // ✅ safe access
-        };
+        MessageWithUsers converted = convertDbMessageToMessageWithUsers(msg);
         convertedMessages.push(converted);
     }
 
@@ -149,10 +195,81 @@ public function markMessageAsRead(int messageId) returns error? {
 
 // Mark conversation as read
 public function markConversationAsRead(int senderId, int receiverId) returns error? {
-    return ();
+    return database:markConversationAsRead(senderId, receiverId);
 }
 
 // Get unread count
 public function getUnreadCount(int userId) returns int|error {
     return database:getUnreadMessageCount(userId);
+}
+
+// Get sent messages for user
+public function getSentMessagesForUser(int userId, string? status = ()) returns MessagesListResponse|error {
+    time:Utc currentTime = time:utcNow();
+    string timestamp = time:utcToString(currentTime);
+
+    // Fetch sent messages from database
+    var messages = check database:getSentMessagesForUser(userId, status);
+
+    // Convert database records to MessageWithUsers
+    MessageWithUsers[] convertedMessages = [];
+    foreach var msg in messages {
+        MessageWithUsers converted = convertDbMessageToMessageWithUsers(msg);
+        convertedMessages.push(converted);
+    }
+
+    return {
+        data: convertedMessages,
+        total: convertedMessages.length(),
+        timestamp: timestamp
+    };
+}
+
+// Get conversation between two users (both sent and received)
+public function getConversationBetweenUsers(int userId1, int userId2) returns MessagesListResponse|error {
+    time:Utc currentTime = time:utcNow();
+    string timestamp = time:utcToString(currentTime);
+
+    // Fetch conversation from database
+    var messages = check database:getConversationBetweenUsers(userId1, userId2);
+
+    // Convert database records to MessageWithUsers
+    MessageWithUsers[] convertedMessages = [];
+    foreach var msg in messages {
+        MessageWithUsers converted = convertDbMessageToMessageWithUsers(msg);
+        convertedMessages.push(converted);
+    }
+
+    return {
+        data: convertedMessages,
+        total: convertedMessages.length(),
+        timestamp: timestamp
+    };
+}
+
+// Get all conversations for a user (summary view)
+public function getUserConversations(int userId) returns ConversationsListResponse|error {
+    time:Utc currentTime = time:utcNow();
+    string timestamp = time:utcToString(currentTime);
+
+    // Get conversations from database
+    var conversations = check database:getUserConversations(userId);
+
+    ConversationSummary[] conversationSummaries = [];
+    foreach var conv in conversations {
+        ConversationSummary summary = {
+            other_user_id: conv.other_user_id,
+            other_user: conv.other_user,
+            latest_message: convertDbMessageToMessageWithUsers(conv.latest_message),
+            unread_count: conv.unread_count,
+            last_activity: conv.last_activity
+        };
+        conversationSummaries.push(summary);
+    }
+
+    return {
+        data: conversationSummaries,
+        total: conversationSummaries.length(),
+        timestamp: timestamp
+    };
 }

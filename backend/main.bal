@@ -15,7 +15,7 @@ import ballerina/time;
 # HTTP service with all authentication endpoints
 @http:ServiceConfig {
     cors: {
-        allowOrigins: ["http://localhost:3000", "http://127.0.0.1:3000","https://iwb25-198-nova.vercel.app"],
+        allowOrigins: ["http://localhost:3000", "http://127.0.0.1:3000", "https://iwb25-198-nova.vercel.app"],
         allowCredentials: true,
         allowHeaders: ["Authorization", "Content-Type"],
         exposeHeaders: ["X-CUSTOM-HEADER"],
@@ -471,12 +471,21 @@ service /api/v1 on new http:Listener(9091) {
     resource function post messages(@http:Header {name: "Authorization"} string? authorization, msgModule:CreateMessageRequest request) returns http:Response|error {
         http:Response response = new;
 
-        // Validate token
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
             response.setJsonPayload({
                 "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Prevent self-messaging
+        if request.sender_id == request.receiver_id {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "You cannot send a message to yourself",
                 "timestamp": time:utcNow()
             });
             return response;
@@ -590,6 +599,133 @@ service /api/v1 on new http:Listener(9091) {
             response.statusCode = 200;
             response.setJsonPayload({
                 "message": "Message marked as read",
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    // Get sent messages endpoint
+    resource function get messages/sent/[int userId](@http:Header {name: "Authorization"} string? authorization, string? status = ()) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        msgModule:MessagesListResponse|error result = msgModule:getSentMessagesForUser(userId, status);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload(result.toJson());
+        }
+
+        return response;
+    }
+
+    // Get conversation between two users endpoint
+    resource function get messages/conversation/[int userId1]/[int userId2](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        msgModule:MessagesListResponse|error result = msgModule:getConversationBetweenUsers(userId1, userId2);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload(result.toJson());
+        }
+
+        return response;
+    }
+
+    // Get all conversations for a user endpoint
+    resource function get messages/conversations/[int userId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        msgModule:ConversationsListResponse|error result = msgModule:getUserConversations(userId);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload(result.toJson());
+        }
+
+        return response;
+    }
+
+    // Mark conversation as read endpoint
+    resource function put messages/conversation/[int userId1]/[int userId2]/read(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        error? result = msgModule:markConversationAsRead(userId1, userId2);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "message": "Conversation marked as read",
                 "timestamp": time:utcNow()
             });
         }
