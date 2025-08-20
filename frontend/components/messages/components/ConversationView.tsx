@@ -3,11 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaPaperPlane } from 'react-icons/fa';
 import { Message } from '@/components/messages/utils/messageUtils';
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
 interface ConversationViewProps {
   messages: Message[];
   currentUserId: number;
-  currentUser: any;
-  otherUser: any;
+  currentUser: User | null;
+  otherUser: User;
   replyText: string;
   setReplyText: (text: string) => void;
   onReply: (e: React.FormEvent) => void;
@@ -73,7 +79,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 };
 
 interface ConversationHeaderProps {
-  otherUser: any;
+  otherUser: User;
   getUserInitials: (name: string) => string;
 }
 
@@ -99,8 +105,8 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
 interface MessagesAreaProps {
   messages: Message[];
   currentUserId: number;
-  currentUser: any;
-  otherUser: any;
+  currentUser: User | null;
+  otherUser: User;
   formatTime: (date: string) => string;
   getUserInitials: (name: string) => string;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
@@ -140,8 +146,8 @@ interface MessageBubbleProps {
   message: Message;
   index: number;
   isSent: boolean;
-  currentUser: any;
-  otherUser: any;
+  currentUser: User | null;
+  otherUser: User;
   formatTime: (date: string) => string;
   getUserInitials: (name: string) => string;
 }
@@ -219,7 +225,7 @@ interface ReplyFormProps {
   setReplyText: (text: string) => void;
   onReply: (e: React.FormEvent) => void;
   isSending: boolean;
-  otherUser: any;
+  otherUser: User;
 }
 
 const ReplyForm: React.FC<ReplyFormProps> = ({
@@ -232,7 +238,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) {
       e.preventDefault();
-      onReply(e as any);
+      onReply(e as React.FormEvent);
     }
   };
 

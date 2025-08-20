@@ -33,10 +33,10 @@ export const getUserInitials = (name: string): string => {
 };
 
 // Note: These utility functions should use the Message type from @/lib/messages
-export const getMessageDirection = (message: any, currentUserId: number): 'sent' | 'received' => {
+export const getMessageDirection = (message: LibMessage, currentUserId: number): 'sent' | 'received' => {
   return message.sender_id === currentUserId ? 'sent' : 'received';
 };
 
-export const getOtherUser = (message: any, currentUserId: number) => {
+export const getOtherUser = (message: LibMessage, currentUserId: number) => {
   return message.sender_id === currentUserId ? message.receiver : message.sender;
 };

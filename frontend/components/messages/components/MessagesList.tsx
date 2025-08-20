@@ -13,15 +13,16 @@ interface MessagesListProps {
   userType: 'donor' | 'recipient';
 }
 
-const MessagesList: React.FC<MessagesListProps> = ({
-  messages,
-  currentUserId,
-  viewMode,
-  formatTime,
-  getUserInitials,
-  onMarkAsRead,
-  userType
-}) => {
+const MessagesList: React.FC<MessagesListProps> = (props) => {
+  const {
+    messages,
+    currentUserId,
+    viewMode,
+    formatTime,
+    getUserInitials,
+    onMarkAsRead,
+    userType
+  } = props;
   const getMessageTypeInfo = (type: string) => {
     switch (type) {
       case 'help_offer':
@@ -66,8 +67,6 @@ const MessagesList: React.FC<MessagesListProps> = ({
           key={message.id}
           message={message}
           index={index}
-          currentUserId={currentUserId}
-          viewMode={viewMode}
           formatTime={formatTime}
           getUserInitials={getUserInitials}
           getMessageTypeInfo={getMessageTypeInfo}
@@ -120,11 +119,13 @@ const EmptyMessagesList: React.FC<EmptyMessagesListProps> = ({ viewMode, userTyp
 interface MessageItemProps {
   message: Message;
   index: number;
-  currentUserId: number;
-  viewMode: 'inbox' | 'sent';
   formatTime: (date: string) => string;
   getUserInitials: (name: string) => string;
-  getMessageTypeInfo: (type: string) => any;
+  getMessageTypeInfo: (type: string) => {
+    icon: React.ReactElement;
+    color: string;
+    label: string;
+  };
   getMessageDirection: (message: Message) => 'sent' | 'received';
   getOtherUser: (message: Message) => { id: number; name: string; email: string };
   onMarkAsRead?: (messageId: number) => void;
@@ -133,8 +134,6 @@ interface MessageItemProps {
 const MessageItem: React.FC<MessageItemProps> = ({
   message,
   index,
-  currentUserId,
-  viewMode,
   formatTime,
   getUserInitials,
   getMessageTypeInfo,

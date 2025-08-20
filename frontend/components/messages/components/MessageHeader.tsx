@@ -3,11 +3,21 @@ import { FaArrowLeft, FaComments, FaInbox, FaPaperPlane } from 'react-icons/fa';
 
 type ViewMode = 'conversations' | 'inbox' | 'sent' | 'conversation';
 
+interface SelectedConversation {
+  other_user: {
+    name: string;
+  };
+}
+
+interface Message {
+  status: string;
+}
+
 interface MessageHeaderProps {
   viewMode: ViewMode;
-  selectedConversation?: { other_user: { name: string } } | null;
-  conversations: any[];
-  messages: any[];
+  selectedConversation?: SelectedConversation | null;
+  conversations: unknown[];
+  messages: Message[];
   onViewChange: (mode: ViewMode) => void;
   userType: 'donor' | 'recipient';
 }

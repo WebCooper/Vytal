@@ -474,12 +474,21 @@ service /api/v1 on new http:Listener(9091) {
     resource function post messages(@http:Header {name: "Authorization"} string? authorization, msgModule:CreateMessageRequest request) returns http:Response|error {
         http:Response response = new;
 
-        // Validate token
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
             response.setJsonPayload({
                 "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Prevent self-messaging
+        if request.sender_id == request.receiver_id {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "You cannot send a message to yourself",
                 "timestamp": time:utcNow()
             });
             return response;
