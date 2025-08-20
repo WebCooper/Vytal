@@ -45,15 +45,6 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // Message interaction handlers
   const handleMarkAsRead = async (messageId: number) => {
     try {
