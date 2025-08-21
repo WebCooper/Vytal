@@ -18,7 +18,7 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
   if (!isOpen) return null;
 
   const handleDownload = () => {
-    generateDonorCard(cardData, cardRef);
+    generateDonorCard(cardData); // Removed cardRef parameter
   };
 
   const handleShare = () => {

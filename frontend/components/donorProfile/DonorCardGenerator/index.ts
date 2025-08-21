@@ -8,7 +8,7 @@ export { useCardGeneration } from './hooks/useCardGeneration';
 
 // Export utilities for reuse
 export { ShareUtils } from './utils/shareUtils';
-export { DonorCardCanvas } from './utils/cardCanvas';
+export { EnhancedDonorCardCanvas } from './utils/enhancedCardCanvas';
 
 // Export constants
 export * from './utils/constants';

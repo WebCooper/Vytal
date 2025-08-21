@@ -2,7 +2,7 @@
 import { DonorCardData, DonorCardCategory } from '../types/donorCard';
 import { CATEGORY_CONFIG } from './constants';
 
-export class DonorCardCanvas {
+export class  EnhancedDonorCardCanvas {
   static async drawDonorCard(ctx: CanvasRenderingContext2D, cardData: DonorCardData): Promise<void> {
     const width = 400;
     const height = 500;
@@ -97,18 +97,18 @@ export class DonorCardCanvas {
     this.drawWrappedText(ctx, cardData.message, 25, 150, 320, 18);
     
     // Info grid section
-    let currentY = 195;
+    const currentY = 195;
     
     // Category-specific offering info
     const offeringInfo = this.getCategoryOfferingInfo(cardData);
     this.drawInfoItem(ctx, '🎁', 'Offering', offeringInfo.type, 25, currentY);
     this.drawInfoItem(ctx, '📍', 'Location', cardData.location, 220, currentY);
     
-    currentY += 50;
+    const nextY = currentY + 50;
     
     // Availability and category-specific count
-    this.drawInfoItem(ctx, '🕐', 'Availability', cardData.availability, 25, currentY);
-    this.drawInfoItem(ctx, '🏆', offeringInfo.countLabel, offeringInfo.count, 220, currentY);
+    this.drawInfoItem(ctx, '🕐', 'Availability', cardData.availability, 25, nextY);
+    this.drawInfoItem(ctx, '🏆', offeringInfo.countLabel, offeringInfo.count, 220, nextY);
   }
 
   private static getCategoryBadgeInfo(cardData: DonorCardData): string {

@@ -1,17 +1,12 @@
 // hooks/useCardGeneration.ts
-import { useState, RefObject } from 'react';
+import { useState } from 'react';
 import { DonorCardData } from '../types/donorCard';
-import { DonorCardCanvas } from '../utils/cardCanvas';
+import { EnhancedDonorCardCanvas } from '../utils/enhancedCardCanvas'; // Import the new enhanced canvas
 
 export const useCardGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateDonorCard = async (cardData: DonorCardData, cardRef?: RefObject<HTMLDivElement | null>) => {
-    if (!cardRef?.current) {
-      alert('Card preview not available');
-      return;
-    }
-    
+  const generateDonorCard = async (cardData: DonorCardData) => {
     setIsGenerating(true);
     
     try {
@@ -23,12 +18,13 @@ export const useCardGeneration = () => {
       }
       
       const scale = 3;
-      canvas.width = 400 * scale;
-      canvas.height = 500 * scale;
+      canvas.width = 384 * scale; // Match the preview dimensions
+      canvas.height = 480 * scale;
       
       ctx.scale(scale, scale);
       
-      await DonorCardCanvas.drawDonorCard(ctx, cardData);
+      // Use the enhanced canvas drawer
+      await EnhancedDonorCardCanvas.drawDonorCard(ctx, cardData);
       
       canvas.toBlob((blob) => {
         if (blob) {
@@ -53,7 +49,7 @@ export const useCardGeneration = () => {
 
   const generateCardBlob = async (cardData: DonorCardData): Promise<Blob | null> => {
     try {
-      return await DonorCardCanvas.generateCardBlob(cardData);
+      return await EnhancedDonorCardCanvas.generateCardBlob(cardData);
     } catch (error) {
       console.error('Error generating card blob:', error);
       return null;
