@@ -352,7 +352,7 @@ export default function PostsManagement() {
                         </div>
                       </td>
                       <td className="px-3 py-4 text-sm font-medium">
-                        <div className="flex justify-center gap-1">
+                        <div className="relative flex justify-center gap-1">
                           <button className="text-blue-600 hover:text-blue-900 bg-blue-100 p-1.5 rounded" title="View">
                             <FaEye size={14} />
                           </button>
@@ -375,38 +375,35 @@ export default function PostsManagement() {
                             </button>
                           )}
                           
-                          {deleteId === post.id ? (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                              <div className="bg-white rounded-lg shadow-xl p-4 max-w-sm w-full mx-4">
-                                <div className="text-center mb-3">
-                                  <p className="text-base font-semibold text-gray-800">Delete this post?</p>
-                                  <p className="text-sm text-gray-600 mt-1">This action cannot be undone.</p>
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleDeletePost(post.id)}
-                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded font-medium transition-colors"
-                                  >
-                                    Delete
-                                  </button>
-                                  <button
-                                    onClick={handleCancelDelete}
-                                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded font-medium transition-colors"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
+                          <div className="relative">
                             <button
-                              onClick={() => handleDeletePost(post.id)}
+                              onClick={() => (deleteId === post.id ? setDeleteId(null) : setDeleteId(post.id))}
                               className="text-red-600 hover:text-red-900 bg-red-100 p-1.5 rounded" 
                               title="Delete"
                             >
                               <FaTrash size={14} />
                             </button>
-                          )}
+                            {deleteId === post.id && (
+                              <div className="absolute z-40 right-0 top-8 w-60 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-xl p-3">
+                                <p className="text-sm font-semibold text-gray-800">Delete this post?</p>
+                                <p className="text-xs text-gray-600 mb-3">This action cannot be undone.</p>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleDeletePost(post.id)}
+                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded font-medium transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                  <button
+                                    onClick={handleCancelDelete}
+                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-3 rounded font-medium transition-colors border border-gray-200"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>

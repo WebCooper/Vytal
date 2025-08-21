@@ -13,8 +13,24 @@ public isolated function createDonorPost(int userId, types:DonorPostCreate reque
         return validationResult;
     }
 
+    // Always start as pending regardless of client input
+    types:DonorPostCreate pendingRequest = {
+        donor_id: request.donor_id, // not used by DB insert; userId is authoritative
+        title: request.title,
+        category: request.category,
+        content: request.content,
+        location: request.location,
+        status: "pending",
+        urgency: request.urgency,
+        contact: request.contact,
+        bloodOffering: request.bloodOffering,
+        fundraiserOffering: request.fundraiserOffering,
+        medicineOffering: request.medicineOffering,
+        organOffering: request.organOffering
+    };
+
     // Insert into DB (include userId)
-    int|error insertResult = database:createDonorPost(userId, request);
+    int|error insertResult = database:createDonorPost(userId, pendingRequest);
     if insertResult is error {
         return error("Failed to create donor post: " + insertResult.message());
     }
@@ -54,7 +70,11 @@ public isolated function getAllDonorPosts() returns types:DonorPost[]|error {
     if posts is error {
         return error("Failed to fetch donor posts: " + posts.message());
     }
-    return posts;
+    // Only include approved (open) posts in public feed
+    types:DonorPost[] approved = from types:DonorPost p in posts
+        where p.status == "open"
+        select p;
+    return approved;
 }
 
 # Get donor posts by user ID
@@ -66,13 +86,9 @@ public isolated function getDonorPostsByUser(int userId) returns types:DonorPost
         return error("Failed to fetch donor posts: " + posts.message());
     }
     
-    // Filter posts by user ID
-    types:DonorPost[] userPosts = [];
-    foreach types:DonorPost post in posts {
-        if post.donor_id == userId {
-            userPosts.push(post);
-        }
-    }
-    
+    // Filter posts by user ID and only approved (open)
+    types:DonorPost[] userPosts = from types:DonorPost post in posts
+        where post.donor_id == userId && post.status == "open"
+        select post;
     return userPosts;
 }

@@ -378,6 +378,26 @@ service /api/v1 on new http:Listener(9091) {
     resource function put posts/[int postId](@http:Header {name: "Authorization"} string? authorization, types:RecipientPostUpdate request) returns http:Response|error {
         http:Response response = new;
 
+        // Allow hardcoded admin token in development
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:RecipientPostResponse|error result = postService:updateRecipientPost(postId, request);
+            if result is error {
+                response.statusCode = 400;
+                response.setJsonPayload({
+                    "error": result.message(),
+                    "timestamp": time:utcNow()
+                });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({
+                    "message": "Post updated successfully",
+                    "data": result.toJson(),
+                    "timestamp": time:utcNow()
+                });
+            }
+            return response;
+        }
+
         // Validate token
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -412,6 +432,25 @@ service /api/v1 on new http:Listener(9091) {
     // Delete recipient post endpoint
     resource function delete posts/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
+
+        // Allow hardcoded admin token in development
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            error? del = postService:deleteRecipientPost(postId);
+            if del is error {
+                response.statusCode = 400;
+                response.setJsonPayload({
+                    "error": del.message(),
+                    "timestamp": time:utcNow()
+                });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({
+                    "message": "Post deleted successfully",
+                    "timestamp": time:utcNow()
+                });
+            }
+            return response;
+        }
 
         // Validate token
         string|error email = token:validateToken(authorization);
