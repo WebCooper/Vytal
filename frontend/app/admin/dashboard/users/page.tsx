@@ -1,6 +1,7 @@
 "use client";
 import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
+import { getUsers as apiGetUsers, type User as ApiUser } from "@/lib/userService";
 import { FaUsers, FaSearch, FaTrash, FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -25,26 +26,54 @@ export default function UsersManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
+  // Fetch once on mount
   useEffect(() => {
-    // Filter users based on search term, role, and status
-    let filtered = users;
+    let isMounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const apiUsers = await apiGetUsers();
+        type ApiUserWithDates = ApiUser & { created_at?: string; updated_at?: string; phone_number?: string };
+        const mapped: User[] = (apiUsers as ApiUserWithDates[]).map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone_number || "",
+          role: u.role || "recipient",
+          categories: Array.isArray(u.categories) ? u.categories : [],
+          status: "active",
+          joinedAt: u.created_at || new Date().toISOString(),
+          lastActive: u.updated_at || u.created_at || new Date().toISOString(),
+        }));
+        if (isMounted && mapped.length) {
+          setUsers(mapped);
+          setFilteredUsers(mapped);
+        }
+      } catch (e) {
+        console.error("Failed to load users", e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
 
+  // Filter when inputs change (no re-fetch)
+  useEffect(() => {
+    let filtered = users;
     if (searchTerm) {
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.phone.includes(searchTerm)
       );
     }
-
     if (roleFilter !== "all") {
       filtered = filtered.filter(user => user.role === roleFilter);
     }
-
     if (statusFilter !== "all") {
       filtered = filtered.filter(user => user.status === statusFilter);
     }
-
     setFilteredUsers(filtered);
   }, [users, searchTerm, roleFilter, statusFilter]);
 

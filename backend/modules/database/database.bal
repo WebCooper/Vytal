@@ -180,6 +180,45 @@ public isolated function getUserByEmail(string email) returns types:User?|error 
     return result.value;
 }
 
+# Get all users (ordered by created_at desc)
+# + return - Array of users or error
+public isolated function getAllUsers() returns types:User[]|error {
+    mysql:Client|error dbClientResult = getDbClient();
+
+    // If database not available, use in-memory storage fallback
+    if dbClientResult is error {
+        map<types:User> store = storage:getUserStore();
+        types:User[] users = [];
+        foreach var [_, u] in store.entries() {
+            users.push(u);
+        }
+        return users;
+    }
+
+    mysql:Client dbClientInstance = dbClientResult;
+    sql:ParameterizedQuery query = `
+        SELECT id, name, phone_number, email, password, role, categories, created_at, updated_at
+        FROM users
+        ORDER BY created_at DESC
+    `;
+
+    stream<types:User, sql:Error?> resultStream = dbClientInstance->query(query);
+    types:User[] users = [];
+    while (true) {
+        record {|types:User value;|}|sql:Error? res = resultStream.next();
+        if res is sql:Error {
+            check resultStream.close();
+            return error("Error retrieving users: " + res.message());
+        } else if res is () {
+            break;
+        } else {
+            users.push(res.value);
+        }
+    }
+    check resultStream.close();
+    return users;
+}
+
 # Check if user exists by email
 # + email - Email address to check for existence
 # + return - True if user exists, false if not, or error if operation fails

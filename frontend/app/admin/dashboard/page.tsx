@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { FaUsers, FaFileAlt, FaUserPlus } from "react-icons/fa";
 import { getPendingRecipientPosts } from "@/lib/adminPosts";
+import { getUsers, type User as ApiUser } from "@/lib/userService";
 import { getAllPosts as getAllOpenPosts, type RecipientPost } from "@/lib/recipientPosts";
 
 // Mock data - replace with actual API calls
@@ -37,9 +38,10 @@ export default function AdminDashboard() {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const [{ data: pending }, { data: open }] = await Promise.all([
+        const [{ data: pending }, { data: open }, users] = await Promise.all([
           getPendingRecipientPosts(),
           getAllOpenPosts(),
+          getUsers().catch(() => [] as ApiUser[]),
         ]);
 
         const toRecent = (p: RecipientPost): RecentPost => ({
@@ -65,8 +67,16 @@ export default function AdminDashboard() {
           pendingPosts: pending.length,
         }));
 
-        // Keep recent users mock for now; can be wired later when API exists
-        setRecentUsers(mockRecentUsers);
+        // Map recent users from API (fallback to mock if empty)
+        type ApiUserWithDates = ApiUser & { created_at?: string; createdAt?: string };
+        const mappedUsers = (users as ApiUserWithDates[]).map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role || 'recipient',
+          joinedAt: u.created_at || u.createdAt || new Date().toISOString().slice(0,10),
+        }));
+        setRecentUsers(mappedUsers.length ? mappedUsers.slice(0,3) : mockRecentUsers);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {

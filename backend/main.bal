@@ -414,6 +414,89 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
+    // Admin: list all users
+    resource function get admin/users(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        // Support hardcoded admin token for development
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:User[]|error users = database:getAllUsers();
+            if users is error {
+                response.statusCode = 400;
+                response.setJsonPayload({ "error": users.message(), "timestamp": time:utcNow() });
+            } else {
+                // Map to public response (without password, with categories array)
+                json[] safeUsers = [];
+                foreach var u in users {
+                    types:Category[]|error catRes = database:convertJsonToCategories(u.categories);
+                    types:Category[] cats = [];
+                    if catRes is types:Category[] {
+                        cats = catRes;
+                    }
+                    // Convert to plain string array for JSON response
+                    string[] catStrings = [];
+                    foreach var c in cats { catStrings.push(c.toString()); }
+                    safeUsers.push({
+                        id: u.id ?: 0,
+                        name: u.name,
+                        phone_number: u.phone_number,
+                        email: u.email,
+                        role: u.role,
+                        categories: catStrings,
+                        created_at: u.created_at,
+                        updated_at: u.updated_at
+                    });
+                }
+                response.statusCode = 200;
+                response.setJsonPayload({ "data": safeUsers, "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        // Enforce admin role
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+
+        types:User[]|error users = database:getAllUsers();
+        if users is error {
+            response.statusCode = 400;
+            response.setJsonPayload({ "error": users.message(), "timestamp": time:utcNow() });
+        } else {
+            json[] safeUsers = [];
+            foreach var u in users {
+                types:Category[]|error catRes = database:convertJsonToCategories(u.categories);
+                types:Category[] cats = [];
+                if catRes is types:Category[] {
+                    cats = catRes;
+                }
+                string[] catStrings = [];
+                foreach var c in cats { catStrings.push(c.toString()); }
+                safeUsers.push({
+                    id: u.id ?: 0,
+                    name: u.name,
+                    phone_number: u.phone_number,
+                    email: u.email,
+                    role: u.role,
+                    categories: catStrings,
+                    created_at: u.created_at,
+                    updated_at: u.updated_at
+                });
+            }
+            response.statusCode = 200;
+            response.setJsonPayload({ "data": safeUsers, "timestamp": time:utcNow() });
+        }
+        return response;
+    }
+
     // Update recipient post endpoint
     resource function put posts/[int postId](@http:Header {name: "Authorization"} string? authorization, types:RecipientPostUpdate request) returns http:Response|error {
         http:Response response = new;
