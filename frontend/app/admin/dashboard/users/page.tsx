@@ -230,7 +230,7 @@ export default function UsersManagement() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
                       Joined
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider min-w-[150px]">
                       Actions
                     </th>
                   </tr>
@@ -271,9 +271,9 @@ export default function UsersManagement() {
                         </div>
                         <div className="text-xs mt-1">Last active: {formatDate(user.lastActive)}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative min-w-[150px]">
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-full" title="View">
+                          <button className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition-colors" title="View">
                             <FaEye />
                           </button>
                           {user.role !== 'admin' && (
@@ -281,7 +281,7 @@ export default function UsersManagement() {
                               {user.status === 'active' ? (
                                 <button 
                                   onClick={() => handleStatusChange(user.id, 'suspended')}
-                                  className="text-yellow-600 hover:text-yellow-900 bg-yellow-50 p-2 rounded-full" 
+                                  className="text-yellow-600 hover:text-yellow-900 bg-yellow-50 p-2 rounded-full hover:bg-yellow-100 transition-colors" 
                                   title="Suspend"
                                 >
                                   <FaUserTimes />
@@ -289,7 +289,7 @@ export default function UsersManagement() {
                               ) : (
                                 <button 
                                   onClick={() => handleStatusChange(user.id, 'active')}
-                                  className="text-green-600 hover:text-green-900 bg-green-50 p-2 rounded-full" 
+                                  className="text-green-600 hover:text-green-900 bg-green-50 p-2 rounded-full hover:bg-green-100 transition-colors" 
                                   title="Activate"
                                 >
                                   <FaUserCheck />
@@ -303,20 +303,25 @@ export default function UsersManagement() {
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.9 }}
-                                    className="flex items-center space-x-1"
+                                    className="bg-white shadow-lg border border-gray-200 rounded-lg p-2 absolute right-4 z-10"
                                   >
-                                    <button
-                                      onClick={() => handleDeleteUser(user.id)}
-                                      className="text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded-lg text-xs"
-                                    >
-                                      Confirm
-                                    </button>
-                                    <button
-                                      onClick={handleCancelDelete}
-                                      className="text-gray-700 bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded-lg text-xs"
-                                    >
-                                      Cancel
-                                    </button>
+                                    <div className="flex flex-col gap-2">
+                                      <p className="text-gray-700 text-xs font-medium mb-1">Delete this user?</p>
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => handleDeleteUser(user.id)}
+                                          className="text-white bg-red-600 hover:bg-red-700 px-4 py-1.5 rounded-lg text-sm font-medium w-full"
+                                        >
+                                          Confirm
+                                        </button>
+                                        <button
+                                          onClick={handleCancelDelete}
+                                          className="text-gray-700 bg-gray-200 hover:bg-gray-300 px-4 py-1.5 rounded-lg text-sm font-medium w-full border border-gray-300"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
                                   </motion.div>
                                 ) : (
                                   <motion.button
