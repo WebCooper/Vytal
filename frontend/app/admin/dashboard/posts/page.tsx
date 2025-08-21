@@ -1,7 +1,7 @@
 "use client";
-import AdminLayout from "@/components/admin/layout/AdminLayout";
+import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
-import { FaFileAlt, FaSearch, FaEdit, FaTrash, FaEye, FaCheck, FaTimes, FaClock } from "react-icons/fa";
+import { FaFileAlt, FaSearch, FaTrash, FaEye, FaCheck, FaTimes, FaClock } from "react-icons/fa";
 
 // Mock data - replace with actual API calls
 const mockPosts = [
@@ -99,10 +99,21 @@ export default function PostsManagement() {
     ));
   };
 
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  
   const handleDeletePost = (postId: number) => {
-    if (confirm("Are you sure you want to delete this post?")) {
-      setPosts(prev => prev.filter(post => post.id !== postId));
+    if (deleteId !== postId) {
+      setDeleteId(postId);
+      return;
     }
+    
+    // Actually delete the post
+    setPosts(prev => prev.filter(post => post.id !== postId));
+    setDeleteId(null);
+  };
+  
+  const handleCancelDelete = () => {
+    setDeleteId(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -136,7 +147,7 @@ export default function PostsManagement() {
   };
 
   return (
-    <AdminLayout currentPage="Posts">
+    <AdminPageWrapper currentPage="Posts">
       <div className="space-y-6">
         {/* Header with Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -189,15 +200,15 @@ export default function PostsManagement() {
                   placeholder="Search posts..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent placeholder-black"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
                 />
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap gap-3 w-full md:w-auto">
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-black"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
               >
                 <option value="all">All Categories</option>
                 <option value="blood">Blood</option>
@@ -209,7 +220,7 @@ export default function PostsManagement() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-black"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -220,7 +231,7 @@ export default function PostsManagement() {
               <select
                 value={urgencyFilter}
                 onChange={(e) => setUrgencyFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-black"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
               >
                 <option value="all">All Urgency</option>
                 <option value="high">High</option>
@@ -233,51 +244,51 @@ export default function PostsManagement() {
 
         {/* Posts Table */}
         <div className="bg-white/70 backdrop-blur-md rounded-xl shadow-lg border border-white/20 overflow-hidden">
-          <div className="px-6 py-4 border-b border-red-200">
-            <h3 className="text-lg font-semibold text-red-700">
+          <div className="px-6 py-4 border-b border-blue-200">
+            <h3 className="text-lg font-semibold text-blue-700">
               Posts ({filteredPosts.length})
             </h3>
           </div>
           
           {loading ? (
             <div className="px-6 py-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
               <p className="text-gray-600 mt-2">Loading posts...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-red-200">
-                <thead className="bg-red-50">
+            <div className="w-full">
+              <table className="w-full table-fixed divide-y divide-blue-200">
+                <thead className="bg-blue-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider w-[20%]">
                       Post
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider w-[15%]">
                       Author
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider w-[12%]">
                       Category
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider w-[12%]">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider w-[12%]">
                       Urgency
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider w-[12%]">
                       Engagement
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-center text-xs font-medium text-blue-700 uppercase tracking-wider w-[17%]">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white/50 divide-y divide-red-200">
+                <tbody className="bg-white/50 divide-y divide-blue-200">
                   {filteredPosts.map((post) => (
-                    <tr key={post.id} className="hover:bg-red-50/50">
-                      <td className="px-6 py-4">
+                    <tr key={post.id} className="hover:bg-blue-50/50">
+                      <td className="px-3 py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 max-w-xs truncate">{post.title}</div>
+                          <div className="text-sm font-medium text-gray-900 truncate">{post.title}</div>
                           <div className="text-xs text-gray-500">{post.location}</div>
                           <div className="text-xs text-gray-400">{post.createdAt}</div>
                           {post.goal && (
@@ -288,66 +299,89 @@ export default function PostsManagement() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{post.author}</div>
-                          <div className="text-xs text-gray-500">{post.authorEmail}</div>
+                          <div className="text-sm font-medium text-gray-900 truncate">{post.author}</div>
+                          <div className="text-xs text-gray-500 truncate">{post.authorEmail}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(post.category)}`}>
                           {post.category}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(post.status)}`}>
                           {post.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getUrgencyColor(post.urgency)}`}>
                           {post.urgency}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 py-4 text-sm text-gray-500">
                         <div className="text-xs">
                           <div>Views: {post.views}</div>
                           <div>Likes: {post.likes}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900" title="View">
-                            <FaEye />
+                      <td className="px-3 py-4 text-sm font-medium">
+                        <div className="flex justify-center gap-1">
+                          <button className="text-blue-600 hover:text-blue-900 bg-blue-100 p-1.5 rounded" title="View">
+                            <FaEye size={14} />
                           </button>
-                          <button className="text-green-600 hover:text-green-900" title="Edit">
-                            <FaEdit />
-                          </button>
-                          {post.status === 'pending' && (
+                          
+                          {post.status === 'pending' ? (
                             <button 
                               onClick={() => handleStatusChange(post.id, 'open')}
-                              className="text-green-600 hover:text-green-900" 
+                              className="text-green-600 hover:text-green-900 bg-green-100 p-1.5 rounded" 
                               title="Approve"
                             >
-                              <FaCheck />
+                              <FaCheck size={14} />
                             </button>
-                          )}
-                          {post.status !== 'cancelled' && (
+                          ) : (
                             <button 
-                              onClick={() => handleStatusChange(post.id, 'cancelled')}
-                              className="text-red-600 hover:text-red-900" 
-                              title="Cancel"
+                              onClick={() => handleStatusChange(post.id, 'pending')}
+                              className="text-yellow-600 hover:text-yellow-900 bg-yellow-100 p-1.5 rounded" 
+                              title="Set Pending"
                             >
-                              <FaTimes />
+                              <FaTimes size={14} />
                             </button>
                           )}
-                          <button 
-                            onClick={() => handleDeletePost(post.id)}
-                            className="text-red-600 hover:text-red-900" 
-                            title="Delete"
-                          >
-                            <FaTrash />
-                          </button>
+                          
+                          {deleteId === post.id ? (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                              <div className="bg-white rounded-lg shadow-xl p-4 max-w-sm w-full mx-4">
+                                <div className="text-center mb-3">
+                                  <p className="text-base font-semibold text-gray-800">Delete this post?</p>
+                                  <p className="text-sm text-gray-600 mt-1">This action cannot be undone.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleDeletePost(post.id)}
+                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded font-medium transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                  <button
+                                    onClick={handleCancelDelete}
+                                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded font-medium transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleDeletePost(post.id)}
+                              className="text-red-600 hover:text-red-900 bg-red-100 p-1.5 rounded" 
+                              title="Delete"
+                            >
+                              <FaTrash size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -358,6 +392,6 @@ export default function PostsManagement() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </AdminPageWrapper>
   );
 }
