@@ -374,6 +374,46 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
+    // Admin: get full details of a recipient post by ID
+    resource function get admin/post\-details/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        // Allow hardcoded admin token in development
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:RecipientPostResponse|error result = postService:getRecipientPostDetails(postId);
+            if result is error {
+                response.statusCode = 404;
+                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        // Enforce admin role
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+        types:RecipientPostResponse|error result = postService:getRecipientPostDetails(postId);
+        if result is error {
+            response.statusCode = 404;
+            response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+        }
+        return response;
+    }
+
     // Update recipient post endpoint
     resource function put posts/[int postId](@http:Header {name: "Authorization"} string? authorization, types:RecipientPostUpdate request) returns http:Response|error {
         http:Response response = new;

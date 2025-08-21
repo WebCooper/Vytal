@@ -31,3 +31,13 @@ export const deleteRecipientPost = async (postId: number): Promise<{ message: st
   const res = await axiosInstance.delete<{ message: string; timestamp: string }>(`/posts/${postId}`);
   return res.data;
 };
+
+export interface AdminPostDetailsResponse {
+  data: RecipientPost;
+  timestamp: string;
+}
+
+export const getRecipientPostDetails = async (postId: number): Promise<AdminPostDetailsResponse> => {
+  const res = await axiosInstance.get<AdminPostDetailsResponse>(`/admin/post-details/${postId}`);
+  return res.data;
+};

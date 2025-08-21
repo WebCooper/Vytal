@@ -1,9 +1,11 @@
 "use client";
 import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
-import { FaFileAlt, FaSearch, FaTrash, FaEye, FaCheck, FaTimes, FaClock } from "react-icons/fa";
+import { FaFileAlt, FaSearch, FaTrash, FaEye, FaCheck, FaClock, FaUser, FaCalendarAlt } from "react-icons/fa";
 
-import { getPendingRecipientPosts, approveRecipientPost, setRecipientPostStatus, deleteRecipientPost } from "@/lib/adminPosts";
+import { getPendingRecipientPosts, approveRecipientPost, setRecipientPostStatus, deleteRecipientPost, getRecipientPostDetails } from "@/lib/adminPosts";
+import AdminPostModal from "@/components/admin/AdminPostModal";
+import { AnimatePresence } from "framer-motion";
 import { getAllPosts as getAllOpenPosts, type RecipientPost } from "@/lib/recipientPosts";
 
 type Post = {
@@ -31,6 +33,8 @@ export default function PostsManagement() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
+  const [viewId, setViewId] = useState<number | null>(null);
+  const [viewData, setViewData] = useState<RecipientPost | null>(null);
 
   // Load posts from backend (pending via admin route + open via public route)
   useEffect(() => {
@@ -139,6 +143,35 @@ export default function PostsManagement() {
   
   const handleCancelDelete = () => {
     setDeleteId(null);
+  };
+
+  const handleDeletePostImmediate = async (postId: number) => {
+    try {
+      setLoading(true);
+      await deleteRecipientPost(postId);
+      setPosts(prev => prev.filter(post => post.id !== postId));
+      closeView();
+    } catch (e) {
+      console.error('Failed to delete post', e);
+    } finally {
+      setDeleteId(null);
+      setLoading(false);
+    }
+  };
+
+  const openView = async (postId: number) => {
+    try {
+      setViewId(postId);
+      const { data } = await getRecipientPostDetails(postId);
+      setViewData(data);
+    } catch (e) {
+      console.error('Failed to load post details', e);
+    } 
+  };
+
+  const closeView = () => {
+    setViewId(null);
+    setViewData(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -316,6 +349,13 @@ export default function PostsManagement() {
                           <div className="text-sm font-medium text-gray-900 truncate">{post.title}</div>
                           <div className="text-xs text-gray-500">{post.location}</div>
                           <div className="text-xs text-gray-400">{post.createdAt}</div>
+                          {post.status === 'pending' && (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-yellow-50 text-yellow-800 border border-yellow-200">
+                                Pending review
+                              </span>
+                            </div>
+                          )}
                           {post.goal && (
                             <div className="text-xs text-green-600">
                               Goal: Rs. {post.goal.toLocaleString()}
@@ -352,26 +392,34 @@ export default function PostsManagement() {
                         </div>
                       </td>
                       <td className="px-3 py-4 text-sm font-medium">
-                        <div className="relative flex justify-center gap-1">
-                          <button className="text-blue-600 hover:text-blue-900 bg-blue-100 p-1.5 rounded" title="View">
-                            <FaEye size={14} />
-                          </button>
-                          
+                        <div className="relative flex justify-center gap-2">
                           {post.status === 'pending' ? (
-                            <button 
-                              onClick={() => handleStatusChange(post.id, 'open')}
-                              className="text-green-600 hover:text-green-900 bg-green-100 p-1.5 rounded" 
-                              title="Approve"
-                            >
-                              <FaCheck size={14} />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => openView(post.id)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                                title="Review to approve"
+                              >
+                                <FaEye size={12} />
+                                Review
+                              </button>
+                              <button 
+                                onClick={() => handleStatusChange(post.id, 'open')}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100" 
+                                title="Approve post"
+                              >
+                                <FaCheck size={12} />
+                                Approve
+                              </button>
+                            </>
                           ) : (
                             <button 
-                              onClick={() => handleStatusChange(post.id, 'pending')}
-                              className="text-yellow-600 hover:text-yellow-900 bg-yellow-100 p-1.5 rounded" 
-                              title="Set Pending"
+                              onClick={() => openView(post.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100" 
+                              title="View details"
                             >
-                              <FaTimes size={14} />
+                              <FaEye size={12} />
+                              View
                             </button>
                           )}
                           
@@ -414,6 +462,171 @@ export default function PostsManagement() {
           )}
         </div>
       </div>
+      <AnimatePresence>
+        {viewId !== null && viewData && (
+          <AdminPostModal
+            title="Post Details"
+            onClose={closeView}
+            actions={
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+                <button 
+                  onClick={closeView} 
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-medium transition-colors"
+                >
+                  Close
+                </button>
+                <button 
+                  onClick={() => handleDeletePostImmediate(viewData.id)} 
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm transition-colors"
+                >
+                  Delete Post
+                </button>
+                {viewData.status === 'pending' && (
+                  <button 
+                    onClick={async () => { await handleStatusChange(viewData.id, 'open'); closeView(); }} 
+                    className="flex-1 sm:flex-none px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold shadow-sm transition-all"
+                  >
+                    Approve Post
+                  </button>
+                )}
+              </div>
+            }
+          >
+            <div className="space-y-6">
+              {/* Header Section */}
+              <div className="space-y-3">
+                <h5 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-gray-900 leading-tight">
+                  {viewData.title}
+                </h5>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${getCategoryColor(viewData.category)}`}>
+                    {viewData.category}
+                  </span>
+                  <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(viewData.status)}`}>
+                    {viewData.status}
+                  </span>
+                  {viewData.urgency && (
+                    <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${getUrgencyColor(viewData.urgency)}`}>
+                      {viewData.urgency} priority
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 sm:p-6 border border-blue-100">
+                <h6 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FaUser className="text-blue-600" />
+                  Contact Information
+                </h6>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Author</div>
+                    <div className="text-sm font-semibold text-gray-900">{viewData.user?.name}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</div>
+                    <div className="text-sm text-gray-800 break-all">{viewData.user?.email}</div>
+                  </div>
+                  {viewData.contact && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</div>
+                      <div className="text-sm font-medium text-gray-900">{viewData.contact}</div>
+                    </div>
+                  )}
+                  {viewData.location && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Location</div>
+                      <div className="text-sm text-gray-800">{viewData.location}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Metrics & Fundraiser */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Metrics */}
+                <div className="bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-200">
+                  <h6 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FaCalendarAlt className="text-purple-600" />
+                    Post Metrics
+                  </h6>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Created</span>
+                      <span className="text-sm font-medium text-gray-900">{new Date(viewData.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Views</span>
+                      <span className="text-sm font-medium text-gray-900">{(viewData.engagement?.views ?? 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Likes</span>
+                      <span className="text-sm font-medium text-gray-900">{(viewData.engagement?.likes ?? 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fundraiser (if applicable) */}
+                {viewData.fundraiserDetails && (
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-4 sm:p-5 border border-emerald-200">
+                    <h6 className="text-base font-semibold text-emerald-800 mb-3">
+                      Fundraiser Progress
+                    </h6>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-emerald-700">Goal</span>
+                        <span className="text-sm font-bold text-emerald-900">
+                          Rs. {viewData.fundraiserDetails.goal.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-emerald-700">Raised</span>
+                        <span className="text-sm font-bold text-emerald-900">
+                          Rs. {viewData.fundraiserDetails.received.toLocaleString()}
+                        </span>
+                      </div>
+                      {(() => {
+                        const goal = viewData.fundraiserDetails?.goal ?? 0;
+                        const received = viewData.fundraiserDetails?.received ?? 0;
+                        const pct = goal > 0 ? Math.min(100, Math.round((received / goal) * 100)) : 0;
+                        return (
+                          <div className="space-y-2">
+                            <div className="h-3 w-full rounded-full bg-emerald-100 overflow-hidden">
+                              <div 
+                                className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 transition-all duration-500" 
+                                style={{ width: `${pct}%` }} 
+                              />
+                            </div>
+                            <div className="text-center">
+                              <span className="text-lg font-bold text-emerald-800">{pct}%</span>
+                              <span className="text-sm text-emerald-700 ml-1">funded</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                <h6 className="text-base font-semibold text-gray-900 mb-3">Description</h6>
+                <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                  {viewData.content.split('\n').map((paragraph, index) => (
+                    <p key={index} className={index > 0 ? 'mt-4' : ''}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </AdminPostModal>
+        )}
+      </AnimatePresence>
     </AdminPageWrapper>
   );
 }
+
+//

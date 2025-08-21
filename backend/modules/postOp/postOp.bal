@@ -231,3 +231,18 @@ public isolated function deleteRecipientPost(int postId) returns error? {
     _ = check database:deleteRecipientPost(postId);
     return;
 }
+
+# Fetch single recipient post with full details (admin view)
+# + postId - ID of the post to fetch
+# + return - RecipientPostResponse with user details or error
+public isolated function getRecipientPostDetails(int postId) returns types:RecipientPostResponse|error {
+    types:RecipientPost? post = check database:getRecipientPostById(postId);
+    if post is () {
+        return error("Post not found");
+    }
+    types:UserResponse|error userResult = getUserById(post.recipient_id);
+    if userResult is error {
+        return error("Failed to retrieve user details");
+    }
+    return mapPostToResponse(post, userResult);
+}
