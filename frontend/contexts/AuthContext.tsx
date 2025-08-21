@@ -58,6 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(response.data.user);
         localStorage.setItem('vytal_user', JSON.stringify(response.data.user));
         localStorage.setItem('vytal_token', response.data.token);
+        // make sure axios has the token now
+        const { setAuthorizationToken } = await import('@/lib/axiosInstance');
+        setAuthorizationToken(response.data.token);
       }
       
       return response;

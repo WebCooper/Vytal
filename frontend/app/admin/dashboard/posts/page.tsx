@@ -3,68 +3,74 @@ import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
 import { FaFileAlt, FaSearch, FaTrash, FaEye, FaCheck, FaTimes, FaClock } from "react-icons/fa";
 
-// Mock data - replace with actual API calls
-const mockPosts = [
-  { 
-    id: 1, 
-    title: "Urgent Blood Donation Needed", 
-    author: "John Doe", 
-    authorEmail: "john@example.com",
-    category: "blood", 
-    status: "pending", 
-    urgency: "high",
-    location: "Colombo",
-    goal: 50000,
-    received: 0,
-    views: 234,
-    likes: 12,
-    createdAt: "2025-01-15",
-    content: "I urgently need O+ blood for my upcoming surgery. Please help if you can."
-  },
-  { 
-    id: 2, 
-    title: "Medical Equipment Required", 
-    author: "Jane Smith", 
-    authorEmail: "jane@example.com",
-    category: "supplies", 
-    status: "open", 
-    urgency: "medium",
-    location: "Kandy",
-    goal: null,
-    received: null,
-    views: 156,
-    likes: 8,
-    createdAt: "2025-01-14",
-    content: "Looking for medical equipment donations for our local clinic."
-  },
-  { 
-    id: 3, 
-    title: "Fundraiser for Surgery", 
-    author: "Mike Johnson", 
-    authorEmail: "mike@example.com",
-    category: "fundraiser", 
-    status: "pending", 
-    urgency: "high",
-    location: "Galle",
-    goal: 200000,
-    received: 45000,
-    views: 567,
-    likes: 34,
-    createdAt: "2025-01-13",
-    content: "Raising funds for my child's critical heart surgery. Every contribution helps."
-  },
-];
+import { getPendingRecipientPosts, approveRecipientPost, setRecipientPostStatus, deleteRecipientPost } from "@/lib/adminPosts";
+import { getAllPosts as getAllOpenPosts, type RecipientPost } from "@/lib/recipientPosts";
 
-type Post = typeof mockPosts[0];
+type Post = {
+  id: number;
+  title: string;
+  author: string;
+  authorEmail: string;
+  category: string;
+  status: string;
+  urgency: string;
+  location?: string;
+  goal?: number | null;
+  received?: number | null;
+  views: number;
+  likes: number;
+  createdAt: string;
+  content: string;
+};
 
 export default function PostsManagement() {
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
-  const [filteredPosts, setFilteredPosts] = useState<Post[]>(mockPosts);
-  const [loading] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
+
+  // Load posts from backend (pending via admin route + open via public route)
+  useEffect(() => {
+    const loadPending = async () => {
+      try {
+        setLoading(true);
+        const [{ data: pending }, { data: open }] = await Promise.all([
+          getPendingRecipientPosts(),
+          getAllOpenPosts()
+        ]);
+
+  const toPost = (p: RecipientPost): Post => ({
+          id: p.id,
+          title: p.title,
+          author: p.user?.name || 'Unknown',
+          authorEmail: p.user?.email || '',
+          category: p.category,
+          status: p.status,
+          urgency: p.urgency || 'medium',
+          location: p.location,
+          goal: p.fundraiserDetails?.goal ?? null,
+          received: p.fundraiserDetails?.received ?? null,
+          views: p.engagement?.views ?? 0,
+          likes: p.engagement?.likes ?? 0,
+          createdAt: p.createdAt,
+          content: p.content,
+        });
+
+        const mapped: Post[] = [...pending.map(toPost), ...open.map(toPost)]
+          // ensure unique and keep latest by createdAt
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setPosts(mapped);
+      } catch (e) {
+        console.error('Failed to load pending posts', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPending();
+  }, []);
 
   useEffect(() => {
     // Filter posts based on search term, category, status, and urgency
@@ -93,23 +99,42 @@ export default function PostsManagement() {
     setFilteredPosts(filtered);
   }, [posts, searchTerm, categoryFilter, statusFilter, urgencyFilter]);
 
-  const handleStatusChange = (postId: number, newStatus: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId ? { ...post, status: newStatus } : post
-    ));
+  const handleStatusChange = async (
+    postId: number,
+    newStatus: 'pending' | 'open' | 'fulfilled' | 'cancelled'
+  ) => {
+    try {
+      setLoading(true);
+      if (newStatus === 'open') {
+        await approveRecipientPost(postId);
+      } else {
+        await setRecipientPostStatus(postId, newStatus);
+      }
+      setPosts(prev => prev.map(post => post.id === postId ? { ...post, status: newStatus } : post));
+    } catch (e) {
+      console.error('Failed to change status', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
   
-  const handleDeletePost = (postId: number) => {
+  const handleDeletePost = async (postId: number) => {
     if (deleteId !== postId) {
       setDeleteId(postId);
       return;
     }
-    
-    // Actually delete the post
-    setPosts(prev => prev.filter(post => post.id !== postId));
-    setDeleteId(null);
+    try {
+      setLoading(true);
+      await deleteRecipientPost(postId);
+      setPosts(prev => prev.filter(post => post.id !== postId));
+    } catch (e) {
+      console.error('Failed to delete post', e);
+    } finally {
+      setDeleteId(null);
+      setLoading(false);
+    }
   };
   
   const handleCancelDelete = () => {

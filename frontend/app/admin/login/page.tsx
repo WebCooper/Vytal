@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { FaUser, FaLock, FaShieldAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
+// Using hardcoded admin login for development; no backend authentication
 
 export default function AdminLogin() {
   const pathname = usePathname();
@@ -37,14 +38,10 @@ export default function AdminLogin() {
         localStorage.setItem('vytal_user', JSON.stringify(adminUser));
         localStorage.setItem('vytal_token', 'admin-mock-token');
         
-        // Log the authentication action
-        console.log("Admin authentication successful - redirecting to dashboard");
-        
-        // Immediate navigation with slight delay for better UX
+        // Redirect to dashboard
         setTimeout(() => {
-          // Use plain JavaScript navigation for most reliable redirect
           window.location.replace("/admin/dashboard");
-        }, 300);
+        }, 200);
       } catch (error) {
         console.error("Error during admin login:", error);
         setError("An error occurred during login. Please try again.");
@@ -128,7 +125,7 @@ export default function AdminLogin() {
                   {localLoading ? "Signing In..." : "Admin Login"}
                 </button>
               </form>
-              <div className="mt-6 text-center">
+                <div className="mt-6 text-center">
                 <div className="mb-4 p-3 bg-blue-100/80 backdrop-blur-sm rounded-lg border border-blue-300/50">
                   <p className="text-xs text-blue-700 font-semibold mb-1">Development Access:</p>
                   <p className="text-xs text-gray-600">Email: admin@vytal.com</p>
