@@ -1,5 +1,6 @@
 // utils/cardCanvas.ts
-import { DonorCardData } from '../types/donorCard';
+import { DonorCardData, DonorCardCategory } from '../types/donorCard';
+import { CATEGORY_CONFIG } from './constants';
 
 export class DonorCardCanvas {
   static async drawDonorCard(ctx: CanvasRenderingContext2D, cardData: DonorCardData): Promise<void> {
@@ -16,18 +17,20 @@ export class DonorCardCanvas {
     ctx.strokeRect(0, 0, width, height);
     
     // Draw sections
-    this.drawHeader(ctx, width);
+    this.drawHeader(ctx, width, cardData);
     this.drawBody(ctx, cardData);
     this.drawContactSection(ctx, cardData);
     this.drawFooter(ctx, width);
     this.drawWatermark(ctx, width, height);
   }
 
-  private static drawHeader(ctx: CanvasRenderingContext2D, width: number): void {
-    // Header section (Green gradient for donor)
+  private static drawHeader(ctx: CanvasRenderingContext2D, width: number, cardData: DonorCardData): void {
+    const categoryConfig = CATEGORY_CONFIG[cardData.category];
+    
+    // Header section with category-specific gradient
     const headerGradient = ctx.createLinearGradient(0, 0, width, 80);
-    headerGradient.addColorStop(0, '#059669');
-    headerGradient.addColorStop(1, '#047857');
+    headerGradient.addColorStop(0, categoryConfig.primaryColor);
+    headerGradient.addColorStop(1, categoryConfig.primaryColor + 'dd');
     ctx.fillStyle = headerGradient;
     ctx.fillRect(0, 0, width, 80);
     
@@ -38,7 +41,7 @@ export class DonorCardCanvas {
     ctx.fill();
     
     // Donor icon (heart symbol)
-    ctx.fillStyle = '#059669';
+    ctx.fillStyle = categoryConfig.primaryColor;
     ctx.font = 'bold 20px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('♥', 35, 47);
@@ -62,14 +65,19 @@ export class DonorCardCanvas {
   }
 
   private static drawBody(ctx: CanvasRenderingContext2D, cardData: DonorCardData): void {
+    const categoryConfig = CATEGORY_CONFIG[cardData.category];
+    
     // Donor name (large, bold)
     ctx.fillStyle = '#111827';
     ctx.font = 'bold 28px Arial, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(cardData.donorName, 25, 125);
     
-    // Blood type badge (circular, green for donor)
-    ctx.fillStyle = '#059669';
+    // Get category-specific badge info
+    const badgeInfo = this.getCategoryBadgeInfo(cardData);
+    
+    // Category badge (circular, with category color)
+    ctx.fillStyle = categoryConfig.primaryColor;
     ctx.beginPath();
     ctx.arc(350, 115, 30, 0, 2 * Math.PI);
     ctx.fill();
@@ -77,8 +85,8 @@ export class DonorCardCanvas {
     ctx.font = 'bold 10px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('DONOR', 350, 105);
-    ctx.font = 'bold 20px Arial, sans-serif';
-    ctx.fillText(cardData.bloodType, 350, 125);
+    ctx.font = 'bold 16px Arial, sans-serif';
+    ctx.fillText(badgeInfo, 350, 125);
     
     // Message text
     ctx.fillStyle = '#374151';
@@ -91,28 +99,90 @@ export class DonorCardCanvas {
     // Info grid section
     let currentY = 195;
     
-    // Donation type (with icon)
-    this.drawInfoItem(ctx, '🎁', 'Offering', cardData.donationType, 25, currentY);
+    // Category-specific offering info
+    const offeringInfo = this.getCategoryOfferingInfo(cardData);
+    this.drawInfoItem(ctx, '🎁', 'Offering', offeringInfo.type, 25, currentY);
     this.drawInfoItem(ctx, '📍', 'Location', cardData.location, 220, currentY);
     
     currentY += 50;
     
-    // Availability and donation count
+    // Availability and category-specific count
     this.drawInfoItem(ctx, '🕐', 'Availability', cardData.availability, 25, currentY);
-    this.drawInfoItem(ctx, '🏆', 'Donations Made', `${cardData.donationCount} times`, 220, currentY);
+    this.drawInfoItem(ctx, '🏆', offeringInfo.countLabel, offeringInfo.count, 220, currentY);
+  }
+
+  private static getCategoryBadgeInfo(cardData: DonorCardData): string {
+    switch (cardData.category) {
+      case DonorCardCategory.BLOOD:
+        return cardData.bloodOffering?.bloodType || 'N/A';
+      case DonorCardCategory.ORGANS:
+        return cardData.organOffering?.organType?.substring(0, 6) || 'N/A';
+      case DonorCardCategory.FUNDRAISER:
+        const amount = cardData.fundraiserOffering?.maxAmount;
+        return amount ? `${Math.round(Number(amount) / 1000)}K` : 'N/A';
+      case DonorCardCategory.MEDICINES:
+        return cardData.medicineOffering?.medicineTypes?.[0]?.substring(0, 8) || 'N/A';
+      case DonorCardCategory.SUPPLIES:
+        return cardData.suppliesOffering?.suppliesType?.substring(0, 8) || 'N/A';
+      default:
+        return 'N/A';
+    }
+  }
+
+  private static getCategoryOfferingInfo(cardData: DonorCardData): { type: string; countLabel: string; count: string } {
+    switch (cardData.category) {
+      case DonorCardCategory.BLOOD:
+        return {
+          type: 'Blood Donation',
+          countLabel: 'Donations Made',
+          count: `${cardData.bloodOffering?.donationCount || '0'} times`
+        };
+      case DonorCardCategory.ORGANS:
+        return {
+          type: 'Organ Donation',
+          countLabel: 'Health Status',
+          count: cardData.organOffering?.healthStatus || 'Unknown'
+        };
+      case DonorCardCategory.FUNDRAISER:
+        return {
+          type: 'Financial Support',
+          countLabel: 'Max Amount',
+          count: `LKR ${cardData.fundraiserOffering?.maxAmount ? Number(cardData.fundraiserOffering.maxAmount).toLocaleString() : '0'}`
+        };
+      case DonorCardCategory.MEDICINES:
+        return {
+          type: 'Medicine Donation',
+          countLabel: 'Medicine Types',
+          count: `${cardData.medicineOffering?.medicineTypes?.length || 0} types`
+        };
+      case DonorCardCategory.SUPPLIES:
+        return {
+          type: 'Medical Supplies',
+          countLabel: 'Supply Type',
+          count: cardData.suppliesOffering?.suppliesType || 'Unknown'
+        };
+      default:
+        return {
+          type: 'Donation',
+          countLabel: 'Status',
+          count: 'Available'
+        };
+    }
   }
 
   private static drawContactSection(ctx: CanvasRenderingContext2D, cardData: DonorCardData): void {
-    const width = 400; // Define width locally since we need it for calculations
+    const width = 400;
+    const categoryConfig = CATEGORY_CONFIG[cardData.category];
+    
     // Contact section background
-    ctx.fillStyle = '#f0fdf4';
+    ctx.fillStyle = categoryConfig.bgColor;
     ctx.fillRect(15, 280, width - 30, 130);
-    ctx.strokeStyle = '#059669';
+    ctx.strokeStyle = categoryConfig.primaryColor;
     ctx.lineWidth = 2;
     ctx.strokeRect(15, 280, width - 30, 130);
     
     // Contact header
-    ctx.fillStyle = '#065f46';
+    ctx.fillStyle = categoryConfig.primaryColor;
     ctx.font = 'bold 16px Arial, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText('📞 Contact for Donation', 25, 305);
@@ -120,7 +190,10 @@ export class DonorCardCanvas {
     // Contact person
     this.drawContactItem(ctx, 'Contact Person', cardData.contactPerson, `(${cardData.relationship})`, 25, 330);
     this.drawContactItem(ctx, 'Primary Phone', cardData.primaryPhone, '', 200, 330);
-    this.drawContactItem(ctx, 'Secondary Phone', cardData.secondaryPhone, '', 25, 380);
+    
+    if (cardData.secondaryPhone) {
+      this.drawContactItem(ctx, 'Secondary Phone', cardData.secondaryPhone, '', 25, 380);
+    }
     
     // QR code area
     this.drawQRCodePlaceholder(ctx);

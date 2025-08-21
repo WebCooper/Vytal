@@ -2,13 +2,59 @@
 import React from 'react';
 import { FaGift, FaMapMarkerAlt, FaHeartbeat } from 'react-icons/fa';
 import { MdVolunteerActivism } from 'react-icons/md';
-import { DonorCardData } from '../../types/donorCard';
+import { DonorCardData, DonorCardCategory } from '../../types/donorCard';
+import { CATEGORY_CONFIG } from '../../utils/constants';
 
 interface CardBodyProps {
   cardData: DonorCardData;
 }
 
 export const CardBody: React.FC<CardBodyProps> = ({ cardData }) => {
+  // Get category-specific information
+  const getCategoryDisplay = () => {
+    switch (cardData.category) {
+      case DonorCardCategory.BLOOD:
+        return {
+          type: cardData.bloodOffering?.bloodType || 'N/A',
+          offering: 'Blood Donation',
+          count: cardData.bloodOffering?.donationCount || '0'
+        };
+      case DonorCardCategory.ORGANS:
+        return {
+          type: cardData.organOffering?.organType || 'N/A',
+          offering: 'Organ Donation',
+          count: '1'
+        };
+      case DonorCardCategory.FUNDRAISER:
+        return {
+          type: `LKR ${cardData.fundraiserOffering?.maxAmount ? Number(cardData.fundraiserOffering.maxAmount).toLocaleString() : '0'}`,
+          offering: 'Financial Support',
+          count: '1'
+        };
+      case DonorCardCategory.MEDICINES:
+        return {
+          type: cardData.medicineOffering?.medicineTypes?.[0] || 'N/A',
+          offering: 'Medicine Donation',
+          count: cardData.medicineOffering?.medicineTypes?.length?.toString() || '0'
+        };
+      case DonorCardCategory.SUPPLIES:
+        return {
+          type: cardData.suppliesOffering?.suppliesType || 'N/A',
+          offering: 'Medical Supplies',
+          count: '1'
+        };
+      default:
+        return {
+          type: 'N/A',
+          offering: 'Donation',
+          count: '0'
+        };
+    }
+  };
+
+  const categoryInfo = getCategoryDisplay();
+  const categoryConfig = CATEGORY_CONFIG[cardData.category];
+
   return (
     <div className="p-3 relative">
       {/* Subtle watermark */}
@@ -24,10 +70,13 @@ export const CardBody: React.FC<CardBodyProps> = ({ cardData }) => {
             <p className="text-gray-700 text-xs mt-1 font-medium leading-relaxed">{cardData.message}</p>
           </div>
           
-          {/* Blood Type Badge */}
-          <div className="bg-emerald-500 text-white rounded-full w-12 h-12 flex flex-col items-center justify-center flex-shrink-0 shadow-lg">
+          {/* Category Badge */}
+          <div 
+            className="text-white rounded-full w-12 h-12 flex flex-col items-center justify-center flex-shrink-0 shadow-lg"
+            style={{ backgroundColor: categoryConfig.primaryColor }}
+          >
             <span className="text-xs font-bold">DONOR</span>
-            <span className="text-sm font-bold">{cardData.bloodType}</span>
+            <span className="text-sm font-bold">{categoryInfo.type}</span>
           </div>
         </div>
         
@@ -36,7 +85,7 @@ export const CardBody: React.FC<CardBodyProps> = ({ cardData }) => {
             <FaGift className="text-emerald-600 mt-0.5 mr-1 flex-shrink-0" />
             <div>
               <p className="text-gray-600 font-semibold">Offering</p>
-              <p className="font-bold text-gray-900 leading-tight">{cardData.donationType}</p>
+              <p className="font-bold text-gray-900 leading-tight">{categoryInfo.offering}</p>
             </div>
           </div>
           
@@ -59,8 +108,8 @@ export const CardBody: React.FC<CardBodyProps> = ({ cardData }) => {
           <div className="flex items-start">
             <MdVolunteerActivism className="text-emerald-500 mt-0.5 mr-1 flex-shrink-0" />
             <div>
-              <p className="text-gray-600 font-semibold">Donations Made</p>
-              <p className="font-bold text-emerald-700">{cardData.donationCount} times</p>
+              <p className="text-gray-600 font-semibold">Contributions</p>
+              <p className="font-bold text-emerald-700">{categoryInfo.count} times</p>
             </div>
           </div>
         </div>
