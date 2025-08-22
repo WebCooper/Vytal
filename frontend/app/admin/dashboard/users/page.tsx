@@ -2,8 +2,9 @@
 import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
 import { getUsers as apiGetUsers, type User as ApiUser } from "@/lib/userService";
-import { FaUsers, FaSearch, FaTrash, FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt } from "react-icons/fa";
+import { FaUsers, FaSearch, FaTrash, FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt, FaUser, FaEnvelope, FaPhone, FaIdBadge } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
+import AdminUserModal from "@/components/admin/AdminUserModal";
 
 // Mock data - replace with actual API calls
 const mockUsers = [
@@ -25,6 +26,8 @@ export default function UsersManagement() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [viewId, setViewId] = useState<number | null>(null);
+  const [viewData, setViewData] = useState<User | null>(null);
 
   // Fetch once on mount
   useEffect(() => {
@@ -113,6 +116,19 @@ export default function UsersManagement() {
 
   const handleCancelDelete = () => {
     setShowDeleteConfirm(null);
+  };
+
+  const openView = (userId: number) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setViewId(userId);
+      setViewData(user);
+    }
+  };
+
+  const closeView = () => {
+    setViewId(null);
+    setViewData(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -302,7 +318,11 @@ export default function UsersManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative min-w-[150px]">
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition-colors" title="View">
+                          <button 
+                            onClick={() => openView(user.id)}
+                            className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition-colors" 
+                            title="View"
+                          >
                             <FaEye />
                           </button>
                           {user.role !== 'admin' && (
@@ -377,6 +397,140 @@ export default function UsersManagement() {
           )}
         </div>
       </div>
+      <AnimatePresence>
+        {viewId !== null && viewData && (
+          <AdminUserModal
+            title="User Details"
+            onClose={closeView}
+            actions={
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
+                <button 
+                  onClick={closeView} 
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-medium transition-colors"
+                >
+                  Close
+                </button>
+                {viewData.role !== 'admin' && (
+                  <>
+                    {viewData.status === 'active' ? (
+                      <button 
+                        onClick={() => { handleStatusChange(viewData.id, 'suspended'); closeView(); }}
+                        className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-yellow-600 hover:bg-yellow-700 text-white font-semibold shadow-sm transition-colors"
+                      >
+                        Suspend User
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => { handleStatusChange(viewData.id, 'active'); closeView(); }}
+                        className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold shadow-sm transition-colors"
+                      >
+                        Activate User
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            }
+          >
+            <div className="space-y-6">
+              {/* Header Section */}
+              <div className="space-y-3">
+                <h5 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-gray-900 leading-tight">
+                  {viewData.name}
+                </h5>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border ${getRoleColor(viewData.role)}`}>
+                    {viewData.role}
+                  </span>
+                  <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full border ${getStatusColor(viewData.status)}`}>
+                    {viewData.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 sm:p-6 border border-blue-100">
+                <h6 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FaUser className="text-blue-600" />
+                  Contact Information
+                </h6>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                      <FaEnvelope className="text-blue-500" />
+                      Email
+                    </div>
+                    <div className="text-sm text-gray-800 break-all">{viewData.email}</div>
+                  </div>
+                  {viewData.phone && (
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                        <FaPhone className="text-green-500" />
+                        Phone
+                      </div>
+                      <div className="text-sm font-medium text-gray-900">{viewData.phone}</div>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                      <FaIdBadge className="text-purple-500" />
+                      User ID
+                    </div>
+                    <div className="text-sm font-medium text-gray-900">#{viewData.id}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Role</div>
+                    <div className="text-sm text-gray-800 capitalize">{viewData.role}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Categories & Activity */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Categories */}
+                <div className="bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-200">
+                  <h6 className="text-base font-semibold text-gray-900 mb-3">
+                    Interested Categories
+                  </h6>
+                  {viewData.categories.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {viewData.categories.map((category) => (
+                        <span key={category} className="inline-flex px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-lg font-medium">
+                          {category}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No categories selected</p>
+                  )}
+                </div>
+
+                {/* Activity */}
+                <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-4 sm:p-5 border border-emerald-200">
+                  <h6 className="text-base font-semibold text-emerald-800 mb-3 flex items-center gap-2">
+                    <FaCalendarAlt className="text-emerald-600" />
+                    Activity Timeline
+                  </h6>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-emerald-700">Joined</span>
+                      <span className="text-sm font-bold text-emerald-900">
+                        {formatDate(viewData.joinedAt)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-emerald-700">Last Active</span>
+                      <span className="text-sm font-bold text-emerald-900">
+                        {formatDate(viewData.lastActive)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </AdminUserModal>
+        )}
+      </AnimatePresence>
     </AdminPageWrapper>
   );
 }
