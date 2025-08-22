@@ -146,6 +146,25 @@ public isolated function getPendingRecipientPosts() returns types:RecipientPostR
     return responses;
 }
 
+# List rejected (not approved) recipient posts (for admin moderation)
+# + return - Array of rejected recipient posts or error
+public isolated function getRejectedRecipientPosts() returns types:RecipientPostResponse[]|error {
+    types:RecipientPost[] posts = check database:getRecipientPosts();
+    types:RecipientPost[] rejected = from types:RecipientPost p in posts
+        where p.status == "rejected"
+        select p;
+
+    types:RecipientPostResponse[] responses = [];
+    foreach types:RecipientPost post in rejected {
+        types:UserResponse|error userResult = getUserById(post.recipient_id);
+        if userResult is error {
+            continue;
+        }
+        responses.push(mapPostToResponse(post, userResult));
+    }
+    return responses;
+}
+
 # Approve a pending recipient post (set status to open)
 # + postId - ID of the post to approve
 # + return - Approved post response or error
@@ -165,6 +184,30 @@ public isolated function approveRecipientPost(int postId) returns types:Recipien
     }
 
     types:RecipientPostUpdate updateData = { status: "open" ,goal: (), urgency: (), contact: (), location: (), received: (), title: (), category: (), content: ()};
+    _ = check database:updateRecipientPost(postId, updateData);
+
+    // Re-fetch and return updated
+    types:RecipientPost? updated = check database:getRecipientPostById(postId);
+    if updated is () {
+        return error("Failed to load updated post");
+    }
+    types:UserResponse|error userResult = getUserById(updated.recipient_id);
+    if userResult is error {
+        return error("Failed to retrieve user details");
+    }
+    return mapPostToResponse(updated, userResult);
+}
+
+# Reject a recipient post (set status to rejected)
+# + postId - ID of the post to reject
+# + return - Updated post response or error
+public isolated function rejectRecipientPost(int postId) returns types:RecipientPostResponse|error {
+    types:RecipientPost? currentPost = check database:getRecipientPostById(postId);
+    if currentPost is () {
+        return error("Post not found");
+    }
+
+    types:RecipientPostUpdate updateData = { status: "rejected" ,goal: (), urgency: (), contact: (), location: (), received: (), title: (), category: (), content: ()};
     _ = check database:updateRecipientPost(postId, updateData);
 
     // Re-fetch and return updated

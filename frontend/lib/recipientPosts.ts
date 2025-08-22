@@ -3,7 +3,7 @@ import { axiosInstance } from './axiosInstance';
 
 // Enums from backend
 export type PostCategory = 'blood' | 'organs' | 'fundraiser' | 'medicines' | 'supplies';
-export type PostStatus = 'pending' | 'open' | 'fulfilled' | 'cancelled';
+export type PostStatus = 'pending' | 'open' | 'fulfilled' | 'cancelled' | 'rejected';
 export type PostUrgency = 'low' | 'medium' | 'high';
 
 // Engagement metrics

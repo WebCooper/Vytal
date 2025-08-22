@@ -18,7 +18,7 @@ export const approveRecipientPost = async (postId: number): Promise<{ message: s
 
 export const setRecipientPostStatus = async (
   postId: number,
-  status: 'pending' | 'open' | 'fulfilled' | 'cancelled'
+  status: 'pending' | 'open' | 'fulfilled' | 'cancelled' | 'rejected'
 ): Promise<{ message?: string; data?: RecipientPost; timestamp: string }> => {
   const res = await axiosInstance.put<{ message?: string; data?: RecipientPost; timestamp: string }>(
     `/posts/${postId}`,
@@ -39,5 +39,20 @@ export interface AdminPostDetailsResponse {
 
 export const getRecipientPostDetails = async (postId: number): Promise<AdminPostDetailsResponse> => {
   const res = await axiosInstance.get<AdminPostDetailsResponse>(`/admin/post-details/${postId}`);
+  return res.data;
+};
+
+export interface RejectedPostsResponse {
+  data: RecipientPost[];
+  timestamp: string;
+}
+
+export const getRejectedRecipientPosts = async (): Promise<RejectedPostsResponse> => {
+  const res = await axiosInstance.get<RejectedPostsResponse>('/admin/rejected-posts');
+  return res.data;
+};
+
+export const rejectRecipientPost = async (postId: number): Promise<{ message: string; data: RecipientPost; timestamp: string }> => {
+  const res = await axiosInstance.post<{ message: string; data: RecipientPost; timestamp: string }>(`/admin/reject-post/${postId}`);
   return res.data;
 };

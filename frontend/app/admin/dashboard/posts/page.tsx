@@ -1,9 +1,9 @@
 "use client";
 import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
-import { FaFileAlt, FaSearch, FaTrash, FaEye, FaCheck, FaClock, FaUser, FaCalendarAlt } from "react-icons/fa";
+import { FaFileAlt, FaSearch, FaTrash, FaEye, FaCheck, FaClock, FaUser, FaCalendarAlt, FaTimesCircle } from "react-icons/fa";
 
-import { getPendingRecipientPosts, approveRecipientPost, setRecipientPostStatus, deleteRecipientPost, getRecipientPostDetails } from "@/lib/adminPosts";
+import { getPendingRecipientPosts, approveRecipientPost, setRecipientPostStatus, deleteRecipientPost, getRecipientPostDetails, getRejectedRecipientPosts, rejectRecipientPost } from "@/lib/adminPosts";
 import AdminPostModal from "@/components/admin/AdminPostModal";
 import { AnimatePresence } from "framer-motion";
 import { getAllPosts as getAllOpenPosts, type RecipientPost } from "@/lib/recipientPosts";
@@ -29,52 +29,78 @@ export default function PostsManagement() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'rejected'>('active');
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [urgencyFilter, setUrgencyFilter] = useState("all");
   const [viewId, setViewId] = useState<number | null>(null);
   const [viewData, setViewData] = useState<RecipientPost | null>(null);
+  
+  // Store counts for all tabs
+  const [tabCounts, setTabCounts] = useState<{
+    active: number;
+    pending: number;
+    rejected: number;
+  }>({ active: 0, pending: 0, rejected: 0 });
 
-  // Load posts from backend (pending via admin route + open via public route)
+  // Load posts per tab
   useEffect(() => {
-    const loadPending = async () => {
+    const toPost = (p: RecipientPost): Post => ({
+      id: p.id,
+      title: p.title,
+      author: p.user?.name || 'Unknown',
+      authorEmail: p.user?.email || '',
+      category: p.category,
+      status: p.status,
+      urgency: p.urgency || 'medium',
+      location: p.location,
+      goal: p.fundraiserDetails?.goal ?? null,
+      received: p.fundraiserDetails?.received ?? null,
+      views: p.engagement?.views ?? 0,
+      likes: p.engagement?.likes ?? 0,
+      createdAt: p.createdAt,
+      content: p.content,
+    });
+
+    const loadForTab = async () => {
       try {
         setLoading(true);
-        const [{ data: pending }, { data: open }] = await Promise.all([
+        if (activeTab === 'pending') {
+          const { data: pending } = await getPendingRecipientPosts();
+          const mapped = pending.map(toPost).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setPosts(mapped);
+        } else if (activeTab === 'active') {
+          const { data: open } = await getAllOpenPosts();
+          const mapped = open.map(toPost).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setPosts(mapped);
+        } else {
+          const { data: rejected } = await getRejectedRecipientPosts();
+          const mapped = rejected.map(toPost).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setPosts(mapped);
+        }
+        
+        // Update all tab counts whenever we load data
+        const [pendingRes, activeRes, rejectedRes] = await Promise.all([
           getPendingRecipientPosts(),
-          getAllOpenPosts()
+          getAllOpenPosts(),
+          getRejectedRecipientPosts()
         ]);
-
-  const toPost = (p: RecipientPost): Post => ({
-          id: p.id,
-          title: p.title,
-          author: p.user?.name || 'Unknown',
-          authorEmail: p.user?.email || '',
-          category: p.category,
-          status: p.status,
-          urgency: p.urgency || 'medium',
-          location: p.location,
-          goal: p.fundraiserDetails?.goal ?? null,
-          received: p.fundraiserDetails?.received ?? null,
-          views: p.engagement?.views ?? 0,
-          likes: p.engagement?.likes ?? 0,
-          createdAt: p.createdAt,
-          content: p.content,
+        
+        setTabCounts({
+          pending: pendingRes.data.length,
+          active: activeRes.data.length,
+          rejected: rejectedRes.data.length
         });
-
-        const mapped: Post[] = [...pending.map(toPost), ...open.map(toPost)]
-          // ensure unique and keep latest by createdAt
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setPosts(mapped);
       } catch (e) {
-        console.error('Failed to load pending posts', e);
+        console.error('Failed to load posts for tab', activeTab, e);
       } finally {
         setLoading(false);
       }
     };
-    loadPending();
-  }, []);
+
+    loadForTab();
+  }, [activeTab]);
 
   useEffect(() => {
     // Filter posts based on search term, category, status, and urgency
@@ -105,12 +131,14 @@ export default function PostsManagement() {
 
   const handleStatusChange = async (
     postId: number,
-    newStatus: 'pending' | 'open' | 'fulfilled' | 'cancelled'
+    newStatus: 'pending' | 'open' | 'fulfilled' | 'cancelled' | 'rejected'
   ) => {
     try {
       setLoading(true);
       if (newStatus === 'open') {
         await approveRecipientPost(postId);
+      } else if (newStatus === 'rejected') {
+        await rejectRecipientPost(postId);
       } else {
         await setRecipientPostStatus(postId, newStatus);
       }
@@ -180,6 +208,7 @@ export default function PostsManagement() {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'fulfilled': return 'bg-blue-100 text-blue-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+  case 'rejected': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -247,6 +276,77 @@ export default function PostsManagement() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-4 border border-white/30">
+          <div className="inline-flex bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-1.5 shadow-inner">
+            {[
+              { 
+                key: 'active', 
+                label: 'Active', 
+                icon: FaCheck,
+                color: 'emerald',
+                count: tabCounts.active
+              },
+              { 
+                key: 'pending', 
+                label: 'Pending', 
+                icon: FaClock,
+                color: 'amber',
+                count: tabCounts.pending
+              },
+              { 
+                key: 'rejected', 
+                label: 'Not Approved', 
+                icon: FaTimesCircle,
+                color: 'red',
+                count: tabCounts.rejected
+              },
+            ].map(t => {
+              const isActive = activeTab === t.key;
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key as 'pending' | 'active' | 'rejected')}
+                  className={`
+                    relative px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-300 transform
+                    flex items-center gap-3 min-w-[140px] justify-center
+                    ${isActive
+                      ? t.color === 'amber'
+                        ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-white shadow-lg shadow-amber-500/25 scale-105'
+                        : t.color === 'emerald'
+                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25 scale-105'
+                        : 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25 scale-105'
+                      : t.color === 'amber'
+                        ? 'text-amber-700 hover:bg-amber-50 hover:text-amber-800'
+                        : t.color === 'emerald'
+                        ? 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800'
+                        : 'text-red-700 hover:bg-red-50 hover:text-red-800'
+                    }
+                    hover:scale-105 hover:shadow-md
+                  `}
+                >
+                  <Icon size={16} className={isActive ? 'animate-pulse' : ''} />
+                  <span className="font-bold">{t.label}</span>
+                  <div className={`
+                    ml-1 px-2 py-0.5 rounded-full text-xs font-bold min-w-[1.5rem] flex items-center justify-center
+                    ${isActive
+                      ? 'bg-white/20 text-white'
+                      : t.color === 'amber'
+                        ? 'bg-amber-100 text-amber-800'
+                        : t.color === 'emerald'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-red-100 text-red-800'
+                    }
+                  `}>
+                    {t.count}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Filters and Search */}
         <div className="bg-white/70 backdrop-blur-md rounded-xl shadow-lg p-6 border border-white/20">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -285,6 +385,7 @@ export default function PostsManagement() {
                 <option value="open">Open</option>
                 <option value="fulfilled">Fulfilled</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="rejected">Not Approved</option>
               </select>
               <select
                 value={urgencyFilter}
@@ -392,59 +493,65 @@ export default function PostsManagement() {
                         </div>
                       </td>
                       <td className="px-3 py-4 text-sm font-medium">
-                        <div className="relative flex justify-center gap-2">
-                          {post.status === 'pending' ? (
-                            <>
-                              <button
-                                onClick={() => openView(post.id)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
-                                title="Review to approve"
-                              >
-                                <FaEye size={12} />
-                                Review
-                              </button>
-                              <button 
-                                onClick={() => handleStatusChange(post.id, 'open')}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100" 
-                                title="Approve post"
-                              >
-                                <FaCheck size={12} />
-                                Approve
-                              </button>
-                            </>
+                        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+                          {activeTab === 'pending' ? (
+                            // Pending: Only Review (Approve is inside the modal)
+                            <button
+                              onClick={() => openView(post.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all duration-200 hover:shadow-md active:scale-95"
+                              title="Review to approve"
+                            >
+                              <FaEye size={12} />
+                              <span className="hidden sm:inline">Review</span>
+                            </button>
+                          ) : activeTab === 'rejected' ? (
+                            // Not Approved: Show Review (Re-approve is inside the modal)
+                            <button 
+                              onClick={() => openView(post.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all duration-200 hover:shadow-md active:scale-95" 
+                              title="Review to re-approve"
+                            >
+                              <FaEye size={12} />
+                              <span className="hidden sm:inline">Review</span>
+                            </button>
                           ) : (
                             <button 
                               onClick={() => openView(post.id)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100" 
+                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all duration-200 hover:shadow-md active:scale-95" 
                               title="View details"
                             >
                               <FaEye size={12} />
-                              View
+                              <span className="hidden sm:inline">View</span>
                             </button>
                           )}
-                          
+
                           <div className="relative">
                             <button
                               onClick={() => (deleteId === post.id ? setDeleteId(null) : setDeleteId(post.id))}
-                              className="text-red-600 hover:text-red-900 bg-red-100 p-1.5 rounded" 
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm hover:from-red-600 hover:to-red-700 transition-all duration-200 hover:shadow-md active:scale-95" 
                               title="Delete"
                             >
-                              <FaTrash size={14} />
+                              <FaTrash size={12} />
                             </button>
                             {deleteId === post.id && (
-                              <div className="absolute z-40 right-0 top-8 w-60 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-xl p-3">
-                                <p className="text-sm font-semibold text-gray-800">Delete this post?</p>
-                                <p className="text-xs text-gray-600 mb-3">This action cannot be undone.</p>
+                              <div className="absolute z-40 right-0 top-10 w-64 bg-white border border-gray-200 rounded-xl shadow-2xl p-4 backdrop-blur-md">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                                    <FaTrash className="text-red-600" size={14} />
+                                  </div>
+                                  <p className="text-sm font-bold text-gray-900">Delete Post</p>
+                                </div>
+                                <p className="text-xs text-gray-600 mb-4 leading-relaxed">This action cannot be undone. The post will be permanently removed.</p>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => handleDeletePost(post.id)}
-                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded font-medium transition-colors"
+                                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white py-2.5 px-4 rounded-lg font-semibold transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
                                   >
                                     Delete
                                   </button>
                                   <button
                                     onClick={handleCancelDelete}
-                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-3 rounded font-medium transition-colors border border-gray-200"
+                                    className="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-800 py-2.5 px-4 rounded-lg font-semibold transition-all duration-200 border border-gray-300 shadow-sm hover:shadow-md active:scale-95"
                                   >
                                     Cancel
                                   </button>
@@ -487,6 +594,14 @@ export default function PostsManagement() {
                     className="flex-1 sm:flex-none px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold shadow-sm transition-all"
                   >
                     Approve Post
+                  </button>
+                )}
+                {viewData.status === 'rejected' && (
+                  <button 
+                    onClick={async () => { await handleStatusChange(viewData.id, 'open'); closeView(); }} 
+                    className="flex-1 sm:flex-none px-6 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold shadow-sm transition-all"
+                  >
+                    Re-approve Post
                   </button>
                 )}
               </div>
