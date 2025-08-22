@@ -2,7 +2,8 @@
 import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
 import { getUsers as apiGetUsers, type User as ApiUser } from "@/lib/userService";
-import { FaUsers, FaSearch, FaTrash, FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt, FaUser, FaEnvelope, FaPhone, FaIdBadge } from "react-icons/fa";
+import { getPostsByUser, type RecipientPost } from "@/lib/recipientPosts";
+import { FaUsers, FaSearch, FaTrash, FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt, FaUser, FaEnvelope, FaPhone, FaIdBadge, FaHistory, FaFileAlt, FaExclamationTriangle } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
 import AdminUserModal from "@/components/admin/AdminUserModal";
 
@@ -28,6 +29,9 @@ export default function UsersManagement() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
   const [viewId, setViewId] = useState<number | null>(null);
   const [viewData, setViewData] = useState<User | null>(null);
+  const [showActivity, setShowActivity] = useState(false);
+  const [userPosts, setUserPosts] = useState<RecipientPost[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
 
   // Fetch once on mount
   useEffect(() => {
@@ -129,6 +133,22 @@ export default function UsersManagement() {
   const closeView = () => {
     setViewId(null);
     setViewData(null);
+    setShowActivity(false);
+    setUserPosts([]);
+  };
+
+  const loadUserActivity = async (userId: number) => {
+    setLoadingPosts(true);
+    try {
+      const response = await getPostsByUser(userId);
+      setUserPosts(response.data || []);
+      setShowActivity(true);
+    } catch (error) {
+      console.error('Failed to load user posts:', error);
+      setUserPosts([]);
+    } finally {
+      setLoadingPosts(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -157,6 +177,27 @@ export default function UsersManagement() {
       month: 'short',
       day: 'numeric',
     }).format(date);
+  };
+
+  const getPostStatusColor = (status: string) => {
+    switch (status) {
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'fulfilled': return 'bg-blue-100 text-blue-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPostCategoryColor = (category: string) => {
+    switch (category) {
+      case 'blood': return 'bg-red-100 text-red-800';
+      case 'organs': return 'bg-purple-100 text-purple-800';
+      case 'medicines': return 'bg-blue-100 text-blue-800';
+      case 'supplies': return 'bg-green-100 text-green-800';
+      case 'fundraiser': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
@@ -410,6 +451,14 @@ export default function UsersManagement() {
                 >
                   Close
                 </button>
+                <button 
+                  onClick={() => loadUserActivity(viewData.id)}
+                  disabled={loadingPosts}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <FaHistory />
+                  {loadingPosts ? 'Loading...' : 'View Activity'}
+                </button>
                 {viewData.role !== 'admin' && (
                   <>
                     {viewData.status === 'active' ? (
@@ -527,6 +576,91 @@ export default function UsersManagement() {
                   </div>
                 </div>
               </div>
+
+              {/* User Activity Section */}
+              {showActivity && (
+                <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                  <h6 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <FaFileAlt className="text-blue-600" />
+                    User Activity & Posts ({userPosts.length})
+                  </h6>
+                  
+                  {loadingPosts ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                      <p className="text-gray-600 mt-2">Loading user activity...</p>
+                    </div>
+                  ) : userPosts.length > 0 ? (
+                    <div className="space-y-4">
+                      {userPosts.map((post) => (
+                        <div key={post.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold text-gray-900 text-sm">{post.title}</h4>
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPostCategoryColor(post.category)}`}>
+                                {post.category}
+                              </span>
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPostStatusColor(post.status)}`}>
+                                {post.status}
+                              </span>
+                              {post.status === 'pending' && (
+                                <FaExclamationTriangle className="text-yellow-500 text-sm" title="Needs Review" />
+                              )}
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">{post.content}</p>
+                          
+                          <div className="flex justify-between items-center text-xs text-gray-500">
+                            <div className="flex items-center gap-4">
+                              <span>Created: {formatDate(post.createdAt)}</span>
+                              {post.location && <span>📍 {post.location}</span>}
+                              {post.urgency && (
+                                <span className={`px-2 py-0.5 rounded ${post.urgency === 'high' ? 'bg-red-100 text-red-700' : post.urgency === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                  {post.urgency} priority
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span>👁 {post.engagement?.views || 0}</span>
+                              <span>❤️ {post.engagement?.likes || 0}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Summary Stats */}
+                      <div className="bg-gray-50 rounded-lg p-4 mt-4">
+                        <h4 className="font-semibold text-gray-900 mb-2">Activity Summary</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                          <div className="text-center">
+                            <div className="font-semibold text-blue-600">{userPosts.length}</div>
+                            <div className="text-gray-600">Total Posts</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-semibold text-yellow-600">{userPosts.filter(p => p.status === 'pending').length}</div>
+                            <div className="text-gray-600">Pending</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-semibold text-green-600">{userPosts.filter(p => p.status === 'open').length}</div>
+                            <div className="text-gray-600">Active</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-semibold text-red-600">{userPosts.filter(p => p.urgency === 'high').length}</div>
+                            <div className="text-gray-600">High Priority</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FaFileAlt className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                      <p className="text-gray-600">No posts found for this user</p>
+                      <p className="text-sm text-gray-500 mt-1">This user hasn&apos;t created any posts yet.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </AdminUserModal>
         )}
