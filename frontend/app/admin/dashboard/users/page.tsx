@@ -3,8 +3,8 @@ import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
 import { getUsers as apiGetUsers, type User as ApiUser } from "@/lib/userService";
 import { getPostsByUser, type RecipientPost } from "@/lib/recipientPosts";
-import { FaUsers, FaSearch, FaTrash, FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt, FaUser, FaEnvelope, FaPhone, FaIdBadge, FaHistory, FaFileAlt, FaExclamationTriangle } from "react-icons/fa";
-import { AnimatePresence, motion } from "framer-motion";
+import { FaUsers, FaSearch, FaEye, FaCalendarAlt, FaUser, FaEnvelope, FaPhone, FaIdBadge, FaHistory, FaFileAlt, FaExclamationTriangle } from "react-icons/fa";
+import { AnimatePresence } from "framer-motion";
 import AdminUserModal from "@/components/admin/AdminUserModal";
 
 // Mock data - replace with actual API calls
@@ -26,7 +26,7 @@ export default function UsersManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  // Only view button in table; suspend via modal
   const [viewId, setViewId] = useState<number | null>(null);
   const [viewData, setViewData] = useState<User | null>(null);
   const [showActivity, setShowActivity] = useState(false);
@@ -95,32 +95,7 @@ export default function UsersManagement() {
     }, 500);
   };
 
-  const handleDeleteUser = (userId: number) => {
-    if (showDeleteConfirm !== userId) {
-      setShowDeleteConfirm(userId);
-      return;
-    }
-
-    // Check if user is admin
-    const userToDelete = users.find(user => user.id === userId);
-    if (userToDelete?.role === 'admin') {
-      alert("Admin users cannot be deleted");
-      setShowDeleteConfirm(null);
-      return;
-    }
-
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setUsers(prev => prev.filter(user => user.id !== userId));
-      setShowDeleteConfirm(null);
-      setLoading(false);
-    }, 500);
-  };
-
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(null);
-  };
+  // Inline delete removed; moderation actions are handled inside the modal
 
   const openView = (userId: number) => {
     const user = users.find(u => u.id === userId);
@@ -214,13 +189,13 @@ export default function UsersManagement() {
               <FaUsers className="w-8 h-8 text-blue-600" />
             </div>
           </div>
-          <div className="bg-white/70 backdrop-blur-md rounded-xl shadow-lg p-4 border border-white/20">
+      <div className="bg-white/70 backdrop-blur-md rounded-xl shadow-lg p-4 border border-white/20">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Users</p>
                 <p className="text-2xl font-bold text-green-600">{users.filter(u => u.status === 'active').length}</p>
               </div>
-              <FaUserCheck className="w-8 h-8 text-green-600" />
+        <FaUsers className="w-8 h-8 text-green-600" />
             </div>
           </div>
           <div className="bg-white/70 backdrop-blur-md rounded-xl shadow-lg p-4 border border-white/20">
@@ -357,77 +332,16 @@ export default function UsersManagement() {
                         </div>
                         <div className="text-xs mt-1">Last active: {formatDate(user.lastActive)}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative min-w-[150px]">
-                        <div className="flex space-x-2">
-                          <button 
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium min-w-[150px]">
+                        <div className="flex items-center gap-2">
+                          <button
                             onClick={() => openView(user.id)}
-                            className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition-colors" 
-                            title="View"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm hover:from-blue-600 hover:to-blue-700 transition-all duration-200 hover:shadow-md active:scale-95"
+                            title="View details"
                           >
-                            <FaEye />
+                            <FaEye size={12} />
+                            <span className="hidden sm:inline">View</span>
                           </button>
-                          {user.role !== 'admin' && (
-                            <>
-                              {user.status === 'active' ? (
-                                <button 
-                                  onClick={() => handleStatusChange(user.id, 'suspended')}
-                                  className="text-yellow-600 hover:text-yellow-900 bg-yellow-50 p-2 rounded-full hover:bg-yellow-100 transition-colors" 
-                                  title="Suspend"
-                                >
-                                  <FaUserTimes />
-                                </button>
-                              ) : (
-                                <button 
-                                  onClick={() => handleStatusChange(user.id, 'active')}
-                                  className="text-green-600 hover:text-green-900 bg-green-50 p-2 rounded-full hover:bg-green-100 transition-colors" 
-                                  title="Activate"
-                                >
-                                  <FaUserCheck />
-                                </button>
-                              )}
-                              
-                              {/* Delete with confirmation */}
-                              <AnimatePresence mode="wait">
-                                {showDeleteConfirm === user.id ? (
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    className="bg-white shadow-lg border border-gray-200 rounded-lg p-2 absolute right-4 z-10"
-                                  >
-                                    <div className="flex flex-col gap-2">
-                                      <p className="text-gray-700 text-xs font-medium mb-1">Delete this user?</p>
-                                      <div className="flex gap-2">
-                                        <button
-                                          onClick={() => handleDeleteUser(user.id)}
-                                          className="text-white bg-red-600 hover:bg-red-700 px-4 py-1.5 rounded-lg text-sm font-medium w-full"
-                                        >
-                                          Confirm
-                                        </button>
-                                        <button
-                                          onClick={handleCancelDelete}
-                                          className="text-gray-700 bg-gray-200 hover:bg-gray-300 px-4 py-1.5 rounded-lg text-sm font-medium w-full border border-gray-300"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </motion.div>
-                                ) : (
-                                  <motion.button
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    onClick={() => handleDeleteUser(user.id)}
-                                    className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-full"
-                                    title="Delete"
-                                  >
-                                    <FaTrash />
-                                  </motion.button>
-                                )}
-                              </AnimatePresence>
-                            </>
-                          )}
                         </div>
                       </td>
                     </tr>
