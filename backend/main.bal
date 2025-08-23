@@ -334,6 +334,264 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
+    // Admin: list pending donor posts
+    resource function get admin/donor/pending(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:RecipientPostResponse[]|error result = donorPostService:getPendingDonorPostsForAdmin();
+            if result is error {
+                response.statusCode = 400;
+                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+        types:RecipientPostResponse[]|error result = donorPostService:getPendingDonorPostsForAdmin();
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+        }
+        return response;
+    }
+
+    // Admin: list rejected donor posts
+    resource function get admin/donor/rejected(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:RecipientPostResponse[]|error result = donorPostService:getRejectedDonorPostsForAdmin();
+            if result is error {
+                response.statusCode = 400;
+                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+        types:RecipientPostResponse[]|error result = donorPostService:getRejectedDonorPostsForAdmin();
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+        }
+        return response;
+    }
+
+    // Admin: list active (open) donor posts
+    resource function get admin/donor/active(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:RecipientPostResponse[]|error result = donorPostService:getOpenDonorPostsForAdmin();
+            if result is error {
+                response.statusCode = 400;
+                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+        types:RecipientPostResponse[]|error result = donorPostService:getOpenDonorPostsForAdmin();
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+        }
+        return response;
+    }
+
+    // Admin: approve donor post
+    resource function post admin/donor/approve/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:DonorPost|error result = donorPostService:approveDonorPost(postId);
+            if result is error {
+                response.statusCode = 400;
+                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({ "message": "Donor post approved", "data": result.toJson(), "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+        types:DonorPost|error result = donorPostService:approveDonorPost(postId);
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({ "message": "Donor post approved", "data": result.toJson(), "timestamp": time:utcNow() });
+        }
+        return response;
+    }
+
+    // Admin: reject donor post
+    resource function post admin/donor/reject/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:DonorPost|error result = donorPostService:rejectDonorPost(postId);
+            if result is error {
+                response.statusCode = 400;
+                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({ "message": "Donor post rejected", "data": result.toJson(), "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+        types:DonorPost|error result = donorPostService:rejectDonorPost(postId);
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({ "message": "Donor post rejected", "data": result.toJson(), "timestamp": time:utcNow() });
+        }
+        return response;
+    }
+
+    // Admin: donor post details
+    resource function get admin/donor/post\-details/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            types:RecipientPostResponse|error result = donorPostService:getDonorPostDetailsForAdmin(postId);
+            if result is error {
+                response.statusCode = 404;
+                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+        types:RecipientPostResponse|error result = donorPostService:getDonorPostDetailsForAdmin(postId);
+        if result is error {
+            response.statusCode = 404;
+            response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
+        }
+        return response;
+    }
+
+    // Admin: delete donor post
+    resource function delete admin/donor/posts/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+        if authorization is string && authorization == "Bearer admin-mock-token" {
+            boolean|error res = database:deleteDonorPost(postId);
+            if res is error {
+                response.statusCode = 400;
+                response.setJsonPayload({ "error": res.message(), "timestamp": time:utcNow() });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({ "message": "Donor post deleted", "timestamp": time:utcNow() });
+            }
+            return response;
+        }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+        boolean|error res = database:deleteDonorPost(postId);
+        if res is error {
+            response.statusCode = 400;
+            response.setJsonPayload({ "error": res.message(), "timestamp": time:utcNow() });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({ "message": "Donor post deleted", "timestamp": time:utcNow() });
+        }
+        return response;
+    }
     // Admin: list rejected (not-approved) recipient posts
     resource function get admin/rejected\-posts(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;

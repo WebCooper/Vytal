@@ -717,6 +717,11 @@ public isolated function updateDonorPost(int id, types:DonorPostUpdate request) 
 
     mysql:Client dbClientInstance = dbClientResult;
 
+    // Convert values to JSON strings where applicable (JSON columns expect valid JSON)
+    string? statusJson = request.status is () ? () : value:toJson(request.status).toJsonString();
+    string? categoryJson = request.category is () ? () : value:toJson(request.category).toJsonString();
+    string? urgencyJson = request.urgency is () ? () : value:toJson(request.urgency).toJsonString();
+
     // Convert complex objects to JSON strings if they exist
     string? bloodOfferingJson = request.bloodOffering is () ? () :
         value:toJson(request.bloodOffering).toJsonString();
@@ -727,18 +732,19 @@ public isolated function updateDonorPost(int id, types:DonorPostUpdate request) 
     string? organOfferingJson = request.organOffering is () ? () :
         value:toJson(request.organOffering).toJsonString();
 
+    // Match exactly with the database column names from the CREATE TABLE statement
     sql:ParameterizedQuery query = `UPDATE donor_posts SET 
         title = COALESCE(${request.title}, title),
-        category = COALESCE(${request.category}, category),
+        category = COALESCE(${categoryJson}, category),
         content = COALESCE(${request.content}, content),
-        status = COALESCE(${request.status}, status),
+        status = COALESCE(${statusJson}, status),
         location = COALESCE(${request.location}, location),
-        urgency = COALESCE(${request.urgency}, urgency),
+        urgency = COALESCE(${urgencyJson}, urgency),
         contact = COALESCE(${request.contact}, contact),
-        blood_offering = COALESCE(${bloodOfferingJson}, blood_offering),
-        fundraiser_offering = COALESCE(${fundraiserOfferingJson}, fundraiser_offering),
-        medicine_offering = COALESCE(${medicineOfferingJson}, medicine_offering),
-        organ_offering = COALESCE(${organOfferingJson}, organ_offering),
+        bloodOffering = COALESCE(${bloodOfferingJson}, bloodOffering),
+        fundraiserOffering = COALESCE(${fundraiserOfferingJson}, fundraiserOffering),
+        medicineOffering = COALESCE(${medicineOfferingJson}, medicineOffering),
+        organOffering = COALESCE(${organOfferingJson}, organOffering),
         updated_at = CURRENT_TIMESTAMP()
         WHERE id = ${id}`;
 

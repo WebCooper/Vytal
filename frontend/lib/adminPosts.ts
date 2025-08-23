@@ -32,6 +32,11 @@ export const deleteRecipientPost = async (postId: number): Promise<{ message: st
   return res.data;
 };
 
+export const deleteDonorPost = async (postId: number): Promise<{ message: string; timestamp: string }> => {
+  const res = await axiosInstance.delete<{ message: string; timestamp: string }>(`/admin/donor/posts/${postId}`);
+  return res.data;
+};
+
 export interface AdminPostDetailsResponse {
   data: RecipientPost;
   timestamp: string;
@@ -39,6 +44,11 @@ export interface AdminPostDetailsResponse {
 
 export const getRecipientPostDetails = async (postId: number): Promise<AdminPostDetailsResponse> => {
   const res = await axiosInstance.get<AdminPostDetailsResponse>(`/admin/post-details/${postId}`);
+  return res.data;
+};
+
+export const getDonorPostDetails = async (postId: number): Promise<AdminPostDetailsResponse> => {
+  const res = await axiosInstance.get<AdminPostDetailsResponse>(`/admin/donor/post-details/${postId}`);
   return res.data;
 };
 
@@ -54,5 +64,31 @@ export const getRejectedRecipientPosts = async (): Promise<RejectedPostsResponse
 
 export const rejectRecipientPost = async (postId: number): Promise<{ message: string; data: RecipientPost; timestamp: string }> => {
   const res = await axiosInstance.post<{ message: string; data: RecipientPost; timestamp: string }>(`/admin/reject-post/${postId}`);
+  return res.data;
+};
+
+// Donor admin endpoints
+export const getPendingDonorPosts = async (): Promise<PendingPostsResponse> => {
+  const res = await axiosInstance.get<PendingPostsResponse>('/admin/donor/pending');
+  return res.data;
+};
+
+export const getRejectedDonorPosts = async (): Promise<RejectedPostsResponse> => {
+  const res = await axiosInstance.get<RejectedPostsResponse>('/admin/donor/rejected');
+  return res.data;
+};
+
+export const approveDonorPost = async (postId: number): Promise<{ message: string; data: RecipientPost; timestamp: string }> => {
+  const res = await axiosInstance.post<{ message: string; data: RecipientPost; timestamp: string }>(`/admin/donor/approve/${postId}`);
+  return res.data;
+};
+
+export const rejectDonorPost = async (postId: number): Promise<{ message: string; data: RecipientPost; timestamp: string }> => {
+  const res = await axiosInstance.post<{ message: string; data: RecipientPost; timestamp: string }>(`/admin/donor/reject/${postId}`);
+  return res.data;
+};
+
+export const getActiveDonorPosts = async (): Promise<PendingPostsResponse> => {
+  const res = await axiosInstance.get<PendingPostsResponse>('/admin/donor/active');
   return res.data;
 };

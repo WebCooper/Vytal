@@ -3,7 +3,7 @@ import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
 import { FaFileAlt, FaSearch, FaTrash, FaEye, FaCheck, FaClock, FaUser, FaCalendarAlt, FaTimesCircle } from "react-icons/fa";
 
-import { getPendingRecipientPosts, approveRecipientPost, setRecipientPostStatus, deleteRecipientPost, getRecipientPostDetails, getRejectedRecipientPosts, rejectRecipientPost } from "@/lib/adminPosts";
+import { getPendingRecipientPosts, approveRecipientPost, setRecipientPostStatus, deleteRecipientPost, getRecipientPostDetails, getRejectedRecipientPosts, rejectRecipientPost, getPendingDonorPosts, getRejectedDonorPosts, getDonorPostDetails, approveDonorPost, rejectDonorPost, deleteDonorPost, getActiveDonorPosts } from "@/lib/adminPosts";
 import AdminPostModal from "@/components/admin/AdminPostModal";
 import { AnimatePresence } from "framer-motion";
 import { getAllPosts as getAllOpenPosts, type RecipientPost } from "@/lib/recipientPosts";
@@ -23,6 +23,7 @@ type Post = {
   likes: number;
   createdAt: string;
   content: string;
+  __source?: 'recipient' | 'donor';
 };
 
 export default function PostsManagement() {
@@ -46,7 +47,7 @@ export default function PostsManagement() {
 
   // Load posts per tab
   useEffect(() => {
-    const toPost = (p: RecipientPost): Post => ({
+  const toPost = (p: RecipientPost): Post => ({
       id: p.id,
       title: p.title,
       author: p.user?.name || 'Unknown',
@@ -67,30 +68,51 @@ export default function PostsManagement() {
       try {
         setLoading(true);
         if (activeTab === 'pending') {
-          const { data: pending } = await getPendingRecipientPosts();
-          const mapped = pending.map(toPost).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          const [{ data: pendingRec }, { data: pendingDonor }] = await Promise.all([
+            getPendingRecipientPosts(),
+            getPendingDonorPosts()
+          ]);
+          const mapped = [
+            ...pendingRec.map(p => ({ ...toPost(p), __source: 'recipient' as const })),
+            ...pendingDonor.map(p => ({ ...toPost(p), __source: 'donor' as const })),
+          ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setPosts(mapped);
         } else if (activeTab === 'active') {
-          const { data: open } = await getAllOpenPosts();
-          const mapped = open.map(toPost).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          const [{ data: openRec }, { data: openDonor }] = await Promise.all([
+            getAllOpenPosts(),
+            getActiveDonorPosts()
+          ]);
+          const mapped = [
+            ...openRec.map(p => ({ ...toPost(p), __source: 'recipient' as const })),
+            ...openDonor.map(p => ({ ...toPost(p), __source: 'donor' as const })),
+          ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setPosts(mapped);
         } else {
-          const { data: rejected } = await getRejectedRecipientPosts();
-          const mapped = rejected.map(toPost).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          const [{ data: rejRec }, { data: rejDonor }] = await Promise.all([
+            getRejectedRecipientPosts(),
+            getRejectedDonorPosts()
+          ]);
+          const mapped = [
+            ...rejRec.map(p => ({ ...toPost(p), __source: 'recipient' as const })),
+            ...rejDonor.map(p => ({ ...toPost(p), __source: 'donor' as const })),
+          ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setPosts(mapped);
         }
         
         // Update all tab counts whenever we load data
-        const [pendingRes, activeRes, rejectedRes] = await Promise.all([
+        const [pendingRecRes, pendingDonorRes, activeRecRes, activeDonorRes, rejectedRecRes, rejectedDonorRes] = await Promise.all([
           getPendingRecipientPosts(),
+          getPendingDonorPosts(),
           getAllOpenPosts(),
-          getRejectedRecipientPosts()
+          getActiveDonorPosts(),
+          getRejectedRecipientPosts(),
+          getRejectedDonorPosts()
         ]);
         
         setTabCounts({
-          pending: pendingRes.data.length,
-          active: activeRes.data.length,
-          rejected: rejectedRes.data.length
+          pending: pendingRecRes.data.length + pendingDonorRes.data.length,
+          active: activeRecRes.data.length + activeDonorRes.data.length,
+          rejected: rejectedRecRes.data.length + rejectedDonorRes.data.length
         });
       } catch (e) {
         console.error('Failed to load posts for tab', activeTab, e);
@@ -135,10 +157,19 @@ export default function PostsManagement() {
   ) => {
     try {
       setLoading(true);
+      const source = posts.find(p => p.id === postId)?.__source;
       if (newStatus === 'open') {
-        await approveRecipientPost(postId);
+        if (source === 'donor') {
+          await approveDonorPost(postId);
+        } else {
+          await approveRecipientPost(postId);
+        }
       } else if (newStatus === 'rejected') {
-        await rejectRecipientPost(postId);
+        if (source === 'donor') {
+          await rejectDonorPost(postId);
+        } else {
+          await rejectRecipientPost(postId);
+        }
       } else {
         await setRecipientPostStatus(postId, newStatus);
       }
@@ -159,7 +190,12 @@ export default function PostsManagement() {
     }
     try {
       setLoading(true);
-      await deleteRecipientPost(postId);
+      const source = posts.find(p => p.id === postId)?.__source;
+      if (source === 'donor') {
+        await deleteDonorPost(postId);
+      } else {
+        await deleteRecipientPost(postId);
+      }
       setPosts(prev => prev.filter(post => post.id !== postId));
     } catch (e) {
       console.error('Failed to delete post', e);
@@ -176,7 +212,12 @@ export default function PostsManagement() {
   const handleDeletePostImmediate = async (postId: number) => {
     try {
       setLoading(true);
-      await deleteRecipientPost(postId);
+      const source = posts.find(p => p.id === postId)?.__source;
+      if (source === 'donor') {
+        await deleteDonorPost(postId);
+      } else {
+        await deleteRecipientPost(postId);
+      }
       setPosts(prev => prev.filter(post => post.id !== postId));
       closeView();
     } catch (e) {
@@ -190,8 +231,24 @@ export default function PostsManagement() {
   const openView = async (postId: number) => {
     try {
       setViewId(postId);
-      const { data } = await getRecipientPostDetails(postId);
-      setViewData(data);
+      const source = posts.find(p => p.id === postId)?.__source;
+      if (source === 'donor') {
+        const { data } = await getDonorPostDetails(postId);
+        setViewData(data);
+      } else {
+        try {
+          const { data } = await getRecipientPostDetails(postId);
+          setViewData(data);
+        } catch (err: unknown) {
+          // Fallback to donor details if recipient endpoint 404s
+          try {
+            const { data } = await getDonorPostDetails(postId);
+            setViewData(data);
+          } catch {
+            throw err;
+          }
+        }
+      }
     } catch (e) {
       console.error('Failed to load post details', e);
     } 
@@ -435,7 +492,7 @@ export default function PostsManagement() {
                       Urgency
                     </th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-blue-700 uppercase tracking-wider w-[12%]">
-                      Engagement
+                      Source
                     </th>
                     <th className="px-3 py-3 text-center text-xs font-medium text-blue-700 uppercase tracking-wider w-[17%]">
                       Actions
@@ -486,11 +543,16 @@ export default function PostsManagement() {
                           {post.urgency}
                         </span>
                       </td>
-                      <td className="px-3 py-4 text-sm text-gray-500">
-                        <div className="text-xs">
-                          <div>Views: {post.views}</div>
-                          <div>Likes: {post.likes}</div>
-                        </div>
+                      <td className="px-3 py-4">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            post.__source === 'donor'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}
+                        >
+                          {post.__source === 'donor' ? 'Donor' : 'Recipient'}
+                        </span>
                       </td>
                       <td className="px-3 py-4 text-sm font-medium">
                         <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">

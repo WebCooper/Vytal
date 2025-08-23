@@ -77,6 +77,155 @@ public isolated function getAllDonorPosts() returns types:DonorPost[]|error {
     return approved;
 }
 
+# List donor posts with status 'pending'
+# + return - Array of pending donor posts or error
+public isolated function getPendingDonorPosts() returns types:DonorPost[]|error {
+    types:DonorPost[]|error posts = database:getDonorPosts();
+    if posts is error {
+        return error("Failed to fetch donor posts: " + posts.message());
+    }
+    types:DonorPost[] pending = from types:DonorPost p in posts
+        where p.status == "pending"
+        select p;
+    return pending;
+}
+
+# List donor posts with status 'rejected'
+# + return - Array of rejected donor posts or error
+public isolated function getRejectedDonorPosts() returns types:DonorPost[]|error {
+    types:DonorPost[]|error posts = database:getDonorPosts();
+    if posts is error {
+        return error("Failed to fetch donor posts: " + posts.message());
+    }
+    types:DonorPost[] rejected = from types:DonorPost p in posts
+        where p.status == "rejected"
+        select p;
+    return rejected;
+}
+
+# Approve a donor post (set status to 'open')
+# + postId - ID of the donor post to approve
+# + return - Updated donor post or error
+public isolated function approveDonorPost(int postId) returns types:DonorPost|error {
+    boolean|error res = database:updateDonorPost(postId, { status: "open" });
+    if res is error {
+        return error("Failed to approve donor post: " + res.message());
+    }
+    types:DonorPost|error|() fetched = database:getDonorPostById(postId);
+    if fetched is error {
+        return error("Failed to fetch donor post after approve: " + fetched.message());
+    }
+    if fetched is () { return error("Donor post not found after approve"); }
+    return <types:DonorPost>fetched;
+}
+
+# Reject a donor post (set status to 'rejected')
+# + postId - ID of the donor post to reject
+# + return - Updated donor post or error
+public isolated function rejectDonorPost(int postId) returns types:DonorPost|error {
+    boolean|error res = database:updateDonorPost(postId, { status: "rejected" });
+    if res is error {
+        return error("Failed to reject donor post: " + res.message());
+    }
+    types:DonorPost|error|() fetched = database:getDonorPostById(postId);
+    if fetched is error {
+        return error("Failed to fetch donor post after reject: " + fetched.message());
+    }
+    if fetched is () { return error("Donor post not found after reject"); }
+    return <types:DonorPost>fetched;
+}
+
+# Convert a DonorPost to RecipientPostResponse shape for admin UI reuse
+# + p - Donor post to convert
+# + return - RecipientPostResponse compatible object
+isolated function toRecipientResponse(types:DonorPost p) returns types:RecipientPostResponse|error {
+    types:User?|error uRes = database:getUserById(p.donor_id);
+    if uRes is error { return error("Failed to load donor user: " + uRes.message()); }
+    if uRes is () { return error("Donor user not found"); }
+    types:User u = <types:User>uRes;
+
+    // Convert categories JSON string to array
+    types:Category[]|error catRes = database:convertJsonToCategories(u.categories);
+    types:Category[] cats = [];
+    if catRes is types:Category[] { cats = catRes; }
+
+    types:RecipientPostResponse resp = {
+        id: p.id,
+        user: {
+            id: u.id ?: 0,
+            name: u.name,
+            phone_number: u.phone_number,
+            email: u.email,
+            role: u.role,
+            categories: cats
+        },
+        title: p.title,
+        content: p.content,
+        category: p.category,
+        status: p.status,
+        location: p.location,
+        urgency: p.urgency,
+        createdAt: p.createdAt,
+        engagement: {
+            likes: p.engagement.likes,
+            comments: p.engagement.comments,
+            shares: p.engagement.shares,
+            views: p.engagement.views
+        },
+        contact: p.contact,
+        fundraiserDetails: ()
+    };
+    return resp;
+}
+
+# Helper: map an array of DonorPost to RecipientPostResponse[]
+# + posts - Array of donor posts to convert
+# + return - Converted array or error
+isolated function mapToRecipientResponses(types:DonorPost[] posts) returns types:RecipientPostResponse[]|error {
+    types:RecipientPostResponse[] out = [];
+    foreach var p in posts {
+        types:RecipientPostResponse|error r = toRecipientResponse(p);
+        if r is error { return r; }
+        out.push(r);
+    }
+    return out;
+}
+
+# Admin-friendly pending donor posts as RecipientPostResponse[]
+# + return - Array of pending donor posts in recipient response shape or error
+public isolated function getPendingDonorPostsForAdmin() returns types:RecipientPostResponse[]|error {
+    types:DonorPost[]|error pending = getPendingDonorPosts();
+    if pending is error { return pending; }
+    return mapToRecipientResponses(pending);
+}
+
+# Admin-friendly rejected donor posts as RecipientPostResponse[]
+# + return - Array of rejected donor posts in recipient response shape or error
+public isolated function getRejectedDonorPostsForAdmin() returns types:RecipientPostResponse[]|error {
+    types:DonorPost[]|error rejected = getRejectedDonorPosts();
+    if rejected is error { return rejected; }
+    return mapToRecipientResponses(rejected);
+}
+
+# Admin-friendly active (open) donor posts as RecipientPostResponse[]
+# + return - Array of open donor posts in recipient response shape or error
+public isolated function getOpenDonorPostsForAdmin() returns types:RecipientPostResponse[]|error {
+    // getAllDonorPosts already filters to only 'open'
+    types:DonorPost[]|error open = getAllDonorPosts();
+    if open is error { return open; }
+    return mapToRecipientResponses(open);
+}
+
+# Admin-friendly single donor post detail as RecipientPostResponse
+# + postId - Donor post ID to fetch
+# + return - Post details in recipient response shape or error
+public isolated function getDonorPostDetailsForAdmin(int postId) returns types:RecipientPostResponse|error {
+    types:DonorPost|error|() fetched = database:getDonorPostById(postId);
+    if fetched is error { return error("Failed to fetch donor post: " + fetched.message()); }
+    if fetched is () { return error("Donor post not found"); }
+    return toRecipientResponse(<types:DonorPost>fetched);
+}
+
 # Get donor posts by user ID
 # + userId - ID of the user whose posts to fetch
 # + return - Array of donor posts or error
