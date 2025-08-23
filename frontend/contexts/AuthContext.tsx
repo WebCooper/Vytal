@@ -27,16 +27,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check if user is already logged in (from localStorage)
-    const savedUser = localStorage.getItem('vytal_user');
-    const savedToken = localStorage.getItem('vytal_token');
+  const savedUser = localStorage.getItem('vytal_user') || localStorage.getItem('vytal_admin_user');
+  const savedToken = localStorage.getItem('vytal_token') || localStorage.getItem('vytal_admin_token');
     
     if (savedUser && savedToken) {
       try {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
         // Set the authorization token in axios instance
-        import('@/lib/axiosInstance').then(({ setAuthorizationToken }) => {
-          setAuthorizationToken(savedToken);
+        import('@/lib/axiosInstance').then(({ setAuthorizationToken, setAdminAuthorizationToken }) => {
+          if (parsedUser?.role === 'admin') {
+            setAdminAuthorizationToken(savedToken);
+          } else {
+            setAuthorizationToken(savedToken);
+          }
         });
       } catch (error) {
         console.error('Error parsing saved user:', error);

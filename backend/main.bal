@@ -44,7 +44,13 @@ function init() {
 # HTTP service with all authentication endpoints
 @http:ServiceConfig {
     cors: {
-        allowOrigins: ["http://localhost:3000", "http://127.0.0.1:3000","https://iwb25-198-nova.vercel.app"],
+        allowOrigins: [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            // Add your LAN dev server address to avoid CORS 'Network Error' during development
+            "http://26.25.192.79:3000",
+            "https://iwb25-198-nova.vercel.app"
+        ],
         allowCredentials: true,
         allowHeaders: ["Authorization", "Content-Type"],
         exposeHeaders: ["X-CUSTOM-HEADER"],
@@ -63,6 +69,53 @@ service /api/v1 on new http:Listener(9091) {
             "timestamp": time:utcNow(),
             "service": "Vytal Authentication API"
         };
+    }
+
+    // Admin: dashboard stats
+    resource function get admin/stats(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        // Validate token and admin role
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({ "error": email.message(), "timestamp": time:utcNow() });
+            return response;
+        }
+        types:UserResponse|error adminUser = userService:getUserProfile(email);
+        if adminUser is error || adminUser.role != types:ADMIN {
+            response.statusCode = 403;
+            response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
+            return response;
+        }
+
+        // Gather counts
+        int|error totalUsers = database:countUsers();
+        int|error donors = database:countUsersByRole("donor");
+        int|error recipients = database:countUsersByRole("recipient");
+        int|error totalRecipientPosts = database:countRecipientPostsByStatus(());
+        int|error totalDonorPosts = database:countDonorPostsByStatus(());
+        int|error pendingRecipient = database:countRecipientPostsByStatus("pending");
+        int|error pendingDonor = database:countDonorPostsByStatus("pending");
+
+        if totalUsers is error || donors is error || recipients is error ||
+            totalRecipientPosts is error || totalDonorPosts is error ||
+            pendingRecipient is error || pendingDonor is error {
+            response.statusCode = 400;
+            response.setJsonPayload({ "error": "Failed to compute stats", "timestamp": time:utcNow() });
+            return response;
+        }
+
+        json payload = {
+            totalUsers: totalUsers,
+            donors: donors,
+            recipients: recipients,
+            totalPosts: totalRecipientPosts + totalDonorPosts,
+            pendingPosts: pendingRecipient + pendingDonor
+        };
+        response.statusCode = 200;
+        response.setJsonPayload({ "data": payload, "timestamp": time:utcNow() });
+        return response;
     }
 
     # Registration endpoint

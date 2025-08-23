@@ -31,6 +31,8 @@ export default function PostsManagement() {
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'rejected'>('active');
+  // bump this to force a reload of the current tab from backend
+  const [refreshKey, setRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -122,7 +124,7 @@ export default function PostsManagement() {
     };
 
     loadForTab();
-  }, [activeTab]);
+  }, [activeTab, refreshKey]);
 
   useEffect(() => {
     // Filter posts based on search term, category, status, and urgency
@@ -173,7 +175,40 @@ export default function PostsManagement() {
       } else {
         await setRecipientPostStatus(postId, newStatus);
       }
-      setPosts(prev => prev.map(post => post.id === postId ? { ...post, status: newStatus } : post));
+      // Optimistically update UI
+      setPosts(prev => {
+        const updated = prev.map(post => post.id === postId ? { ...post, status: newStatus } : post);
+        // If item no longer belongs in current tab, remove it
+        const changed = updated.find(p => p.id === postId);
+        if (!changed) return updated;
+        const shouldKeep = (
+          (activeTab === 'pending' && changed.status === 'pending') ||
+          (activeTab === 'active' && changed.status === 'open') ||
+          (activeTab === 'rejected' && changed.status === 'rejected')
+        );
+        return shouldKeep ? updated : updated.filter(p => p.id !== postId);
+      });
+
+      // Adjust tab chips counts
+      setTabCounts(prev => {
+        const delta = { ...prev };
+        if (newStatus === 'open') {
+          delta.pending = Math.max(0, delta.pending - 1);
+          delta.active = delta.active + 1;
+        } else if (newStatus === 'rejected') {
+          if (activeTab === 'pending') delta.pending = Math.max(0, delta.pending - 1);
+          delta.rejected = delta.rejected + 1;
+        } else if (newStatus === 'pending') {
+          // rare path: moving back to pending
+          if (activeTab === 'active') delta.active = Math.max(0, delta.active - 1);
+          if (activeTab === 'rejected') delta.rejected = Math.max(0, delta.rejected - 1);
+          delta.pending = delta.pending + 1;
+        }
+        return delta;
+      });
+
+  // Ensure UI reflects backend truth across tabs
+  setRefreshKey(k => k + 1);
     } catch (e) {
       console.error('Failed to change status', e);
     } finally {
@@ -197,6 +232,13 @@ export default function PostsManagement() {
         await deleteRecipientPost(postId);
       }
       setPosts(prev => prev.filter(post => post.id !== postId));
+      // Decrement counts for current tab
+      setTabCounts(prev => ({
+        ...prev,
+        [activeTab]: Math.max(0, prev[activeTab] - 1)
+      }));
+  // Refetch to sync with backend
+  setRefreshKey(k => k + 1);
     } catch (e) {
       console.error('Failed to delete post', e);
     } finally {
@@ -219,7 +261,13 @@ export default function PostsManagement() {
         await deleteRecipientPost(postId);
       }
       setPosts(prev => prev.filter(post => post.id !== postId));
+      setTabCounts(prev => ({
+        ...prev,
+        [activeTab]: Math.max(0, prev[activeTab] - 1)
+      }));
       closeView();
+  // Refetch to sync with backend
+  setRefreshKey(k => k + 1);
     } catch (e) {
       console.error('Failed to delete post', e);
     } finally {

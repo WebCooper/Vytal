@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { FaUser, FaLock, FaShieldAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
-import { axiosInstance, setAuthorizationToken } from "@/lib/axiosInstance";
+import { axiosInstance, setAdminAuthorizationToken } from "@/lib/axiosInstance";
 
 export default function AdminLogin() {
   const pathname = usePathname();
@@ -29,10 +29,10 @@ export default function AdminLogin() {
         return;
       }
       // Store user and token for authenticated admin API calls
-      localStorage.setItem('vytal_user', JSON.stringify(user));
+      localStorage.setItem('vytal_admin_user', JSON.stringify(user));
       if (token) {
-        localStorage.setItem('vytal_token', token);
-        setAuthorizationToken(token);
+        localStorage.setItem('vytal_admin_token', token);
+        setAdminAuthorizationToken(token);
       }
       window.location.replace("/admin/dashboard");
   } catch (err: unknown) {

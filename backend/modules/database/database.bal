@@ -219,6 +219,59 @@ public isolated function getAllUsers() returns types:User[]|error {
     return users;
 }
 
+# Count all users
+public isolated function countUsers() returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(`SELECT COUNT(*) AS cnt FROM users`);
+    record {|record {int cnt;} value;|}? row = check rs.next();
+    check rs.close();
+    if row is () { return 0; }
+    return row.value.cnt;
+}
+
+# Count users by role
+public isolated function countUsersByRole(string role) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery q = `SELECT COUNT(*) AS cnt FROM users WHERE role = ${role}`;
+    stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(q);
+    record {|record {int cnt;} value;|}? row = check rs.next();
+    check rs.close();
+    if row is () { return 0; }
+    return row.value.cnt;
+}
+
+# Count recipient posts by status (if status is null, count all)
+public isolated function countRecipientPostsByStatus(string? status = ()) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery q;
+    if status is () {
+        q = `SELECT COUNT(*) AS cnt FROM recipient_posts`;
+    } else {
+        q = `SELECT COUNT(*) AS cnt FROM recipient_posts WHERE JSON_UNQUOTE(JSON_EXTRACT(status, '$')) = ${status}`;
+    }
+    stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(q);
+    record {|record {int cnt;} value;|}? row = check rs.next();
+    check rs.close();
+    if row is () { return 0; }
+    return row.value.cnt;
+}
+
+# Count donor posts by status (if status is null, count all)
+public isolated function countDonorPostsByStatus(string? status = ()) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery q;
+    if status is () {
+        q = `SELECT COUNT(*) AS cnt FROM donor_posts`;
+    } else {
+        q = `SELECT COUNT(*) AS cnt FROM donor_posts WHERE JSON_UNQUOTE(JSON_EXTRACT(status, '$')) = ${status}`;
+    }
+    stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(q);
+    record {|record {int cnt;} value;|}? row = check rs.next();
+    check rs.close();
+    if row is () { return 0; }
+    return row.value.cnt;
+}
+
 # Check if user exists by email
 # + email - Email address to check for existence
 # + return - True if user exists, false if not, or error if operation fails

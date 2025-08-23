@@ -21,8 +21,8 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     // Only run localStorage checks on client
     if (typeof window !== 'undefined') {
       try {
-        const storedUser = localStorage.getItem('vytal_user');
-        const storedToken = localStorage.getItem('vytal_token');
+  const storedUser = localStorage.getItem('vytal_admin_user') || localStorage.getItem('vytal_user');
+  const storedToken = localStorage.getItem('vytal_admin_token') || localStorage.getItem('vytal_token');
         
         if (storedUser && storedToken) {
           const parsedUser = JSON.parse(storedUser);

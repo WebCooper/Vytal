@@ -33,7 +33,7 @@ export default function AdminLayout({ children, currentPage = "Dashboard", activ
     
     // Check localStorage for admin user (client-side only)
     try {
-      const storedUser = localStorage.getItem('vytal_user');
+  const storedUser = localStorage.getItem('vytal_admin_user') || localStorage.getItem('vytal_user');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         setIsAdminInStorage(parsedUser.role === 'admin');
@@ -74,7 +74,7 @@ export default function AdminLayout({ children, currentPage = "Dashboard", activ
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const storedUser = localStorage.getItem('vytal_user');
+  const storedUser = localStorage.getItem('vytal_admin_user') || localStorage.getItem('vytal_user');
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
           setAdminEmail(parsedUser.email || 'admin@vytal.com');
