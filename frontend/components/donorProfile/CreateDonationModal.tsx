@@ -39,17 +39,18 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
         setIsSubmitting(true);
 
         try {
-            // Ensure all required and optional fields are included
-            const submissionData: DonationCreate = {
+            // Ensure all required and optional fields are included with explicit null values
+            const submissionData = {
                 donation_type: formData.donation_type,
                 donation_date: formData.donation_date,
                 recipient_id: formData.recipient_id || null,
                 post_id: formData.post_id || null,
-                amount: formData.donation_type === 'fundraiser' ? formData.amount || null : null,
+                amount: formData.donation_type === 'fundraiser' ? (formData.amount || null) : null,
                 quantity: formData.quantity || null,
                 description: formData.description || null,
                 location: formData.location || null,
                 notes: formData.notes || null,
+                // Blood donation specific fields
                 blood_type: formData.blood_type || null,
                 volume_ml: formData.volume_ml || null,
                 hemoglobin_level: formData.hemoglobin_level || null,
@@ -71,7 +72,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
         }
     };
 
-    const handleChange = (field: keyof DonationCreate, value: any) => {
+    const handleChange = (field: keyof DonationCreate, value: string | number | undefined) => {
         setFormData(prev => ({
             ...prev,
             [field]: value

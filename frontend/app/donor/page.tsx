@@ -22,7 +22,7 @@ import { BloodCamp } from "@/components/types";
 import { getDonorPostsByUser, DonorPost } from "@/lib/donorPosts";
 import DonorMessagesTab from "@/components/messages/DonorMessagesTab";
 import { MessagesProvider } from '@/contexts/MessagesContext';
-import { getDonorDashboard, createDonation, DonorDashboard, DonationCreate } from '@/lib/donationApi';
+import { getDonorDashboard, type DonorDashboard} from '@/lib/donationApi';
 import CreateDonationModal from '@/components/donorProfile/CreateDonationModal';
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
@@ -608,7 +608,7 @@ export default function DonorDashboard() {
                                                     <div>
                                                         <h4 className="font-bold text-emerald-700 mb-2">Community Recognition</h4>
                                                         <p className="text-emerald-600 text-sm">
-                                                            You've made {donorDashboard.stats.total_donations} total donations.
+                                                            You&apos;ve made {donorDashboard.stats.total_donations} total donations.
                                                             Your commitment makes a real difference in the community.
                                                         </p>
                                                     </div>
