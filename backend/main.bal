@@ -1,6 +1,7 @@
 // Main service file for Vytal Authentication API
 
 import backend.database;
+import backend.auth;
 import backend.donorPostOp as donorPostService;
 import backend.messages as msgModule;
 import backend.postOp as postService;
@@ -11,6 +12,34 @@ import backend.userOp as userService;
 import ballerina/http;
 import ballerina/io;
 import ballerina/time;
+
+// Configurable default admin credentials (module-level)
+configurable string DEFAULT_ADMIN_EMAIL = "admin@vytal.local";
+configurable string DEFAULT_ADMIN_PASSWORD = "admin123";
+
+// Create default admin at module init if missing
+function init() {
+    boolean|error exists = database:userExistsByEmail(DEFAULT_ADMIN_EMAIL);
+    if exists is boolean {
+        if !exists {
+            string hashed = auth:hashPassword(DEFAULT_ADMIN_PASSWORD);
+            types:UserCreate adminUser = {
+                name: "System Admin",
+                phone_number: "0000000000",
+                email: DEFAULT_ADMIN_EMAIL,
+                password: hashed,
+                role: types:ADMIN,
+                categories: [types:BLOOD]
+            };
+            var res = database:insertUser(adminUser);
+            if res is error {
+                io:println("Admin bootstrap failed: " + res.message());
+            } else {
+                io:println("✅ Default admin ensured: " + DEFAULT_ADMIN_EMAIL);
+            }
+        }
+    }
+}
 
 # HTTP service with all authentication endpoints
 @http:ServiceConfig {
@@ -297,18 +326,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: list pending recipient posts
     resource function get admin/pending\-posts(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        // Support hardcoded admin token for development
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse[]|error result = postService:getPendingRecipientPosts();
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
 
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -337,17 +354,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: list pending donor posts
     resource function get admin/donor/pending(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse[]|error result = donorPostService:getPendingDonorPostsForAdmin();
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
@@ -360,7 +366,7 @@ service /api/v1 on new http:Listener(9091) {
             response.setJsonPayload({ "error": "Forbidden: admin access required", "timestamp": time:utcNow() });
             return response;
         }
-        types:RecipientPostResponse[]|error result = donorPostService:getPendingDonorPostsForAdmin();
+    types:RecipientPostResponse[]|error result = donorPostService:getPendingDonorPostsForAdmin();
         if result is error {
             response.statusCode = 400;
             response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
@@ -374,17 +380,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: list rejected donor posts
     resource function get admin/donor/rejected(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse[]|error result = donorPostService:getRejectedDonorPostsForAdmin();
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
@@ -411,17 +406,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: list active (open) donor posts
     resource function get admin/donor/active(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse[]|error result = donorPostService:getOpenDonorPostsForAdmin();
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
@@ -448,17 +432,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: approve donor post
     resource function post admin/donor/approve/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:DonorPost|error result = donorPostService:approveDonorPost(postId);
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "message": "Donor post approved", "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
@@ -485,17 +458,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: reject donor post
     resource function post admin/donor/reject/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:DonorPost|error result = donorPostService:rejectDonorPost(postId);
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "message": "Donor post rejected", "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
@@ -522,17 +484,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: donor post details
     resource function get admin/donor/post\-details/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse|error result = donorPostService:getDonorPostDetailsForAdmin(postId);
-            if result is error {
-                response.statusCode = 404;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
@@ -559,17 +510,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: delete donor post
     resource function delete admin/donor/posts/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            boolean|error res = database:deleteDonorPost(postId);
-            if res is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": res.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "message": "Donor post deleted", "timestamp": time:utcNow() });
-            }
-            return response;
-        }
         string|error email = token:validateToken(authorization);
         if email is error {
             response.statusCode = 401;
@@ -595,18 +535,7 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: list rejected (not-approved) recipient posts
     resource function get admin/rejected\-posts(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        // Support hardcoded admin token for development
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse[]|error result = postService:getRejectedRecipientPosts();
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
+        // Removed development hardcoded admin bypass
 
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -635,18 +564,7 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: approve a pending recipient post
     resource function post admin/approve\-post/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        // Support hardcoded admin token for development
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse|error result = postService:approveRecipientPost(postId);
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "message": "Post approved", "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
+        
 
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -675,18 +593,7 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: reject a recipient post
     resource function post admin/reject\-post/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        // Support hardcoded admin token for development
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse|error result = postService:rejectRecipientPost(postId);
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "message": "Post rejected", "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
+        
 
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -715,18 +622,7 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: get full details of a recipient post by ID
     resource function get admin/post\-details/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        // Allow hardcoded admin token in development
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse|error result = postService:getRecipientPostDetails(postId);
-            if result is error {
-                response.statusCode = 404;
-                response.setJsonPayload({ "error": result.message(), "timestamp": time:utcNow() });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({ "data": result.toJson(), "timestamp": time:utcNow() });
-            }
-            return response;
-        }
+        
 
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -755,40 +651,6 @@ service /api/v1 on new http:Listener(9091) {
     // Admin: list all users
     resource function get admin/users(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
-        // Support hardcoded admin token for development
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:User[]|error users = database:getAllUsers();
-            if users is error {
-                response.statusCode = 400;
-                response.setJsonPayload({ "error": users.message(), "timestamp": time:utcNow() });
-            } else {
-                // Map to public response (without password, with categories array)
-                json[] safeUsers = [];
-                foreach var u in users {
-                    types:Category[]|error catRes = database:convertJsonToCategories(u.categories);
-                    types:Category[] cats = [];
-                    if catRes is types:Category[] {
-                        cats = catRes;
-                    }
-                    // Convert to plain string array for JSON response
-                    string[] catStrings = [];
-                    foreach var c in cats { catStrings.push(c.toString()); }
-                    safeUsers.push({
-                        id: u.id ?: 0,
-                        name: u.name,
-                        phone_number: u.phone_number,
-                        email: u.email,
-                        role: u.role,
-                        categories: catStrings,
-                        created_at: u.created_at,
-                        updated_at: u.updated_at
-                    });
-                }
-                response.statusCode = 200;
-                response.setJsonPayload({ "data": safeUsers, "timestamp": time:utcNow() });
-            }
-            return response;
-        }
 
         string|error email = token:validateToken(authorization);
         if email is error {
@@ -839,25 +701,7 @@ service /api/v1 on new http:Listener(9091) {
     resource function put posts/[int postId](@http:Header {name: "Authorization"} string? authorization, types:RecipientPostUpdate request) returns http:Response|error {
         http:Response response = new;
 
-        // Allow hardcoded admin token in development
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            types:RecipientPostResponse|error result = postService:updateRecipientPost(postId, request);
-            if result is error {
-                response.statusCode = 400;
-                response.setJsonPayload({
-                    "error": result.message(),
-                    "timestamp": time:utcNow()
-                });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({
-                    "message": "Post updated successfully",
-                    "data": result.toJson(),
-                    "timestamp": time:utcNow()
-                });
-            }
-            return response;
-        }
+        
 
         // Validate token
         string|error email = token:validateToken(authorization);
@@ -894,24 +738,7 @@ service /api/v1 on new http:Listener(9091) {
     resource function delete posts/[int postId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
 
-        // Allow hardcoded admin token in development
-        if authorization is string && authorization == "Bearer admin-mock-token" {
-            error? del = postService:deleteRecipientPost(postId);
-            if del is error {
-                response.statusCode = 400;
-                response.setJsonPayload({
-                    "error": del.message(),
-                    "timestamp": time:utcNow()
-                });
-            } else {
-                response.statusCode = 200;
-                response.setJsonPayload({
-                    "message": "Post deleted successfully",
-                    "timestamp": time:utcNow()
-                });
-            }
-            return response;
-        }
+        
 
         // Validate token
         string|error email = token:validateToken(authorization);

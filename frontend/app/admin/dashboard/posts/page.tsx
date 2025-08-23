@@ -501,7 +501,7 @@ export default function PostsManagement() {
                 </thead>
                 <tbody className="bg-white/50 divide-y divide-blue-200">
                   {filteredPosts.map((post) => (
-                    <tr key={post.id} className="hover:bg-blue-50/50">
+                    <tr key={`${post.__source ?? 'recipient'}-${post.id}`} className="hover:bg-blue-50/50">
                       <td className="px-3 py-4">
                         <div>
                           <div className="text-sm font-medium text-gray-900 truncate">{post.title}</div>

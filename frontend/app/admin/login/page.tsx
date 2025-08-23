@@ -4,15 +4,12 @@ import React, { useState } from "react";
 import { FaUser, FaLock, FaShieldAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
-// Using hardcoded admin login for development; no backend authentication
+import { axiosInstance, setAuthorizationToken } from "@/lib/axiosInstance";
 
 export default function AdminLogin() {
   const pathname = usePathname();
   
-  const [formData, setFormData] = useState({
-    email: "admin@vytal.com",
-    password: "admin123"
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
   const [localLoading, setLocalLoading] = useState(false);
@@ -22,33 +19,25 @@ export default function AdminLogin() {
     setError("");
     setLocalLoading(true);
 
-    // Hardcoded admin credentials check - only frontend validation
-    if (formData.email === "admin@vytal.com" && formData.password === "admin123") {
-      try {
-        // Create a mock admin user to store in localStorage
-        const adminUser = {
-          id: 999,
-          name: "Admin User",
-          email: "admin@vytal.com",
-          role: "admin",
-          phone_number: "123-456-7890"
-        };
-        
-        // Store the mock user and token in localStorage
-        localStorage.setItem('vytal_user', JSON.stringify(adminUser));
-        localStorage.setItem('vytal_token', 'admin-mock-token');
-        
-        // Redirect to dashboard
-        setTimeout(() => {
-          window.location.replace("/admin/dashboard");
-        }, 200);
-      } catch (error) {
-        console.error("Error during admin login:", error);
-        setError("An error occurred during login. Please try again.");
+    try {
+      const res = await axiosInstance.post("/login", formData, { withCredentials: true });
+      const user = res?.data?.data?.user;
+      const token = res?.data?.data?.token;
+      if (!user || user.role !== 'admin') {
+        setError("Not authorized");
         setLocalLoading(false);
+        return;
       }
-    } else {
-      setError("Invalid credentials. Use admin@vytal.com / admin123 for development access.");
+      // Store user and token for authenticated admin API calls
+      localStorage.setItem('vytal_user', JSON.stringify(user));
+      if (token) {
+        localStorage.setItem('vytal_token', token);
+        setAuthorizationToken(token);
+      }
+      window.location.replace("/admin/dashboard");
+  } catch (err: unknown) {
+      console.error("Error during admin login:", err);
+      setError("Invalid credentials");
       setLocalLoading(false);
     }
   };
@@ -126,11 +115,6 @@ export default function AdminLogin() {
                 </button>
               </form>
                 <div className="mt-6 text-center">
-                <div className="mb-4 p-3 bg-blue-100/80 backdrop-blur-sm rounded-lg border border-blue-300/50">
-                  <p className="text-xs text-blue-700 font-semibold mb-1">Development Access:</p>
-                  <p className="text-xs text-gray-600">Email: admin@vytal.com</p>
-                  <p className="text-xs text-gray-600">Password: admin123</p>
-                </div>
                 <p className="text-xs text-gray-500">
                   This is a secure administrative portal. <br />
                   Unauthorized access is prohibited.
