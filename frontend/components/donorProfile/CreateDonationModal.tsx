@@ -125,7 +125,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                             : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
-                                        <span className="text-sm font-medium">{type.label}</span>
+                                        <span className="text-sm font-medium text-gray-700">{type.label}</span>
                                     </button>
                                 ))}
                             </div>
@@ -141,7 +141,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                     <select
                                         value={formData.blood_type || ''}
                                         onChange={(e) => handleChange('blood_type', e.target.value)}
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-700 mb-2"
                                         required
                                     >
                                         <option value="">Select blood type</option>
@@ -159,7 +159,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                         value={formData.volume_ml || 450}
                                         onChange={(e) => handleChange('volume_ml', parseInt(e.target.value) || 450)}
                                         placeholder="450"
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-700 mb-2"
                                     />
                                 </div>
                             </div>
@@ -176,7 +176,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                     step="0.01"
                                     value={formData.amount || ''}
                                     onChange={(e) => handleChange('amount', parseFloat(e.target.value))}
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-700 mb-2"
                                     required
                                 />
                             </div>
@@ -193,7 +193,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                     value={formData.quantity || ''}
                                     onChange={(e) => handleChange('quantity', e.target.value)}
                                     placeholder="e.g., 10 units, 5kg, etc."
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 mb-2"
                                 />
                             </div>
                         )}
@@ -208,7 +208,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                     type="date"
                                     value={formData.donation_date}
                                     onChange={(e) => handleChange('donation_date', e.target.value)}
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 mb-2"
                                     required
                                 />
                             </div>
@@ -221,7 +221,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                     value={formData.location || ''}
                                     onChange={(e) => handleChange('location', e.target.value)}
                                     placeholder="Hospital, clinic, or donation center"
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 mb-2"
                                 />
                             </div>
                         </div>
@@ -236,7 +236,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                 onChange={(e) => handleChange('description', e.target.value)}
                                 rows={3}
                                 placeholder="Additional details about the donation..."
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700"
                             />
                         </div>
 
@@ -252,7 +252,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                         value={formData.donation_center || ''}
                                         onChange={(e) => handleChange('donation_center', e.target.value)}
                                         placeholder="Name of blood bank or hospital"
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-700 mb-2"
                                     />
                                 </div>
                                 <div>
@@ -265,7 +265,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                         value={formData.hemoglobin_level || ''}
                                         onChange={(e) => handleChange('hemoglobin_level', parseFloat(e.target.value))}
                                         placeholder="12.5"
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-700 mb-2"
                                     />
                                 </div>
                             </div>
@@ -281,7 +281,7 @@ const CreateDonationModal: React.FC<CreateDonationModalProps> = ({
                                 onChange={(e) => handleChange('notes', e.target.value)}
                                 rows={2}
                                 placeholder="Personal notes or reminders..."
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 mb-2"
                             />
                         </div>
 
