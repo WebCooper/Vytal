@@ -353,7 +353,7 @@ modules = [
 [[package]]
 org = "ballerinax"
 name = "mysql"
-version = "1.13.1"
+version = "1.13.0"
 dependencies = [
 	{org = "ballerina", name = "crypto"},
 	{org = "ballerina", name = "io"},
@@ -396,6 +396,7 @@ modules = [
 	{org = "cooper", packageName = "backend", moduleName = "backend"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.auth"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.database"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.donationOp"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.donorPostOp"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.messages"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.postOp"},

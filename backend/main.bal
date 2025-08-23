@@ -7,7 +7,7 @@ import backend.postOp as postService;
 import backend.token;
 import backend.types;
 import backend.userOp as userService;
-
+import backend.donationOp as donationService;
 import ballerina/http;
 import ballerina/io;
 import ballerina/time;
@@ -803,6 +803,222 @@ service /api/v1 on new http:Listener(9091) {
 
         return response;
     }
+    # Create donation endpoint
+resource function post donations(@http:Header {name: "Authorization"} string? authorization, types:DonationCreate request) returns http:Response|error {
+    http:Response response = new;
+
+    string|error email = token:validateToken(authorization);
+    if email is error {
+        response.statusCode = 401;
+        response.setJsonPayload({
+            "error": email.message(),
+            "timestamp": time:utcNow()
+        });
+        return response;
+    }
+
+    types:UserResponse|error userResult = userService:getUserProfile(email);
+    if userResult is error {
+        response.statusCode = 404;
+        response.setJsonPayload({
+            "error": "User not found",
+            "timestamp": time:utcNow()
+        });
+        return response;
+    }
+
+    int|error result = donationService:createDonation(userResult.id, request);
+
+    if result is error {
+        response.statusCode = 400;
+        response.setJsonPayload({
+            "error": result.message(),
+            "timestamp": time:utcNow()
+        });
+    } else {
+        response.statusCode = 201;
+        response.setJsonPayload({
+            "message": "Donation recorded successfully",
+            "id": result,
+            "timestamp": time:utcNow()
+        });
+    }
+
+    return response;
+}
+
+# Get donor donations endpoint
+resource function get donations/donor/[int donorId](@http:Header {name: "Authorization"} string? authorization, string? status = ()) returns http:Response|error {
+    http:Response response = new;
+
+    string|error email = token:validateToken(authorization);
+    if email is error {
+        response.statusCode = 401;
+        response.setJsonPayload({
+            "error": email.message(),
+            "timestamp": time:utcNow()
+        });
+        return response;
+    }
+
+    types:DonationResponse[]|error result = donationService:getDonationsByDonor(donorId, status);
+
+    if result is error {
+        response.statusCode = 400;
+        response.setJsonPayload({
+            "error": result.message(),
+            "timestamp": time:utcNow()
+        });
+    } else {
+        response.statusCode = 200;
+        response.setJsonPayload({
+            "data": result.toJson(),
+            "total": result.length(),
+            "timestamp": time:utcNow()
+        });
+    }
+
+    return response;
+}
+
+# Update donation endpoint
+resource function put donations/[int donationId](@http:Header {name: "Authorization"} string? authorization, types:DonationUpdate request) returns http:Response|error {
+    http:Response response = new;
+
+    string|error email = token:validateToken(authorization);
+    if email is error {
+        response.statusCode = 401;
+        response.setJsonPayload({
+            "error": email.message(),
+            "timestamp": time:utcNow()
+        });
+        return response;
+    }
+
+    boolean|error result = donationService:updateDonation(donationId, request);
+
+    if result is error {
+        response.statusCode = 400;
+        response.setJsonPayload({
+            "error": result.message(),
+            "timestamp": time:utcNow()
+        });
+    } else if result {
+        response.statusCode = 200;
+        response.setJsonPayload({
+            "message": "Donation updated successfully",
+            "timestamp": time:utcNow()
+        });
+    } else {
+        response.statusCode = 404;
+        response.setJsonPayload({
+            "error": "Donation not found",
+            "timestamp": time:utcNow()
+        });
+    }
+
+    return response;
+}
+
+# Get donor dashboard endpoint
+resource function get donations/dashboard/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+    http:Response response = new;
+
+    string|error email = token:validateToken(authorization);
+    if email is error {
+        response.statusCode = 401;
+        response.setJsonPayload({
+            "error": email.message(),
+            "timestamp": time:utcNow()
+        });
+        return response;
+    }
+
+    types:DonorDashboard|error result = donationService:getDonorDashboard(donorId);
+
+    if result is error {
+        response.statusCode = 400;
+        response.setJsonPayload({
+            "error": result.message(),
+            "timestamp": time:utcNow()
+        });
+    } else {
+        response.statusCode = 200;
+        response.setJsonPayload({
+            "data": result.toJson(),
+            "timestamp": time:utcNow()
+        });
+    }
+
+    return response;
+}
+
+# Get donor statistics endpoint
+resource function get donations/stats/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+    http:Response response = new;
+
+    string|error email = token:validateToken(authorization);
+    if email is error {
+        response.statusCode = 401;
+        response.setJsonPayload({
+            "error": email.message(),
+            "timestamp": time:utcNow()
+        });
+        return response;
+    }
+
+    types:DonorStats|error result = donationService:getDonorStats(donorId);
+
+    if result is error {
+        response.statusCode = 400;
+        response.setJsonPayload({
+            "error": result.message(),
+            "timestamp": time:utcNow()
+        });
+    } else {
+        response.statusCode = 200;
+        response.setJsonPayload({
+            "data": result.toJson(),
+            "timestamp": time:utcNow()
+        });
+    }
+
+    return response;
+}
+
+# Get donor achievements endpoint
+resource function get donations/achievements/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+    http:Response response = new;
+
+    string|error email = token:validateToken(authorization);
+    if email is error {
+        response.statusCode = 401;
+        response.setJsonPayload({
+            "error": email.message(),
+            "timestamp": time:utcNow()
+        });
+        return response;
+    }
+
+    types:Achievement[]|error result = donationService:getDonorAchievements(donorId);
+
+    if result is error {
+        response.statusCode = 400;
+        response.setJsonPayload({
+            "error": result.message(),
+            "timestamp": time:utcNow()
+        });
+    } else {
+        response.statusCode = 200;
+        response.setJsonPayload({
+            "data": result.toJson(),
+            "total": result.length(),
+            "timestamp": time:utcNow()
+        });
+    }
+
+    return response;
+}
 }
 
 // Function to handle shutdown

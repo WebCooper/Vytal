@@ -438,3 +438,133 @@ public type BloodCampCreate record {
     string[]? facilities;
     decimal[] coordinates;
 };
+
+public enum DonationType {
+    BLOOD = "blood",
+    ORGANS = "organs",
+    MEDICINES = "medicines",
+    SUPPLIES = "supplies",
+    FUNDRAISER = "fundraiser"
+}
+
+public enum DonationStatus {
+    PENDING = "pending",
+    COMPLETED = "completed",
+    CANCELLED = "cancelled"
+}
+
+# Donation record type
+public type Donation record {|
+    int id;
+    int donor_id;
+    int? recipient_id;
+    int? post_id;
+    DonationType donation_type;
+    decimal? amount;
+    string? quantity;
+    string? description;
+    string donation_date;
+    DonationStatus status;
+    string? location;
+    string? notes;
+    string? created_at;
+    string? updated_at;
+|};
+
+# Blood donation specific details
+public type BloodDonation record {|
+    int id;
+    int donation_id;
+    string blood_type;
+    int volume_ml;
+    decimal? hemoglobin_level;
+    string? donation_center;
+    string? next_eligible_date;
+    string? created_at;
+|};
+
+# Donation create request
+public type DonationCreate record {|
+    int? recipient_id;
+    int? post_id;
+    DonationType donation_type;
+    decimal? amount;
+    string? quantity;
+    string? description;
+    string donation_date;
+    string? location;
+    string? notes;
+    # Blood donation specific (optional)
+    string? blood_type;
+    int? volume_ml;
+    decimal? hemoglobin_level;
+    string? donation_center;
+|};
+
+# Donation update request
+public type DonationUpdate record {|
+    DonationStatus? status;
+    decimal? amount;
+    string? quantity;
+    string? description;
+    string? location;
+    string? notes;
+|};
+
+# Achievement record
+public type Achievement record {|
+    int id;
+    int donor_id;
+    string achievement_type;
+    string achievement_name;
+    string? description;
+    string earned_date;
+    json? metadata;
+    string? created_at;
+|};
+
+# Donor statistics
+public type DonorStats record {|
+    int donor_id;
+    int total_donations;
+    int blood_donations;
+    int organ_donations;
+    int medicine_donations;
+    int supply_donations;
+    decimal total_fundraiser_amount;
+    string? last_donation_date;
+    string? first_donation_date;
+|};
+
+# Donation response with related data
+public type DonationResponse record {|
+    int id;
+    int donor_id;
+    int? recipient_id;
+    int? post_id;
+    DonationType donation_type;
+    decimal? amount;
+    string? quantity;
+    string? description;
+    string donation_date;
+    DonationStatus status;
+    string? location;
+    string? notes;
+    string created_at;
+    string updated_at;
+    UserPreview? recipient;
+    record {int id; string title; string category;}? post;
+    BloodDonation? blood_details;
+|};
+
+# Dashboard summary data
+public type DonorDashboard record {|
+    DonorStats stats;
+    DonationResponse[] recent_donations;
+    Achievement[] achievements;
+    record {|
+        boolean can_donate_blood;
+        string? next_eligible_date;
+        string? last_donation_date;
+    |} availability;
+|};
