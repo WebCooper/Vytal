@@ -1,7 +1,7 @@
 // DonorCardGenerator.tsx
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FaDownload, FaShare, FaTimes } from 'react-icons/fa';
+import { FaShare, FaTimes, FaCamera, FaPaintBrush, FaDesktop } from 'react-icons/fa';
 import { DonorCardGeneratorProps } from './types/donorCard';
 import { useDonorCard } from './hooks/useDonorCard';
 import { useCardGeneration } from './hooks/useCardGeneration';
@@ -11,14 +11,28 @@ import { DonorCardShareMenu } from './components/DonorCardShareMenu';
 
 const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose }) => {
   const { cardData, updateCardData, isValid } = useDonorCard();
-  const { generateDonorCard, isGenerating } = useCardGeneration();
+  const { 
+    generateDonorCard, 
+    generateDonorCardScreenshot, 
+    generateDonorCardCanvas,
+    isGenerating 
+  } = useCardGeneration();
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showDownloadOptions, setShowDownloadOptions] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
-  const handleDownload = () => {
-    generateDonorCard(cardData); // Removed cardRef parameter
+  const handlePrimaryDownload = () => {
+    generateDonorCard(cardData, cardRef);
+  };
+
+  const handleScreenshot = () => {
+    generateDonorCardScreenshot(cardData, cardRef);
+  };
+
+  const handleCanvasDownload = () => {
+    generateDonorCardCanvas(cardData);
   };
 
   const handleShare = () => {
@@ -57,9 +71,12 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
             <div className="lg:w-3/5 p-6 bg-gradient-to-br from-emerald-50 to-gray-50 flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Professional Donor Card</h3>
+                <div className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
+                  Multiple download options available
+                </div>
               </div>
               
-              {/* Card Preview Container - Fixed height with scroll */}
+              {/* Card Preview Container */}
               <div className="flex-1 flex flex-col min-h-0">
                 {/* Card Preview */}
                 <div className="flex-1 flex items-center justify-center overflow-y-auto py-4">
@@ -68,11 +85,11 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
                   </div>
                 </div>
                 
-                {/* Action Buttons - Always visible */}
+                {/* Action Buttons */}
                 <div className="w-full max-w-sm mx-auto space-y-3 flex-shrink-0 pt-4 border-t border-gray-200">
-                  {/* Download Button */}
+                  {/* Primary Download Button */}
                   <button
-                    onClick={handleDownload}
+                    onClick={handlePrimaryDownload}
                     disabled={!isValid() || isGenerating}
                     className={`w-full px-4 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 ${
                       !isValid() || isGenerating
@@ -87,11 +104,59 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
                       </>
                     ) : (
                       <>
-                        <FaDownload className="text-sm" />
-                        <span>Download Donor Card</span>
+                        <FaDesktop className="text-sm" />
+                        <span>Download Card</span>
                       </>
                     )}
                   </button>
+
+                  {/* Download Options Toggle */}
+                  <button
+                    onClick={() => setShowDownloadOptions(!showDownloadOptions)}
+                    disabled={!isValid()}
+                    className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      !isValid()
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {showDownloadOptions ? 'Hide' : 'Show'} More Download Options
+                  </button>
+
+                  {/* Additional Download Options */}
+                  {showDownloadOptions && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="space-y-2"
+                    >
+                      <button
+                        onClick={handleScreenshot}
+                        disabled={!isValid() || isGenerating}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
+                          !isValid() || isGenerating
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        }`}
+                      >
+                        <FaCamera className="text-sm" />
+                        <span>Manual Screenshot Guide</span>
+                      </button>
+                      
+                      <button
+                        onClick={handleCanvasDownload}
+                        disabled={!isValid() || isGenerating}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
+                          !isValid() || isGenerating
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                        }`}
+                      >
+                        <FaPaintBrush className="text-sm" />
+                        <span>Canvas Recreation</span>
+                      </button>
+                    </motion.div>
+                  )}
 
                   {/* Share Button */}
                   <button
@@ -106,6 +171,13 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
                     <FaShare className="text-sm" />
                     <span>Share Donor Details</span>
                   </button>
+                  
+                  {/* Help Text */}
+                  <div className="text-center text-xs text-gray-500 mt-2 p-3 bg-gray-50 rounded-lg space-y-1">
+                    <p><strong>Screen Capture:</strong> Best quality, captures exact preview</p>
+                    <p><strong>Screenshot Guide:</strong> Manual instructions for your OS</p>
+                    <p><strong>Canvas Recreation:</strong> Generated image (may differ from preview)</p>
+                  </div>
                 </div>
               </div>
             </div>

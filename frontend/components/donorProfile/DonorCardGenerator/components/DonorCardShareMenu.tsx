@@ -15,7 +15,7 @@ interface DonorCardShareMenuProps {
 export const DonorCardShareMenu: React.FC<DonorCardShareMenuProps> = ({ 
   isOpen, 
   onClose, 
-  cardData 
+  cardData
 }) => {
   const { generateCardBlob } = useCardGeneration();
 
@@ -34,6 +34,7 @@ export const DonorCardShareMenu: React.FC<DonorCardShareMenuProps> = ({
   };
 
   const shareToWhatsApp = async () => {
+    // Fix: Call generateCardBlob with only cardData (remove cardRef)
     const cardBlob = await generateCardBlob(cardData);
     if (cardBlob) {
       const filename = `donor-card-${cardData.donorName.replace(/\s+/g, '-')}.png`;
@@ -56,6 +57,7 @@ export const DonorCardShareMenu: React.FC<DonorCardShareMenuProps> = ({
   };
 
   const shareImageAndText = async () => {
+    // Fix: Call generateCardBlob with only cardData (remove cardRef)
     const cardBlob = await generateCardBlob(cardData);
     if (cardBlob) {
       const filename = `donor-card-${cardData.donorName.replace(/\s+/g, '-')}.png`;
@@ -105,8 +107,8 @@ export const DonorCardShareMenu: React.FC<DonorCardShareMenuProps> = ({
               <FaCopy className="text-emerald-600 text-sm" />
             </div>
             <div className="text-left">
-              <span className="font-bold text-emerald-800 block">Download Image + Copy Text</span>
-              <span className="text-emerald-600 text-xs">Best for WhatsApp sharing</span>
+              <span className="font-bold text-emerald-800 block">Download Preview + Copy Text</span>
+              <span className="text-emerald-600 text-xs">Exact same as preview - Best for WhatsApp</span>
             </div>
           </button>
 
@@ -117,7 +119,7 @@ export const DonorCardShareMenu: React.FC<DonorCardShareMenuProps> = ({
             <FaWhatsapp className="text-green-600 text-lg" />
             <div className="text-left">
               <span className="font-medium text-green-800 block">WhatsApp Ready</span>
-              <span className="text-green-600 text-xs">Image + text with instructions</span>
+              <span className="text-green-600 text-xs">Preview image + text with instructions</span>
             </div>
           </button>
 
@@ -143,7 +145,7 @@ export const DonorCardShareMenu: React.FC<DonorCardShareMenuProps> = ({
 
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            <strong>Pro Tip:</strong> Use &apos;Download Image + Copy Text&apos; → Follow the step-by-step instructions → Share both image and text on WhatsApp to let people know you&apos;re available to help!
+            <strong>New:</strong> Now downloads the exact preview you see! Use &apos;Download Preview + Copy Text&apos; for perfect WhatsApp sharing.
           </p>
         </div>
       </motion.div>
