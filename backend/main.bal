@@ -803,7 +803,10 @@ service /api/v1 on new http:Listener(9091) {
 
         return response;
     }
-    # Create donation endpoint
+# Create donation endpoint
+# + authorization - Authorization header containing bearer token
+# + request - Donation creation request data
+# + return - HTTP response with donation creation result or error
 resource function post donations(@http:Header {name: "Authorization"} string? authorization, types:DonationCreate request) returns http:Response|error {
     http:Response response = new;
 
@@ -848,6 +851,10 @@ resource function post donations(@http:Header {name: "Authorization"} string? au
 }
 
 # Get donor donations endpoint
+# + donorId - ID of the donor to retrieve donations for
+# + authorization - Authorization header containing bearer token
+# + status - Optional status filter for donations
+# + return - HTTP response with donor's donations or error
 resource function get donations/donor/[int donorId](@http:Header {name: "Authorization"} string? authorization, string? status = ()) returns http:Response|error {
     http:Response response = new;
 
@@ -882,6 +889,10 @@ resource function get donations/donor/[int donorId](@http:Header {name: "Authori
 }
 
 # Update donation endpoint
+# + donationId - ID of the donation to update
+# + authorization - Authorization header containing bearer token
+# + request - Donation update request containing fields to modify
+# + return - HTTP response with update result or error
 resource function put donations/[int donationId](@http:Header {name: "Authorization"} string? authorization, types:DonationUpdate request) returns http:Response|error {
     http:Response response = new;
 
@@ -921,6 +932,9 @@ resource function put donations/[int donationId](@http:Header {name: "Authorizat
 }
 
 # Get donor dashboard endpoint
+# + donorId - ID of the donor to retrieve dashboard data for
+# + authorization - Authorization header containing bearer token
+# + return - HTTP response with comprehensive dashboard data or error
 resource function get donations/dashboard/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
     http:Response response = new;
 
@@ -954,6 +968,9 @@ resource function get donations/dashboard/[int donorId](@http:Header {name: "Aut
 }
 
 # Get donor statistics endpoint
+# + donorId - ID of the donor to retrieve statistics for
+# + authorization - Authorization header containing bearer token
+# + return - HTTP response with donor statistics or error
 resource function get donations/stats/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
     http:Response response = new;
 
@@ -987,6 +1004,9 @@ resource function get donations/stats/[int donorId](@http:Header {name: "Authori
 }
 
 # Get donor achievements endpoint
+# + donorId - ID of the donor to retrieve achievements for
+# + authorization - Authorization header containing bearer token
+# + return - HTTP response with donor achievements list or error
 resource function get donations/achievements/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
     http:Response response = new;
 

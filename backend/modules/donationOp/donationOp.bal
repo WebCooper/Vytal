@@ -1,7 +1,10 @@
 import backend.database;
 import backend.types;
 
-# Create a new donation
+# Create a new donation record
+# + donorId - ID of the donor creating the donation
+# + request - Donation creation request data
+# + return - ID of the created donation or error if operation fails
 public isolated function createDonation(int donorId, types:DonationCreate request) returns int|error {
     // Insert main donation record
     record {
@@ -53,27 +56,39 @@ public isolated function createDonation(int donorId, types:DonationCreate reques
     return donationId;
 }
 
-# Get donations by donor
+# Get donations by donor with optional status filtering
+# + donorId - ID of the donor to retrieve donations for
+# + status - Optional status filter for donations
+# + return - Array of donation responses or error if operation fails
 public isolated function getDonationsByDonor(int donorId, string? status = ()) returns types:DonationResponse[]|error {
     return database:getDonationsByDonor(donorId, status);
 }
 
-# Update donation status
+# Update donation status and details
+# + donationId - ID of the donation to update
+# + request - Donation update request containing fields to modify
+# + return - True if donation was updated successfully, false if not found, or error if operation fails
 public isolated function updateDonation(int donationId, types:DonationUpdate request) returns boolean|error {
     return database:updateDonation(donationId, request);
 }
 
-# Get donor statistics
+# Get donor statistics summary
+# + donorId - ID of the donor to retrieve statistics for
+# + return - Donor statistics record or error if operation fails
 public isolated function getDonorStats(int donorId) returns types:DonorStats|error {
     return database:getDonorStats(donorId);
 }
 
-# Get donor achievements
+# Get donor achievements list
+# + donorId - ID of the donor to retrieve achievements for
+# + return - Array of achievement records or error if operation fails
 public isolated function getDonorAchievements(int donorId) returns types:Achievement[]|error {
     return database:getDonorAchievements(donorId);
 }
 
-# Get donor dashboard data
+# Get comprehensive donor dashboard data
+# + donorId - ID of the donor to retrieve dashboard data for
+# + return - Dashboard data including stats, recent donations, achievements, and availability or error if operation fails
 public isolated function getDonorDashboard(int donorId) returns types:DonorDashboard|error {
     // Get stats
     types:DonorStats stats = check getDonorStats(donorId);
@@ -99,7 +114,9 @@ public isolated function getDonorDashboard(int donorId) returns types:DonorDashb
     };
 }
 
-# Calculate blood donation availability
+# Calculate blood donation availability for a donor
+# + donorId - ID of the donor to check availability for
+# + return - Record containing blood donation availability information or error if operation fails
 isolated function calculateBloodDonationAvailability(int donorId) returns record {|
     boolean can_donate_blood;
     string? next_eligible_date;
@@ -129,6 +146,12 @@ isolated function calculateBloodDonationAvailability(int donorId) returns record
 }
 
 # Award achievement to donor
+# + donorId - ID of the donor to award achievement to
+# + achievementType - Type or category of achievement
+# + achievementName - Display name of the achievement
+# + description - Description of what the achievement represents
+# + metadata - Optional additional metadata about the achievement
+# + return - ID of the created achievement record or error if operation fails
 public isolated function awardAchievement(int donorId, string achievementType, string achievementName, string description, json? metadata = ()) returns int|error {
     record {
         int donor_id;
@@ -149,7 +172,8 @@ public isolated function awardAchievement(int donorId, string achievementType, s
     return database:insertAchievement(achievementData);
 }
 
-# Helper function to get current date
+# Helper function to get current date as string
+# + return - Current date as a string in YYYY-MM-DD format
 isolated function getCurrentDate() returns string {
     // Simplified - you should use proper date library
     return "2025-01-01"; // Replace with actual date logic

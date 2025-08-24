@@ -1489,7 +1489,9 @@ public isolated function getAllBloodCamps() returns types:BloodCamp[]|error {
     check resultStream.close();
     return camps;
 }
-# Insert donation record
+# Insert donation record into database
+# + donationData - Donation data to be inserted
+# + return - ID of the inserted donation or error if operation fails
 public isolated function insertDonation(record {
     int donor_id;
     int? recipient_id;
@@ -1517,7 +1519,9 @@ public isolated function insertDonation(record {
     return <int>result.lastInsertId;
 }
 
-# Insert blood donation details
+# Insert blood donation details into the database
+# + bloodData - Blood donation specific data including donation_id, blood_type, volume_ml, hemoglobin_level, and donation_center
+# + return - SQL execution result or error if operation fails
 public isolated function insertBloodDonation(record {
     int donation_id;
     string blood_type;
@@ -1538,7 +1542,10 @@ public isolated function insertBloodDonation(record {
     return dbClientInstance->execute(query);
 }
 
-# Get donations by donor with related data
+# Get donations by donor with optional status filtering
+# + donorId - ID of the donor to get donations for
+# + status - Optional status filter for donations
+# + return - Array of donation responses or error if operation fails
 public isolated function getDonationsByDonor(int donorId, string? status = ()) returns types:DonationResponse[]|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -1633,7 +1640,10 @@ public isolated function getDonationsByDonor(int donorId, string? status = ()) r
     return donations;
 }
 
-# Update donation
+# Update donation record in the database
+# + donationId - ID of the donation to update
+# + request - Donation update request containing fields to modify
+# + return - True if donation was updated successfully, false if not found, or error if operation fails
 public isolated function updateDonation(int donationId, types:DonationUpdate request) returns boolean|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -1651,7 +1661,9 @@ public isolated function updateDonation(int donationId, types:DonationUpdate req
     return result.affectedRowCount > 0;
 }
 
-# Get donor statistics
+# Get donor statistics from the database
+# + donorId - ID of the donor to retrieve statistics for
+# + return - Donor statistics record or error if operation fails
 public isolated function getDonorStats(int donorId) returns types:DonorStats|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -1700,7 +1712,10 @@ public isolated function getDonorStats(int donorId) returns types:DonorStats|err
     };
 }
 
-# Get recent donations
+# Get recent donations by donor with limit
+# + donorId - ID of the donor to retrieve donations for
+# + limit - Maximum number of donations to return
+# + return - Array of recent donation responses or error if operation fails
 public isolated function getRecentDonationsByDonor(int donorId, int 'limit) returns types:DonationResponse[]|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -1782,7 +1797,9 @@ public isolated function getRecentDonationsByDonor(int donorId, int 'limit) retu
     return donations;
 }
 
-# Get donor achievements
+# Get donor achievements from the database
+# + donorId - ID of the donor to retrieve achievements for
+# + return - Array of achievement records or error if operation fails
 public isolated function getDonorAchievements(int donorId) returns types:Achievement[]|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -1809,7 +1826,9 @@ public isolated function getDonorAchievements(int donorId) returns types:Achieve
     return achievements;
 }
 
-# Get last blood donation
+# Get the last blood donation record for a donor
+# + donorId - ID of the donor to retrieve last blood donation for
+# + return - Last blood donation record, null if no blood donations found, or error if operation fails
 public isolated function getLastBloodDonation(int donorId) returns types:BloodDonation?|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -1840,7 +1859,9 @@ public isolated function getLastBloodDonation(int donorId) returns types:BloodDo
     };
 }
 
-# Insert achievement
+# Insert achievement record into the database
+# + achievementData - Achievement data including donor_id, achievement_type, achievement_name, description, earned_date, and metadata
+# + return - ID of the inserted achievement record or error if operation fails
 public isolated function insertAchievement(record {
     int donor_id;
     string achievement_type;
@@ -1862,7 +1883,9 @@ public isolated function insertAchievement(record {
     return <int>result.lastInsertId;
 }
 
-# Helper function to calculate next eligible date
+# Helper function to calculate next eligible date for blood donation
+# + daysToAdd - Number of days to add to current date for next eligibility
+# + return - Date string representing next eligible donation date
 isolated function calculateNextEligibleDate(int daysToAdd) returns string {
     
     return "2025-03-15";
