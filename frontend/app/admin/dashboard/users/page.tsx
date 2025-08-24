@@ -3,6 +3,7 @@ import AdminPageWrapper from "@/components/admin/layout/AdminPageWrapper";
 import { useState, useEffect } from "react";
 import { getUsers as apiGetUsers, type User as ApiUser } from "@/lib/userService";
 import { getPostsByUser, type RecipientPost } from "@/lib/recipientPosts";
+import { getDonorPostsByUser, type DonorPost, type ApiResponse } from "@/lib/donorPosts";
 import { FaUsers, FaSearch, FaEye, FaCalendarAlt, FaUser, FaEnvelope, FaPhone, FaIdBadge, FaHistory, FaFileAlt, FaExclamationTriangle } from "react-icons/fa";
 import { AnimatePresence } from "framer-motion";
 import AdminUserModal from "@/components/admin/AdminUserModal";
@@ -30,7 +31,19 @@ export default function UsersManagement() {
   const [viewId, setViewId] = useState<number | null>(null);
   const [viewData, setViewData] = useState<User | null>(null);
   const [showActivity, setShowActivity] = useState(false);
-  const [userPosts, setUserPosts] = useState<RecipientPost[]>([]);
+  type ActivityPost = {
+    id: number;
+    title: string;
+    content: string;
+    category: RecipientPost["category"];
+    status: RecipientPost["status"];
+    location?: string;
+    urgency?: RecipientPost["urgency"];
+    createdAt: string;
+    engagement: RecipientPost["engagement"];
+  };
+
+  const [userPosts, setUserPosts] = useState<ActivityPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
 
   // Fetch once on mount
@@ -115,11 +128,44 @@ export default function UsersManagement() {
   const loadUserActivity = async (userId: number) => {
     setLoadingPosts(true);
     try {
-      const response = await getPostsByUser(userId);
-      setUserPosts(response.data || []);
+      // Fetch both recipient and donor posts for this user and merge into a unified activity list
+      const [recipientRes, donorRes] = await Promise.all([
+        getPostsByUser(userId).catch(() => ({ data: [] as RecipientPost[] })),
+        getDonorPostsByUser(userId).catch(() => ({ data: [] as DonorPost[] } as ApiResponse<DonorPost[]>)),
+      ]);
+
+      const recipientMapped: ActivityPost[] = (recipientRes.data || []).map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.content,
+        category: p.category,
+        status: p.status,
+        location: p.location,
+        urgency: p.urgency,
+        createdAt: p.createdAt,
+        engagement: p.engagement,
+      }));
+
+      const donorMapped: ActivityPost[] = ((donorRes?.data as DonorPost[]) || []).map((p) => ({
+        id: p.id,
+        title: p.title,
+        content: p.content,
+        category: p.category as ActivityPost["category"],
+        status: p.status as ActivityPost["status"],
+        location: p.location,
+        urgency: p.urgency as ActivityPost["urgency"],
+        createdAt: p.createdAt,
+        engagement: p.engagement,
+      }));
+
+      const merged = [...recipientMapped, ...donorMapped].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setUserPosts(merged);
       setShowActivity(true);
     } catch (error) {
-      console.error('Failed to load user posts:', error);
+      console.error('Failed to load user activity:', error);
       setUserPosts([]);
     } finally {
       setLoadingPosts(false);
