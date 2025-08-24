@@ -439,3 +439,214 @@ public type BloodCampCreate record {
     string[]? facilities;
     decimal[] coordinates;
 };
+
+public enum DonationType {
+    BLOOD = "blood",
+    ORGANS = "organs",
+    MEDICINES = "medicines",
+    SUPPLIES = "supplies",
+    FUNDRAISER = "fundraiser"
+}
+
+public enum DonationStatus {
+    PENDING = "pending",
+    COMPLETED = "completed",
+    CANCELLED = "cancelled"
+}
+
+# Donation record type
+public type Donation record {|
+    # Unique identifier for the donation
+    int id;
+    # ID of the donor making the donation
+    int donor_id;
+    # ID of the recipient (optional)
+    int? recipient_id;
+    # ID of the related post (optional)
+    int? post_id;
+    # Type of donation being made
+    DonationType donation_type;
+    # Monetary amount for fundraiser donations
+    decimal? amount;
+    # Quantity description for physical donations
+    string? quantity;
+    # Additional description of the donation
+    string? description;
+    # Date when donation was made
+    string donation_date;
+    # Current status of the donation
+    DonationStatus status;
+    # Location where donation was made
+    string? location;
+    # Additional notes about the donation
+    string? notes;
+    # Timestamp when record was created
+    string? created_at;
+    # Timestamp when record was last updated
+    string? updated_at;
+|};
+
+# Blood donation specific details
+public type BloodDonation record {|
+    # Unique identifier for the blood donation record
+    int id;
+    # Reference to the main donation record
+    int donation_id;
+    # Blood type (A+, B+, O-, etc.)
+    string blood_type;
+    # Volume of blood donated in milliliters
+    int volume_ml;
+    # Hemoglobin level at time of donation
+    decimal? hemoglobin_level;
+    # Name or location of the donation center
+    string? donation_center;
+    # Date when donor becomes eligible for next donation
+    string? next_eligible_date;
+    # Timestamp when record was created
+    string? created_at;
+|};
+
+# Donation create request
+public type DonationCreate record {|
+    # ID of the recipient receiving the donation
+    int? recipient_id;
+    # ID of the related post that prompted the donation
+    int? post_id;
+    # Type of donation being made
+    DonationType donation_type;
+    # Monetary amount for fundraiser donations
+    decimal? amount;
+    # Quantity description for physical donations
+    string? quantity;
+    # Additional description of the donation
+    string? description;
+    # Date when donation was made
+    string donation_date;
+    # Location where donation was made
+    string? location;
+    # Additional notes about the donation
+    string? notes;
+    # Blood type for blood donations
+    string? blood_type;
+    # Volume of blood donated in milliliters
+    int? volume_ml;
+    # Hemoglobin level at time of donation
+    decimal? hemoglobin_level;
+    # Name or location of the donation center
+    string? donation_center;
+|};
+
+# Donation update request
+public type DonationUpdate record {|
+    # Updated status of the donation
+    DonationStatus? status;
+    # Updated monetary amount
+    decimal? amount;
+    # Updated quantity description
+    string? quantity;
+    # Updated description
+    string? description;
+    # Updated location
+    string? location;
+    # Updated notes
+    string? notes;
+|};
+
+# Achievement record
+public type Achievement record {|
+    # Unique identifier for the achievement
+    int id;
+    # ID of the donor who earned the achievement
+    int donor_id;
+    # Type or category of achievement
+    string achievement_type;
+    # Display name of the achievement
+    string achievement_name;
+    # Description of what the achievement represents
+    string? description;
+    # Date when the achievement was earned
+    string earned_date;
+    # Additional metadata about the achievement in JSON format
+    json? metadata;
+    # Timestamp when record was created
+    string? created_at;
+|};
+
+# Donor statistics
+public type DonorStats record {|
+    # ID of the donor these statistics belong to
+    int donor_id;
+    # Total number of donations made
+    int total_donations;
+    # Number of blood donations made
+    int blood_donations;
+    # Number of organ donations made
+    int organ_donations;
+    # Number of medicine donations made
+    int medicine_donations;
+    # Number of supply donations made
+    int supply_donations;
+    # Total amount raised through fundraiser donations
+    decimal total_fundraiser_amount;
+    # Date of the most recent donation
+    string? last_donation_date;
+    # Date of the first donation
+    string? first_donation_date;
+|};
+
+# Donation response with related data
+public type DonationResponse record {|
+    # Unique identifier for the donation
+    int id;
+    # ID of the donor making the donation
+    int donor_id;
+    # ID of the recipient receiving the donation
+    int? recipient_id;
+    # ID of the related post
+    int? post_id;
+    # Type of donation made
+    DonationType donation_type;
+    # Monetary amount for fundraiser donations
+    decimal? amount;
+    # Quantity description for physical donations
+    string? quantity;
+    # Additional description of the donation
+    string? description;
+    # Date when donation was made
+    string donation_date;
+    # Current status of the donation
+    DonationStatus status;
+    # Location where donation was made
+    string? location;
+    # Additional notes about the donation
+    string? notes;
+    # Timestamp when record was created
+    string created_at;
+    # Timestamp when record was last updated
+    string updated_at;
+    # Preview information about the recipient
+    UserPreview? recipient;
+    # Information about the related post
+    record {int id; string title; string category;}? post;
+    # Blood donation specific details if applicable
+    BloodDonation? blood_details;
+|};
+
+# Dashboard summary data
+public type DonorDashboard record {|
+    # Donor's overall statistics
+    DonorStats stats;
+    # List of recent donations made by the donor
+    DonationResponse[] recent_donations;
+    # List of achievements earned by the donor
+    Achievement[] achievements;
+    # Information about donor's availability for blood donations
+    record {|
+        # Whether the donor can currently donate blood
+        boolean can_donate_blood;
+        # Date when donor becomes eligible for next blood donation
+        string? next_eligible_date;
+        # Date of the last blood donation
+        string? last_donation_date;
+    |} availability;
+|};
