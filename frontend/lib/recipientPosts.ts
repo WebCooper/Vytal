@@ -1,12 +1,9 @@
-// recipientPost.ts
 import { axiosInstance } from './axiosInstance';
 
-// Enums from backend
 export type PostCategory = 'blood' | 'organs' | 'fundraiser' | 'medicines' | 'supplies';
 export type PostStatus = 'pending' | 'open' | 'fulfilled' | 'cancelled' | 'rejected';
 export type PostUrgency = 'low' | 'medium' | 'high';
 
-// Engagement metrics
 export interface PostEngagement {
   likes: number;
   comments: number;
@@ -14,13 +11,11 @@ export interface PostEngagement {
   views: number;
 }
 
-// Fundraiser details
 export interface FundraiserDetails {
   goal: number;
   received: number;
 }
 
-// User preview data
 export interface UserPreview {
   id: number;
   name: string;
@@ -30,7 +25,6 @@ export interface UserPreview {
   categories: PostCategory[];
 }
 
-// Post model from backend
 export interface RecipientPost {
   id: number;
   user: UserPreview;
@@ -46,20 +40,18 @@ export interface RecipientPost {
   engagement: PostEngagement;
 }
 
-// Input to create a post
 export interface CreatePostInput {
   recipient_id: number;
   title: string;
   content: string;
   category: PostCategory;
-  status?: PostStatus; // default = 'pending' if omitted
+  status?: PostStatus;
   location?: string;
   urgency?: PostUrgency;
   contact?: string;
   goal?: number;
 }
 
-// Input to update a post
 export interface UpdatePostInput {
   title?: string;
   content?: string;
@@ -72,20 +64,17 @@ export interface UpdatePostInput {
   received?: number;
 }
 
-// Full post response
 export interface PostResponse {
   message: string;
   data: RecipientPost;
   timestamp: string;
 }
 
-// List of posts
 export interface PostsListResponse {
   data: RecipientPost[];
   timestamp: string;
 }
 
-// API methods
 export const createPost = async (data: CreatePostInput): Promise<PostResponse> => {
   const response = await axiosInstance.post<PostResponse>('/posts', data);
   return response.data;

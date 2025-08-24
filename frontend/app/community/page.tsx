@@ -28,7 +28,6 @@ export default function CommunityPage() {
   const [showBloodCampForm, setShowBloodCampForm] = useState(false);
   const [bloodCampsList, setBloodCampsList] = useState<BloodCamp[]>([]);
 
-  // Mapping functions to convert backend data to frontend Post format
   const mapRecipientPostToPost = (recipientPost: unknown): Post => {
     const post = recipientPost as RecipientPostResponse;
     
@@ -117,13 +116,11 @@ export default function CommunityPage() {
     };
   };
 
-  // Fetch community data
   const fetchCommunityData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      // Fetch recipient posts, donor posts, and blood camps in parallel
       const [recipientResponse, donorResponse, bloodCampsResponse] = await Promise.all([
         getAllRecipientPosts().catch(err => {
           console.warn('Failed to fetch recipient posts:', err);
@@ -139,7 +136,6 @@ export default function CommunityPage() {
         })
       ]);
       
-      // Map and set posts
       const mappedRecipientPosts = recipientResponse.data.map((post) => mapRecipientPostToPost(post))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
@@ -158,15 +154,11 @@ export default function CommunityPage() {
     }
   }, []);
 
-  // Read URL parameters to set the active tab
   useEffect(() => {
-    // Check if window is available (client-side)
     if (typeof window !== 'undefined') {
-      // Get the tab parameter from URL
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
       
-      // Set active tab if a valid tab is provided in URL
       if (tabParam && ['requests', 'donations', 'camps'].includes(tabParam)) {
         setActiveTab(tabParam);
       }
@@ -175,7 +167,6 @@ export default function CommunityPage() {
     fetchCommunityData();
   }, [fetchCommunityData]);
 
-  // Auto refresh community data periodically so approved posts appear without manual refresh
   useEffect(() => {
     const intervalId = setInterval(() => {
       fetchCommunityData();
@@ -205,7 +196,6 @@ export default function CommunityPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
-          {/* Error State */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mt-6">
               <p>{error}</p>
@@ -218,7 +208,6 @@ export default function CommunityPage() {
             </div>
           )}
 
-          {/* Loading State */}
           {isLoading && (
             <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center mt-6">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
@@ -226,7 +215,6 @@ export default function CommunityPage() {
             </div>
           )}
 
-          {/* Requests Tab (Recipient Posts) */}
           {!isLoading && !error && activeTab === "requests" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -265,7 +253,6 @@ export default function CommunityPage() {
             </motion.div>
           )}
 
-          {/* Donations Tab (Donor Posts) */}
           {!isLoading && !error && activeTab === "donations" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -304,7 +291,6 @@ export default function CommunityPage() {
             </motion.div>
           )}
 
-          {/* Blood Camps Tab */}
           {!isLoading && !error && activeTab === "camps" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -324,7 +310,7 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      <CampDetailsModal selectedCamp={selectedCamp} setSelectedCamp={setSelectedCamp} />
+  <CampDetailsModal selectedCamp={selectedCamp} setSelectedCamp={setSelectedCamp} />
       <Footer />
     </div>
   );

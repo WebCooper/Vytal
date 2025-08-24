@@ -1,7 +1,5 @@
-// lib/messages.ts
 import { axiosInstance } from './axiosInstance';
 
-// Types
 export interface MessageUser {
   id: number;
   name: string;
@@ -52,7 +50,6 @@ export interface MessagesListResponse {
   timestamp: string;
 }
 
-// API functions
 export const sendMessage = async (messageData: CreateMessageRequest): Promise<MessageResponse> => {
   const response = await axiosInstance.post<MessageResponse>('/messages', messageData);
   return response.data;

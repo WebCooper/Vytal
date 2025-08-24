@@ -67,7 +67,6 @@ export const rejectRecipientPost = async (postId: number): Promise<{ message: st
   return res.data;
 };
 
-// Donor admin endpoints
 export const getPendingDonorPosts = async (): Promise<PendingPostsResponse> => {
   const res = await axiosInstance.get<PendingPostsResponse>('/admin/donor/pending');
   return res.data;
