@@ -7,14 +7,11 @@ export interface CommunityPostsResponse {
   timestamp: string;
 }
 
-// Get all recipient posts
-// Change from '/recipient-posts' to '/posts'
 export const getAllRecipientPosts = async (): Promise<CommunityPostsResponse> => {
   const response = await axiosInstance.get('/posts'); // Changed this line
   return response.data;
 };
 
-// Get all donor posts
 export const getAllDonorPosts = async (): Promise<CommunityPostsResponse> => {
   const response = await axiosInstance.get<{
     data: Post[];

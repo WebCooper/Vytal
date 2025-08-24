@@ -1,8 +1,6 @@
-// donorPosts.ts
 import axios from 'axios';
 import { axiosInstance } from './axiosInstance';
 
-// Enum types matching Ballerina definitions
 export enum Category {
   ORGANS = "organs",
   BLOOD = "blood",
@@ -24,7 +22,6 @@ export enum Urgency {
   HIGH = "high"
 }
 
-// Type definitions for post components
 export interface Engagement {
   likes: number;
   comments: number;
@@ -56,7 +53,6 @@ export interface OrganOffering {
   availability: string;
 }
 
-// DonorPost creation type
 export interface DonorPostCreate {
   donor_id: number;
   title: string;
@@ -72,7 +68,6 @@ export interface DonorPostCreate {
   organOffering?: OrganOffering;
 }
 
-// DonorPost response type
 export interface DonorPost {
   id: number;
   donor_id: number;
@@ -91,30 +86,18 @@ export interface DonorPost {
   organOffering?: OrganOffering;
 }
 
-// API response structure
 export interface ApiResponse<T> {
   message: string;
   data: T;
   timestamp: number[];
 }
 
-/**
- * Create a new donor post
- * @param post The donor post data to be created
- * @returns Promise with the created post data
- */
 export const createDonorPost = async (post: DonorPostCreate): Promise<ApiResponse<DonorPost>> => {
   try {
-    console.log('Making API request to create donor post:', post);
-    console.log('API Base URL:', axiosInstance.defaults.baseURL);
-    console.log('Headers:', axiosInstance.defaults.headers);
-    
     const response = await axiosInstance.post<ApiResponse<DonorPost>>('/donor_post', post);
-    console.log('API Response:', response);
     return response.data;
   } catch (error: unknown) {
     console.error('Failed to create donor post:', error);
-    // Log more detailed error information
     if (axios.isAxiosError(error)) {
       console.error('Error Details:', {
         status: error.response?.status,
@@ -127,10 +110,6 @@ export const createDonorPost = async (post: DonorPostCreate): Promise<ApiRespons
   }
 };
 
-/**
- * Get all donor posts
- * @returns Promise with array of donor posts
- */
 export const getAllDonorPosts = async (): Promise<ApiResponse<DonorPost[]>> => {
   try {
     const response = await axiosInstance.get<ApiResponse<DonorPost[]>>('/donor_post');
@@ -141,11 +120,6 @@ export const getAllDonorPosts = async (): Promise<ApiResponse<DonorPost[]>> => {
   }
 };
 
-/**
- * Get donor posts by user ID
- * @param userId The user ID whose posts to retrieve
- * @returns Promise with array of donor posts
- */
 export const getDonorPostsByUser = async (userId: number): Promise<ApiResponse<DonorPost[]>> => {
   try {
     const response = await axiosInstance.get<ApiResponse<DonorPost[]>>(`/donor_post/user/${userId}`);
@@ -155,9 +129,3 @@ export const getDonorPostsByUser = async (userId: number): Promise<ApiResponse<D
     throw error;
   }
 };
-
-// Note: The following operations are not currently available in the backend API:
-// - getDonorPostById (get a single post by ID)
-// - updateDonorPost (update an existing post)
-// - deleteDonorPost (delete a post)
-// These methods will need to be implemented in the backend before they can be used.

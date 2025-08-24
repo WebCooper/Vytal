@@ -94,7 +94,13 @@ export const getProfile = async (): Promise<User> => {
 
 // User CRUD
 export const getUsers = async (): Promise<User[]> => {
-  return request('/users');
+  // Admin route returns { data: User[] }
+  const res = await request<{ data: User[] }>('/admin/users');
+  if (Array.isArray((res as { data: unknown }).data)) {
+    return (res as { data: User[] }).data;
+  }
+  // Fallback if backend returns array directly
+  return res as unknown as User[];
 };
 
 export const getUserById = async (id: number): Promise<User> => {

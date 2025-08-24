@@ -1,7 +1,6 @@
 // lib/messages.ts - Updated version
 import { axiosInstance } from './axiosInstance';
 
-// Types
 export interface MessageUser {
   id: number;
   name: string;

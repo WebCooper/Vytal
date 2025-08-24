@@ -26,7 +26,6 @@ import { getDonorDashboard, type DonorDashboard} from '@/lib/donationApi';
 import CreateDonationModal from '@/components/donorProfile/CreateDonationModal';
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
-    // Map category string to Category enum
     const mapCategory = (category: string): Category => {
         switch (category) {
             case 'blood': return Category.BLOOD;
@@ -53,7 +52,7 @@ const mapRecipientPostToPost = (post: RecipientPost): Post => {
             id: post.user.id,
             name: post.user.name,
             email: post.user.email,
-            avatar: post.user.name.substring(0, 2).toUpperCase(), // Using initials as avatar
+            avatar: post.user.name.substring(0, 2).toUpperCase(),
             verified: true,
             joinedDate: new Date().toISOString().split('T')[0],
             type: userType
@@ -64,9 +63,7 @@ const mapRecipientPostToPost = (post: RecipientPost): Post => {
     };
 };
 
-// Helper function to map DonorPost to Post type
 const mapDonorPostToPost = (post: DonorPost, user: { id: number; name: string; email: string; role?: string }): Post => {
-    // Map category enum to Category enum
     const mapCategory = (category: string): Category => {
         switch (category) {
             case 'blood': return Category.BLOOD;
@@ -98,10 +95,9 @@ const mapDonorPostToPost = (post: DonorPost, user: { id: number; name: string; e
         },
         contact: post.contact,
         location: post.location,
-        // Add fundraiser details if available
         fundraiserDetails: post.fundraiserOffering ? {
             goal: post.fundraiserOffering.maxAmount,
-            received: 0, // Default since API doesn't provide this
+            received: 0,
         } : undefined
     };
 };
@@ -121,7 +117,6 @@ export default function DonorDashboard() {
     const [isLoadingPosts, setIsLoadingPosts] = useState(true);
     const [isLoadingDonorPosts, setIsLoadingDonorPosts] = useState(true);
 
-    // Blood camps state
     const [bloodCamps, setBloodCamps] = useState<BloodCamp[]>([]);
     const [isLoadingCamps, setIsLoadingCamps] = useState(true);
 
@@ -129,20 +124,17 @@ export default function DonorDashboard() {
     const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
     const [showCreateDonation, setShowCreateDonation] = useState(false);
     useEffect(() => {
-        // Protect the donor page
         if (!isLoading && (!isAuthenticated || user?.role !== 'donor')) {
             router.push('/auth/signin');
         }
     }, [isLoading, isAuthenticated, user, router]);
 
-    // Fetch recipient posts from API
     useEffect(() => {
         const fetchPosts = async () => {
             try {
                 setIsLoadingPosts(true);
                 const response = await getAllPosts();
                 if (response && response.data) {
-                    // Map the API response to the Post type expected by our components
                     const mappedPosts = response.data.map(post => mapRecipientPostToPost(post));
                     setRecipientPosts(mappedPosts);
                 }
@@ -158,7 +150,6 @@ export default function DonorDashboard() {
         }
     }, [isAuthenticated, user]);
 
-    // Fetch donor posts from API when user navigates to "myposts" tab
     useEffect(() => {
         const fetchDonorPosts = async () => {
             if (activeTab !== 'myposts' || !user?.id) return;
@@ -167,7 +158,6 @@ export default function DonorDashboard() {
                 setIsLoadingDonorPosts(true);
                 const response = await getDonorPostsByUser(user.id);
                 if (response && response.data) {
-                    // Map the API response to the Post type expected by our components
                     const mappedPosts = response.data.map(post => mapDonorPostToPost(post, user));
                     setDonorPosts(mappedPosts);
                 }
@@ -183,7 +173,6 @@ export default function DonorDashboard() {
         }
     }, [isAuthenticated, user, activeTab]);
 
-    // Fetch blood camps from API
     useEffect(() => {
         const fetchBloodCamps = async () => {
             try {
@@ -230,7 +219,6 @@ export default function DonorDashboard() {
         }
     };
 
-    // Show loading state or return null while checking authentication
     if (isLoading || !user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
@@ -239,16 +227,14 @@ export default function DonorDashboard() {
         );
     }
 
-    // Adapt the user data to match the expected format
     const adaptedUser = {
         ...user,
-        avatar: 'AV', // You can set a default avatar or get it from user data
-        verified: true, // You can set this based on your user data
-        joinedDate: new Date().toISOString().split('T')[0], // You can get this from user data if available
-        type: user.role === 'donor' ? UserType.DONOR : UserType.RECIPIENT // Map role to specific UserType
+    avatar: 'AV',
+    verified: true,
+    joinedDate: new Date().toISOString().split('T')[0],
+    type: user.role === 'donor' ? UserType.DONOR : UserType.RECIPIENT
     };
 
-    // Filter functions
     const filteredDonorPosts = filterCategory === "all"
         ? donorPosts
         : donorPosts.filter(post => post.category === filterCategory);

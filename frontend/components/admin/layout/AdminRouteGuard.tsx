@@ -12,6 +12,7 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isAdminInStorage, setIsAdminInStorage] = useState(false);
+  const [storageChecked, setStorageChecked] = useState(false);
   
   // Check if we're on client-side and set admin status from localStorage
   useEffect(() => {
@@ -20,13 +21,14 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     // Only run localStorage checks on client
     if (typeof window !== 'undefined') {
       try {
-        const storedUser = localStorage.getItem('vytal_user');
-        const storedToken = localStorage.getItem('vytal_token');
+  const storedUser = localStorage.getItem('vytal_admin_user') || localStorage.getItem('vytal_user');
+  const storedToken = localStorage.getItem('vytal_admin_token') || localStorage.getItem('vytal_token');
         
         if (storedUser && storedToken) {
           const parsedUser = JSON.parse(storedUser);
           if (parsedUser.role === 'admin') {
             setIsAdminInStorage(true);
+            setStorageChecked(true);
             return;
           }
         }
@@ -35,39 +37,24 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
         console.error('Error checking admin status:', error);
         setIsAdminInStorage(false);
       }
+      setStorageChecked(true);
     }
   }, []);
   
   // Handle redirects only on client-side
   useEffect(() => {
-    // Skip on server-side or when still loading
-    if (!isClient || isLoading) return;
-    
+    // Skip until client-side, storage checked, and auth finished loading
+    if (!isClient || !storageChecked || isLoading) return;
+
     // If admin in localStorage, allow access
     if (isAdminInStorage) return;
-    
-    // Fall back to AuthContext if localStorage check fails
-    if (!isAuthenticated) {
-      if (typeof window !== 'undefined') {
-        window.location.href = '/admin/login';
-      }
-      return;
-    }
 
-    if (user?.role !== "admin") {
-      // Redirect non-admin users to their appropriate dashboard
-      if (typeof window !== 'undefined') {
-        if (user?.role === "donor") {
-          window.location.href = "/donor";
-        } else if (user?.role === "recipient") {
-          window.location.href = "/me";
-        } else {
-          window.location.href = "/";
-        }
-      }
+    // Fall back to AuthContext if localStorage check fails
+    if (!isAuthenticated || user?.role !== 'admin') {
+      router.push('/admin/login');
       return;
     }
-  }, [isAuthenticated, user, isLoading, router, isClient, isAdminInStorage]);
+  }, [isAuthenticated, user, isLoading, router, isClient, isAdminInStorage, storageChecked]);
   
   // On server-side or during initial loading, return a stable UI that won't change during hydration
   if (!isClient) {
@@ -81,8 +68,8 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     );
   }
   
-  // On client-side, show loading while checking auth
-  if (isLoading && !isAdminInStorage) {
+  // On client-side, show loading while checking auth/storage
+  if ((isLoading || !storageChecked) && !isAdminInStorage) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-400 via-white to-blue-700 flex items-center justify-center">
         <div className="text-center">
@@ -93,13 +80,8 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     );
   }
 
-  // If not authenticated, show redirecting UI and trigger redirect
-  if (!isAdminInStorage && (!isAuthenticated || user?.role !== "admin")) {
-    // Redirect on client-side
-    if (typeof window !== 'undefined') {
-      window.location.href = '/admin/login';
-    }
-    
+  // If not authenticated as admin after checks, render a stable fallback
+  if (!isAdminInStorage && (!isAuthenticated || user?.role !== 'admin')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-400 via-white to-blue-700 flex items-center justify-center">
         <div className="text-center">

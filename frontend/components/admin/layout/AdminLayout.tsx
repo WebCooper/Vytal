@@ -25,6 +25,7 @@ export default function AdminLayout({ children, currentPage = "Dashboard", activ
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isAdminInStorage, setIsAdminInStorage] = useState(false);
+  const [storageChecked, setStorageChecked] = useState(false);
 
   // Effect to check if we're running on the client
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function AdminLayout({ children, currentPage = "Dashboard", activ
     
     // Check localStorage for admin user (client-side only)
     try {
-      const storedUser = localStorage.getItem('vytal_user');
+  const storedUser = localStorage.getItem('vytal_admin_user') || localStorage.getItem('vytal_user');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
         setIsAdminInStorage(parsedUser.role === 'admin');
@@ -40,16 +41,17 @@ export default function AdminLayout({ children, currentPage = "Dashboard", activ
     } catch {
       setIsAdminInStorage(false);
     }
+  setStorageChecked(true);
   }, []);
 
   // Redirect effect (client-side only)
   useEffect(() => {
-    if (!isClient) return; // Skip on server-side
+    if (!isClient || !storageChecked) return; // Wait for client & storage hydration
 
     if (!isLoading && !isAdminInStorage && (!isAuthenticated || user?.role !== "admin")) {
       router.push("/admin/login");
     }
-  }, [isAuthenticated, user, isLoading, router, isClient, isAdminInStorage]);
+  }, [isAuthenticated, user, isLoading, router, isClient, isAdminInStorage, storageChecked]);
 
   const handleSignOut = () => {
     // Only execute this on client side
@@ -72,7 +74,7 @@ export default function AdminLayout({ children, currentPage = "Dashboard", activ
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const storedUser = localStorage.getItem('vytal_user');
+  const storedUser = localStorage.getItem('vytal_admin_user') || localStorage.getItem('vytal_user');
         if (storedUser) {
           const parsedUser = JSON.parse(storedUser);
           setAdminEmail(parsedUser.email || 'admin@vytal.com');
@@ -85,7 +87,7 @@ export default function AdminLayout({ children, currentPage = "Dashboard", activ
   }, [isClient]);
 
   // During server-side rendering, or when still loading, show a simplified loading view
-  if (!isClient || (isLoading && !isAdminInStorage)) {
+  if (!isClient || (!storageChecked && !isAdminInStorage) || (isLoading && !isAdminInStorage)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-400 via-white to-blue-700">
         <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center h-screen">
@@ -97,7 +99,13 @@ export default function AdminLayout({ children, currentPage = "Dashboard", activ
 
   // Once on client-side, if not authenticated as admin, return null
   if (!isAdminInStorage && (!isAuthenticated || user?.role !== "admin")) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 via-white to-blue-700">
+        <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center h-screen">
+          <div className="text-blue-700 text-xl font-semibold">Redirecting to login...</div>
+        </div>
+      </div>
+    );
   }
   
   return (

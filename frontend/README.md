@@ -34,3 +34,10 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment variables
+
+Create a `.env.local` in `frontend/` (copy from `.env.local.example`).
+
+- `NEXT_PUBLIC_API_URL` — Base URL of the backend (default `http://localhost:9091/api/v1`).
+- `NEXT_PUBLIC_DEV_ADMIN_TOKEN` — Optional dev admin token used only when there is no user token in `localStorage`. Useful to avoid 403s on admin endpoints during local development.

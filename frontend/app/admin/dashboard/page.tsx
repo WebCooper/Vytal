@@ -4,16 +4,12 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { FaUsers, FaFileAlt, FaUserPlus } from "react-icons/fa";
+import { getPendingRecipientPosts } from "@/lib/adminPosts";
+import { getUsers, type User as ApiUser } from "@/lib/userService";
+import { getAllPosts as getAllOpenPosts, type RecipientPost } from "@/lib/recipientPosts";
+import { getAdminStats, type AdminStats } from "@/lib/adminStats";
 
-// Mock data - replace with actual API calls
-const mockStats = {
-  totalUsers: 156,
-  totalRecipients: 89,
-  totalDonors: 67,
-  totalPosts: 43,
-  pendingPosts: 12,
-  activeUsers: 134,
-};
+type DashboardStats = AdminStats & { activeUsers?: number };
 
 const mockRecentUsers = [
   { id: 1, name: "John Doe", email: "john@example.com", role: "recipient", joinedAt: "2025-01-15" },
@@ -21,30 +17,82 @@ const mockRecentUsers = [
   { id: 3, name: "Mike Johnson", email: "mike@example.com", role: "recipient", joinedAt: "2025-01-13" },
 ];
 
-const mockRecentPosts = [
-  { id: 1, title: "Urgent Blood Donation Needed", author: "John Doe", category: "blood", status: "pending", createdAt: "2025-01-15" },
-  { id: 2, title: "Medical Equipment Required", author: "Jane Smith", category: "supplies", status: "open", createdAt: "2025-01-14" },
-  { id: 3, title: "Fundraiser for Surgery", author: "Mike Johnson", category: "fundraiser", status: "pending", createdAt: "2025-01-13" },
-];
+type RecentPost = { id: number; title: string; author: string; category: string; status: string; createdAt: string };
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [stats, setStats] = useState(mockStats);
+  const [stats, setStats] = useState<DashboardStats>(() => ({
+    totalUsers: 0,
+    recipients: 0,
+    donors: 0,
+    totalPosts: 0,
+    pendingPosts: 0,
+    activeUsers: undefined,
+  }));
   const [recentUsers, setRecentUsers] = useState(mockRecentUsers);
-  const [recentPosts, setRecentPosts] = useState(mockRecentPosts);
+  const [recentPosts, setRecentPosts] = useState<RecentPost[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // TODO: Replace with actual API calls
+    // Fetch dashboard data from backend
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Set mock data
-        setStats(mockStats);
-        setRecentUsers(mockRecentUsers);
-        setRecentPosts(mockRecentPosts);
+        const [{ data: pending }, { data: open }, users, adminStats] = await Promise.all([
+          getPendingRecipientPosts(),
+          getAllOpenPosts(),
+          getUsers().catch(() => [] as ApiUser[]),
+          getAdminStats().catch(() => null),
+        ]);
+
+        const toRecent = (p: RecipientPost): RecentPost => ({
+          id: p.id,
+          title: p.title,
+          author: p.user?.name || "Unknown",
+          category: p.category,
+          status: p.status,
+          createdAt: (p as unknown as { createdAt?: string; created_at?: string }).createdAt
+            || (p as unknown as { createdAt?: string; created_at?: string }).created_at
+            || new Date().toISOString(),
+        });
+
+        const combined = [...pending.map(toRecent), ...open.map(toRecent)]
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        setRecentPosts(combined.slice(0, 3));
+
+        // Prefer backend-provided stats; fall back to derived numbers if unavailable
+        if (adminStats) {
+          setStats(s => ({
+            ...s,
+            totalUsers: adminStats.totalUsers,
+            recipients: adminStats.recipients,
+            donors: adminStats.donors,
+            totalPosts: adminStats.totalPosts,
+            pendingPosts: adminStats.pendingPosts,
+          }));
+        } else {
+          setStats(s => ({
+            ...s,
+            // Derive donors/recipients from users list if roles present
+            totalUsers: Array.isArray(users) ? users.length : 0,
+            recipients: Array.isArray(users) ? users.filter(u => u.role === 'recipient').length : 0,
+            donors: Array.isArray(users) ? users.filter(u => u.role === 'donor').length : 0,
+            totalPosts: combined.length,
+            pendingPosts: pending.length,
+          }));
+        }
+
+        // Map recent users from API (fallback to mock if empty)
+        type ApiUserWithDates = ApiUser & { created_at?: string; createdAt?: string };
+        const mappedUsers = (users as ApiUserWithDates[]).map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role || 'recipient',
+          joinedAt: u.created_at || u.createdAt || new Date().toISOString().slice(0,10),
+        }));
+        setRecentUsers(mappedUsers.length ? mappedUsers.slice(0,3) : mockRecentUsers);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -103,16 +151,16 @@ export default function AdminDashboard() {
             title="Total Users"
             value={stats.totalUsers}
             icon={FaUsers}
-            subtitle={`${stats.activeUsers} active`}
+            subtitle={typeof stats.activeUsers === 'number' ? `${stats.activeUsers} active` : undefined}
           />
           <StatCard
             title="Recipients"
-            value={stats.totalRecipients}
+            value={stats.recipients}
             icon={FaUserPlus}
           />
           <StatCard
             title="Donors"
-            value={stats.totalDonors}
+            value={stats.donors}
             icon={FaUsers}
           />
           <StatCard
