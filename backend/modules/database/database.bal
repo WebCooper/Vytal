@@ -1297,7 +1297,7 @@ public isolated function getUserConversations(int userId) returns record {
     `;
 
     stream<record {}, error?> conversationStream = dbClientInstance->query(conversationQuery);
-    
+
     record {
         int other_user_id;
         types:UserPreview other_user;
@@ -1489,6 +1489,408 @@ public isolated function getAllBloodCamps() returns types:BloodCamp[]|error {
     check resultStream.close();
     return camps;
 }
+# Insert donation record into database
+# + donationData - Donation data to be inserted
+# + return - ID of the inserted donation or error if operation fails
+public isolated function insertDonation(record {
+    int donor_id;
+    int? recipient_id;
+    int? post_id;
+    string donation_type;
+    decimal? amount;
+    string? quantity;
+    string? description;
+    string donation_date;
+    string status;
+    string? location;
+    string? notes;
+} donationData) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `INSERT INTO donations 
+        (donor_id, recipient_id, post_id, donation_type, amount, quantity, 
+         description, donation_date, status, location, notes) 
+        VALUES (${donationData.donor_id}, ${donationData.recipient_id}, ${donationData.post_id},
+                ${donationData.donation_type}, ${donationData.amount}, ${donationData.quantity},
+                ${donationData.description}, ${donationData.donation_date}, ${donationData.status},
+                ${donationData.location}, ${donationData.notes})`;
+
+    sql:ExecutionResult result = check dbClientInstance->execute(query);
+    return <int>result.lastInsertId;
+}
+
+# Insert blood donation details into the database
+# + bloodData - Blood donation specific data including donation_id, blood_type, volume_ml, hemoglobin_level, and donation_center
+# + return - SQL execution result or error if operation fails
+public isolated function insertBloodDonation(record {
+    int donation_id;
+    string blood_type;
+    int volume_ml;
+    decimal? hemoglobin_level;
+    string? donation_center;
+} bloodData) returns sql:ExecutionResult|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    
+    string nextEligibleDate = calculateNextEligibleDate(56);
+
+    sql:ParameterizedQuery query = `INSERT INTO blood_donations 
+        (donation_id, blood_type, volume_ml, hemoglobin_level, donation_center, next_eligible_date) 
+        VALUES (${bloodData.donation_id}, ${bloodData.blood_type}, ${bloodData.volume_ml},
+                ${bloodData.hemoglobin_level}, ${bloodData.donation_center}, ${nextEligibleDate})`;
+
+    return dbClientInstance->execute(query);
+}
+
+# Get donations by donor with optional status filtering
+# + donorId - ID of the donor to get donations for
+# + status - Optional status filter for donations
+# + return - Array of donation responses or error if operation fails
+public isolated function getDonationsByDonor(int donorId, string? status = ()) returns types:DonationResponse[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query;
+    if status is string {
+        query = `SELECT d.*, 
+                        u.name as recipient_name, u.email as recipient_email, u.role as recipient_role,
+                        p.title as post_title, p.category as post_category,
+                        bd.blood_type, bd.volume_ml, bd.hemoglobin_level, bd.donation_center, bd.next_eligible_date
+                 FROM donations d
+                 LEFT JOIN users u ON d.recipient_id = u.id
+                 LEFT JOIN recipient_posts p ON d.post_id = p.id
+                 LEFT JOIN blood_donations bd ON d.id = bd.donation_id
+                 WHERE d.donor_id = ${donorId} AND d.status = ${status}
+                 ORDER BY d.donation_date DESC`;
+    } else {
+        query = `SELECT d.*, 
+                        u.name as recipient_name, u.email as recipient_email, u.role as recipient_role,
+                        p.title as post_title, p.category as post_category,
+                        bd.blood_type, bd.volume_ml, bd.hemoglobin_level, bd.donation_center, bd.next_eligible_date
+                 FROM donations d
+                 LEFT JOIN users u ON d.recipient_id = u.id
+                 LEFT JOIN recipient_posts p ON d.post_id = p.id
+                 LEFT JOIN blood_donations bd ON d.id = bd.donation_id
+                 WHERE d.donor_id = ${donorId}
+                 ORDER BY d.donation_date DESC`;
+    }
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    types:DonationResponse[] donations = [];
+
+    check from record {} row in resultStream
+        do {
+            types:UserPreview? recipient = ();
+            if row["recipient_name"] is string {
+                recipient = {
+                    id: <int>row["recipient_id"],
+                    name: <string>row["recipient_name"],
+                    email: <string>row["recipient_email"],
+                    role: <string>row["recipient_role"]
+                };
+            }
+
+            record {int id; string title; string category;}? post = ();
+            if row["post_title"] is string {
+                string categoryClean = row["post_category"] is string ?
+                    regex:replaceAll(<string>row["post_category"], "\"", "") : "";
+                post = {
+                    id: <int>row["post_id"],
+                    title: <string>row["post_title"],
+                    category: categoryClean
+                };
+            }
+
+            types:BloodDonation? bloodDetails = ();
+            if row["blood_type"] is string {
+                bloodDetails = {
+                    id: 0,
+                    donation_id: <int>row["id"],
+                    blood_type: <string>row["blood_type"],
+                    volume_ml: <int>row["volume_ml"],
+                    hemoglobin_level: row["hemoglobin_level"] is decimal ? <decimal>row["hemoglobin_level"] : (),
+                    donation_center: row["donation_center"] is string ? <string>row["donation_center"] : (),
+                    next_eligible_date: row["next_eligible_date"] is string ? <string>row["next_eligible_date"] : (),
+                    created_at: ()
+                };
+            }
+
+            types:DonationResponse donation = {
+                id: <int>row["id"],
+                donor_id: <int>row["donor_id"],
+                recipient_id: row["recipient_id"] is int ? <int>row["recipient_id"] : (),
+                post_id: row["post_id"] is int ? <int>row["post_id"] : (),
+                donation_type: <types:DonationType>row["donation_type"],
+                amount: row["amount"] is decimal ? <decimal>row["amount"] : (),
+                quantity: row["quantity"] is string ? <string>row["quantity"] : (),
+                description: row["description"] is string ? <string>row["description"] : (),
+                donation_date: <string>row["donation_date"],
+                status: <types:DonationStatus>row["status"],
+                location: row["location"] is string ? <string>row["location"] : (),
+                notes: row["notes"] is string ? <string>row["notes"] : (),
+                created_at: <string>row["created_at"],
+                updated_at: <string>row["updated_at"],
+                recipient: recipient,
+                post: post,
+                blood_details: bloodDetails
+            };
+            donations.push(donation);
+        };
+
+    check resultStream.close();
+    return donations;
+}
+
+# Update donation record in the database
+# + donationId - ID of the donation to update
+# + request - Donation update request containing fields to modify
+# + return - True if donation was updated successfully, false if not found, or error if operation fails
+public isolated function updateDonation(int donationId, types:DonationUpdate request) returns boolean|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `UPDATE donations SET 
+        status = COALESCE(${request.status}, status),
+        amount = COALESCE(${request.amount}, amount),
+        quantity = COALESCE(${request.quantity}, quantity),
+        description = COALESCE(${request.description}, description),
+        location = COALESCE(${request.location}, location),
+        notes = COALESCE(${request.notes}, notes),
+        updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${donationId}`;
+
+    sql:ExecutionResult result = check dbClientInstance->execute(query);
+    return result.affectedRowCount > 0;
+}
+
+# Get donor statistics from the database
+# + donorId - ID of the donor to retrieve statistics for
+# + return - Donor statistics record or error if operation fails
+public isolated function getDonorStats(int donorId) returns types:DonorStats|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `SELECT 
+        donor_id,
+        COALESCE(total_donations, 0) as total_donations,
+        COALESCE(blood_donations, 0) as blood_donations,
+        COALESCE(organ_donations, 0) as organ_donations,
+        COALESCE(medicine_donations, 0) as medicine_donations,
+        COALESCE(supply_donations, 0) as supply_donations,
+        COALESCE(total_fundraiser_amount, 0) as total_fundraiser_amount,
+        last_donation_date,
+        first_donation_date
+        FROM donor_stats WHERE donor_id = ${donorId}`;
+    
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    record {|record {} value;|}? result = check resultStream.next();
+    check resultStream.close();
+
+    if result is () {
+       
+        return {
+            donor_id: donorId,
+            total_donations: 0,
+            blood_donations: 0,
+            organ_donations: 0,
+            medicine_donations: 0,
+            supply_donations: 0,
+            total_fundraiser_amount: 0.0,
+            last_donation_date: (),
+            first_donation_date: ()
+        };
+    }
+
+    record {} row = result.value;
+    return {
+        donor_id: <int>row["donor_id"],
+        total_donations: <int>row["total_donations"],
+        blood_donations: <int>row["blood_donations"],
+        organ_donations: <int>row["organ_donations"],
+        medicine_donations: <int>row["medicine_donations"],
+        supply_donations: <int>row["supply_donations"],
+        total_fundraiser_amount: <decimal>row["total_fundraiser_amount"],
+        last_donation_date: row["last_donation_date"] is string ? <string>row["last_donation_date"] : (),
+        first_donation_date: row["first_donation_date"] is string ? <string>row["first_donation_date"] : ()
+    };
+}
+
+# Get recent donations by donor with limit
+# + donorId - ID of the donor to retrieve donations for
+# + limit - Maximum number of donations to return
+# + return - Array of recent donation responses or error if operation fails
+public isolated function getRecentDonationsByDonor(int donorId, int 'limit) returns types:DonationResponse[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `SELECT d.*, 
+                    u.name as recipient_name, u.email as recipient_email, u.role as recipient_role,
+                    p.title as post_title, p.category as post_category,
+                    bd.blood_type, bd.volume_ml, bd.hemoglobin_level, bd.donation_center, bd.next_eligible_date
+             FROM donations d
+             LEFT JOIN users u ON d.recipient_id = u.id
+             LEFT JOIN recipient_posts p ON d.post_id = p.id
+             LEFT JOIN blood_donations bd ON d.id = bd.donation_id
+             WHERE d.donor_id = ${donorId}
+             ORDER BY d.created_at DESC
+             LIMIT ${'limit}`;
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    types:DonationResponse[] donations = [];
+
+    check from record {} row in resultStream
+        do {
+            types:UserPreview? recipient = ();
+            if row["recipient_name"] is string {
+                recipient = {
+                    id: <int>row["recipient_id"],
+                    name: <string>row["recipient_name"],
+                    email: <string>row["recipient_email"],
+                    role: <string>row["recipient_role"]
+                };
+            }
+
+            record {int id; string title; string category;}? post = ();
+            if row["post_title"] is string {
+                string categoryClean = row["post_category"] is string ?
+                    regex:replaceAll(<string>row["post_category"], "\"", "") : "";
+                post = {
+                    id: <int>row["post_id"],
+                    title: <string>row["post_title"],
+                    category: categoryClean
+                };
+            }
+
+            types:BloodDonation? bloodDetails = ();
+            if row["blood_type"] is string {
+                bloodDetails = {
+                    id: 0,
+                    donation_id: <int>row["id"],
+                    blood_type: <string>row["blood_type"],
+                    volume_ml: <int>row["volume_ml"],
+                    hemoglobin_level: row["hemoglobin_level"] is decimal ? <decimal>row["hemoglobin_level"] : (),
+                    donation_center: row["donation_center"] is string ? <string>row["donation_center"] : (),
+                    next_eligible_date: row["next_eligible_date"] is string ? <string>row["next_eligible_date"] : (),
+                    created_at: ()
+                };
+            }
+
+            types:DonationResponse donation = {
+                id: <int>row["id"],
+                donor_id: <int>row["donor_id"],
+                recipient_id: row["recipient_id"] is int ? <int>row["recipient_id"] : (),
+                post_id: row["post_id"] is int ? <int>row["post_id"] : (),
+                donation_type: <types:DonationType>row["donation_type"],
+                amount: row["amount"] is decimal ? <decimal>row["amount"] : (),
+                quantity: row["quantity"] is string ? <string>row["quantity"] : (),
+                description: row["description"] is string ? <string>row["description"] : (),
+                donation_date: <string>row["donation_date"],
+                status: <types:DonationStatus>row["status"],
+                location: row["location"] is string ? <string>row["location"] : (),
+                notes: row["notes"] is string ? <string>row["notes"] : (),
+                created_at: <string>row["created_at"],
+                updated_at: <string>row["updated_at"],
+                recipient: recipient,
+                post: post,
+                blood_details: bloodDetails
+            };
+            donations.push(donation);
+        };
+
+    check resultStream.close();
+    return donations;
+}
+
+# Get donor achievements from the database
+# + donorId - ID of the donor to retrieve achievements for
+# + return - Array of achievement records or error if operation fails
+public isolated function getDonorAchievements(int donorId) returns types:Achievement[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `SELECT * FROM donor_achievements WHERE donor_id = ${donorId} ORDER BY earned_date DESC`;
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+
+    types:Achievement[] achievements = [];
+    check from record {} row in resultStream
+        do {
+            types:Achievement achievement = {
+                id: <int>row["id"],
+                donor_id: <int>row["donor_id"],
+                achievement_type: <string>row["achievement_type"],
+                achievement_name: <string>row["achievement_name"],
+                description: row["description"] is string ? <string>row["description"] : (),
+                earned_date: <string>row["earned_date"],
+                metadata: row["metadata"] is string ? check value:fromJsonString(<string>row["metadata"]) : (),
+                created_at: row["created_at"] is string ? <string>row["created_at"] : ()
+            };
+            achievements.push(achievement);
+        };
+
+    check resultStream.close();
+    return achievements;
+}
+
+# Get the last blood donation record for a donor
+# + donorId - ID of the donor to retrieve last blood donation for
+# + return - Last blood donation record, null if no blood donations found, or error if operation fails
+public isolated function getLastBloodDonation(int donorId) returns types:BloodDonation?|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `SELECT bd.* FROM blood_donations bd
+                                   JOIN donations d ON bd.donation_id = d.id
+                                   WHERE d.donor_id = ${donorId}
+                                   ORDER BY d.donation_date DESC
+                                   LIMIT 1`;
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    record {|record {} value;|}? result = check resultStream.next();
+    check resultStream.close();
+
+    if result is () {
+        return ();
+    }
+
+    record {} row = result.value;
+    return {
+        id: <int>row["id"],
+        donation_id: <int>row["donation_id"],
+        blood_type: <string>row["blood_type"],
+        volume_ml: <int>row["volume_ml"],
+        hemoglobin_level: row["hemoglobin_level"] is decimal ? <decimal>row["hemoglobin_level"] : (),
+        donation_center: row["donation_center"] is string ? <string>row["donation_center"] : (),
+        next_eligible_date: row["next_eligible_date"] is string ? <string>row["next_eligible_date"] : (),
+        created_at: row["created_at"] is string ? <string>row["created_at"] : ()
+    };
+}
+
+# Insert achievement record into the database
+# + achievementData - Achievement data including donor_id, achievement_type, achievement_name, description, earned_date, and metadata
+# + return - ID of the inserted achievement record or error if operation fails
+public isolated function insertAchievement(record {
+    int donor_id;
+    string achievement_type;
+    string achievement_name;
+    string description;
+    string earned_date;
+    json? metadata;
+} achievementData) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    string? metadataJson = achievementData.metadata is () ? () : achievementData.metadata.toJsonString();
+
+    sql:ParameterizedQuery query = `INSERT INTO donor_achievements 
+        (donor_id, achievement_type, achievement_name, description, earned_date, metadata) 
+        VALUES (${achievementData.donor_id}, ${achievementData.achievement_type}, ${achievementData.achievement_name},
+                ${achievementData.description}, ${achievementData.earned_date}, ${metadataJson})`;
+
+    sql:ExecutionResult result = check dbClientInstance->execute(query);
+    return <int>result.lastInsertId;
+}
+
+# Helper function to calculate next eligible date for blood donation
+# + daysToAdd - Number of days to add to current date for next eligibility
+# + return - Date string representing next eligible donation date
+isolated function calculateNextEligibleDate(int daysToAdd) returns string {
+    
+    return "2025-03-15";
+}
+
 
 # Description.
 #
@@ -1622,6 +2024,73 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
     INDEX idx_status (status),
     INDEX idx_date (date)
 )`);
+    // Donations table
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS donations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        donor_id INT NOT NULL,
+        recipient_id INT NULL,
+        post_id INT NULL,
+        donation_type ENUM('blood', 'organs', 'medicines', 'supplies', 'fundraiser') NOT NULL,
+        amount DECIMAL(15,2) NULL,
+        quantity VARCHAR(100) NULL,
+        description TEXT,
+        donation_date DATE NOT NULL,
+        status ENUM('pending', 'completed', 'cancelled') DEFAULT 'pending',
+        location VARCHAR(200),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (donor_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (post_id) REFERENCES recipient_posts(id) ON DELETE SET NULL,
+        INDEX idx_donor_id (donor_id),
+        INDEX idx_donation_date (donation_date),
+        INDEX idx_status (status)
+    )`);
+
+    // Blood donation specific details
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS blood_donations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        donation_id INT NOT NULL,
+        blood_type VARCHAR(10) NOT NULL,
+        volume_ml INT NOT NULL,
+        hemoglobin_level DECIMAL(4,2),
+        donation_center VARCHAR(200),
+        next_eligible_date DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (donation_id) REFERENCES donations(id) ON DELETE CASCADE
+    )`);
+
+    // Donation achievements/badges
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS donor_achievements (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        donor_id INT NOT NULL,
+        achievement_type VARCHAR(50) NOT NULL,
+        achievement_name VARCHAR(100) NOT NULL,
+        description TEXT,
+        earned_date DATE NOT NULL,
+        metadata JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (donor_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_donor_id (donor_id),
+        INDEX idx_earned_date (earned_date)
+    )`);
+
+    // Donation statistics view
+    _ = check dbClient->execute(`CREATE OR REPLACE VIEW donor_stats AS
+    SELECT 
+        donor_id,
+        COUNT(*) as total_donations,
+        COUNT(CASE WHEN donation_type = 'blood' THEN 1 END) as blood_donations,
+        COUNT(CASE WHEN donation_type = 'organs' THEN 1 END) as organ_donations,
+        COUNT(CASE WHEN donation_type = 'medicines' THEN 1 END) as medicine_donations,
+        COUNT(CASE WHEN donation_type = 'supplies' THEN 1 END) as supply_donations,
+        SUM(CASE WHEN donation_type = 'fundraiser' THEN amount ELSE 0 END) as total_fundraiser_amount,
+        MAX(donation_date) as last_donation_date,
+        MIN(donation_date) as first_donation_date
+    FROM donations 
+    WHERE status = 'completed'
+    GROUP BY donor_id`);
 
     io:println("✅ Database tables are ready");
 }

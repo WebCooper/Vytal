@@ -7,6 +7,7 @@ import { Post, Category } from '../types';
 import { getCategoryIcon, getCategoryColor } from '../utils';
 import FundraiserProgressbar from './FundraiserProgressbar';
 import { sendMessage, CreateMessageRequest } from '../../lib/messages';
+import { createDonation, DonationCreate } from '@/lib/donationApi';
 
 interface HelpNowModalProps {
   isOpen: boolean;
@@ -48,20 +49,20 @@ const HelpNowModal: React.FC<HelpNowModalProps> = ({ isOpen, onClose, post, curr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!currentUserId) {
       alert('Please log in to offer help');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const helpAmount = selectedHelpType === 'donation' ? (customAmount || donationAmount) : null;
-      const helpSubject = selectedHelpType === 'donation' 
+      const helpSubject = selectedHelpType === 'donation'
         ? `Donation Offer: ${helpAmount} for ${post.title}`
         : `${helpTypes[selectedHelpType as keyof typeof helpTypes].title} for ${post.title}`;
-      
+
       const helpContent = `
 Type: ${helpTypes[selectedHelpType as keyof typeof helpTypes].title}
 ${helpAmount ? `Amount: ${helpAmount}` : ''}
@@ -74,7 +75,7 @@ Phone: ${helperPhone}
 Message:
 ${message}
       `;
-      
+
       const messageData: CreateMessageRequest = {
         sender_id: currentUserId,
         receiver_id: post.user.id,
@@ -83,12 +84,32 @@ ${message}
         content: helpContent.trim(),
         message_type: 'help_offer'
       };
-      
+
       await sendMessage(messageData);
-      
+      if (selectedHelpType === 'donation' && helpAmount) {
+        // Create actual donation record
+        const donationData: DonationCreate = {
+          recipient_id: post.user.id,
+          post_id: post.id,
+          donation_type: 'fundraiser', // or map from post.category
+          amount: parseFloat(helpAmount),
+          donation_date: new Date().toISOString().split('T')[0],
+          description: `Donation offer for: ${post.title}`,
+          location: post.location || null,
+          notes: message || null,
+          // Include all other required fields as null
+          quantity: null,
+          blood_type: null,
+          volume_ml: null,
+          hemoglobin_level: null,
+          donation_center: null
+        };
+
+        await createDonation(donationData);
+      }
       alert('Help offer sent successfully!');
       onClose();
-      
+
       // Reset form
       setSelectedHelpType('');
       setDonationAmount('');
@@ -116,7 +137,7 @@ ${message}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
-          
+
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -166,9 +187,9 @@ ${message}
                   <p className="text-sm text-gray-500">Requesting help</p>
                 </div>
               </div>
-              
+
               <p className="text-gray-700 mb-4">{post.content}</p>
-              
+
               {post.category === Category.FUNDRAISER && post.fundraiserDetails && (
                 <div className="mb-4">
                   <FundraiserProgressbar {...post} />
@@ -192,7 +213,7 @@ ${message}
             {/* Help Options */}
             <form onSubmit={handleSubmit} className="p-6">
               <h3 className="font-semibold text-gray-800 mb-4">How would you like to help?</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {Object.entries(helpTypes).map(([type, config]) => {
                   const IconComponent = config.icon;
@@ -201,15 +222,13 @@ ${message}
                       key={type}
                       type="button"
                       onClick={() => setSelectedHelpType(type)}
-                      className={`p-4 border-2 rounded-xl transition-all text-left ${
-                        selectedHelpType === type
+                      className={`p-4 border-2 rounded-xl transition-all text-left ${selectedHelpType === type
                           ? 'border-emerald-500 bg-emerald-50'
                           : 'border-gray-200 hover:border-emerald-300'
-                      }`}
+                        }`}
                     >
-                      <IconComponent className={`text-2xl mb-2 ${
-                        selectedHelpType === type ? 'text-emerald-600' : 'text-gray-400'
-                      }`} />
+                      <IconComponent className={`text-2xl mb-2 ${selectedHelpType === type ? 'text-emerald-600' : 'text-gray-400'
+                        }`} />
                       <h4 className="font-semibold text-gray-800 mb-1">{config.title}</h4>
                       <p className="text-sm text-gray-600">{config.description}</p>
                     </button>
@@ -230,11 +249,10 @@ ${message}
                           setDonationAmount(amount);
                           setCustomAmount('');
                         }}
-                        className={`py-2 px-4 border-2 rounded-lg font-semibold transition-all ${
-                          donationAmount === amount
+                        className={`py-2 px-4 border-2 rounded-lg font-semibold transition-all ${donationAmount === amount
                             ? 'border-emerald-500 bg-emerald-500 text-white'
                             : 'border-gray-300 text-gray-700 hover:border-emerald-300'
-                        }`}
+                          }`}
                       >
                         ${amount}
                       </button>
@@ -265,7 +283,7 @@ ${message}
               {selectedHelpType && (
                 <div className="space-y-4 mb-6">
                   <h4 className="font-semibold text-gray-800">Your information</h4>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -280,7 +298,7 @@ ${message}
                         placeholder="Enter your full name"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Email Address *

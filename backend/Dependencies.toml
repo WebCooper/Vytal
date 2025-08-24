@@ -73,7 +73,7 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "http"
-version = "2.14.3"
+version = "2.14.4"
 dependencies = [
 	{org = "ballerina", name = "auth"},
 	{org = "ballerina", name = "cache"},
@@ -396,6 +396,7 @@ modules = [
 	{org = "cooper", packageName = "backend", moduleName = "backend"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.auth"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.database"},
+	{org = "cooper", packageName = "backend", moduleName = "backend.donationOp"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.donorPostOp"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.messages"},
 	{org = "cooper", packageName = "backend", moduleName = "backend.postOp"},

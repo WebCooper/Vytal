@@ -16,13 +16,14 @@ import PostsGrid from "@/components/shared/PostsGrid";
 import MapSection from "@/components/bloodCamps/MapSection";
 import CampsSection from "@/components/bloodCamps/CampsSection";
 import GamificationDashboard from "@/components/donorProfile/achievements/GamificationDashboard";
-import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator";
+import DonorCardGenerator from "@/components/donorProfile/DonorCardGenerator/DonorCardGenerator";
 import { getAllBloodCamps } from '@/lib/bloodCampsApi';
 import { BloodCamp } from "@/components/types";
 import { getDonorPostsByUser, DonorPost } from "@/lib/donorPosts";
 import DonorMessagesTab from "@/components/messages/DonorMessagesTab";
 import { MessagesProvider } from '@/contexts/MessagesContext';
-
+import { getDonorDashboard, type DonorDashboard} from '@/lib/donationApi';
+import CreateDonationModal from '@/components/donorProfile/CreateDonationModal';
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
     // Map category string to Category enum
@@ -124,6 +125,9 @@ export default function DonorDashboard() {
     const [bloodCamps, setBloodCamps] = useState<BloodCamp[]>([]);
     const [isLoadingCamps, setIsLoadingCamps] = useState(true);
 
+    const [donorDashboard, setDonorDashboard] = useState<DonorDashboard | null>(null);
+    const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
+    const [showCreateDonation, setShowCreateDonation] = useState(false);
     useEffect(() => {
         // Protect the donor page
         if (!isLoading && (!isAuthenticated || user?.role !== 'donor')) {
@@ -197,7 +201,25 @@ export default function DonorDashboard() {
             fetchBloodCamps();
         }
     }, [isAuthenticated, user]);
+    useEffect(() => {
+        const fetchDonorDashboard = async () => {
+            if (activeTab !== 'donations' || !user?.id) return;
 
+            try {
+                setIsLoadingDashboard(true);
+                const response = await getDonorDashboard(user.id);
+                setDonorDashboard(response.data);
+            } catch (error) {
+                console.error("Error fetching donor dashboard:", error);
+            } finally {
+                setIsLoadingDashboard(false);
+            }
+        };
+
+        if (isAuthenticated && user) {
+            fetchDonorDashboard();
+        }
+    }, [isAuthenticated, user, activeTab]);
     // Handle blood camp creation success
     const handleBloodCampCreated = async () => {
         try {
@@ -433,6 +455,13 @@ export default function DonorDashboard() {
                                             </div>
                                             <div className="flex space-x-3">
                                                 <button
+                                                    onClick={() => setShowCreateDonation(true)}
+                                                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
+                                                >
+                                                    <FaPlus className="mr-2" />
+                                                    Log Donation
+                                                </button>
+                                                <button
                                                     onClick={() => setShowCardGenerator(true)}
                                                     className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center"
                                                 >
@@ -443,107 +472,163 @@ export default function DonorDashboard() {
                                         </div>
                                     </div>
 
-                                    {/* Statistics Cards */}
-                                    <div className="grid md:grid-cols-3 gap-6">
-                                        <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl border border-red-200">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-lg font-bold text-red-800">Blood Donations</h3>
-                                                <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-                                                    <span className="text-white font-bold text-lg">12</span>
-                                                </div>
-                                            </div>
-                                            <p className="text-red-600 text-sm">Lives potentially saved: ~36</p>
+                                    {isLoadingDashboard ? (
+                                        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                            <div className="animate-pulse w-16 h-16 rounded-full bg-emerald-400 mx-auto mb-4"></div>
+                                            <h3 className="text-2xl font-bold text-emerald-700 mb-2">Loading your impact data...</h3>
+                                            <p className="text-gray-600">Please wait while we fetch your donation history.</p>
                                         </div>
+                                    ) : donorDashboard ? (
+                                        <>
+                                            {/* Statistics Cards */}
+                                            <div className="grid md:grid-cols-3 gap-6">
+                                                <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl border border-red-200">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h3 className="text-lg font-bold text-red-800">Blood Donations</h3>
+                                                        <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                                                            <span className="text-white font-bold text-lg">{donorDashboard.stats.blood_donations}</span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-red-600 text-sm">Lives potentially saved: ~{donorDashboard.stats.blood_donations * 3}</p>
+                                                </div>
 
-                                        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl border border-green-200">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-lg font-bold text-green-800">Last Donation</h3>
-                                                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                                                    <span className="text-white font-bold text-sm">3M</span>
+                                                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl border border-green-200">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h3 className="text-lg font-bold text-green-800">Last Donation</h3>
+                                                        <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                                                            <span className="text-white font-bold text-sm">
+                                                                {donorDashboard.stats.last_donation_date
+                                                                    ? new Date(donorDashboard.stats.last_donation_date).toLocaleDateString()
+                                                                    : 'N/A'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-green-600 text-sm">
+                                                        {donorDashboard.availability.can_donate_blood ? 'Ready for next donation' : 'Please wait before next donation'}
+                                                    </p>
+                                                </div>
+
+                                                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border border-blue-200">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h3 className="text-lg font-bold text-blue-800">Total Impact</h3>
+                                                        <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                                                            <span className="text-white font-bold text-lg">{donorDashboard.stats.total_donations}</span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-blue-600 text-sm">
+                                                        {donorDashboard.stats.total_fundraiser_amount > 0
+                                                            ? `$${donorDashboard.stats.total_fundraiser_amount.toFixed(2)} donated`
+                                                            : 'Active contributor'}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <p className="text-green-600 text-sm">Ready for next donation</p>
+
+                                            {/* Recent Activity */}
+                                            <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
+                                                <h3 className="text-xl font-bold text-gray-800 mb-4">Recent Donation Activity</h3>
+                                                <div className="space-y-3">
+                                                    {donorDashboard.recent_donations.length > 0 ? (
+                                                        donorDashboard.recent_donations.slice(0, 5).map((donation) => (
+                                                            <div key={donation.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${donation.donation_type === 'blood' ? 'bg-red-500' :
+                                                                    donation.donation_type === 'organs' ? 'bg-purple-500' :
+                                                                        donation.donation_type === 'medicines' ? 'bg-green-500' :
+                                                                            donation.donation_type === 'supplies' ? 'bg-blue-500' :
+                                                                                'bg-yellow-500'
+                                                                    }`}>
+                                                                    <span className="text-white font-bold text-sm">
+                                                                        {donation.donation_type === 'blood' && donation.blood_details?.blood_type}
+                                                                        {donation.donation_type === 'organs' && 'O'}
+                                                                        {donation.donation_type === 'medicines' && 'M'}
+                                                                        {donation.donation_type === 'supplies' && 'S'}
+                                                                        {donation.donation_type === 'fundraiser' && 'F'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <p className="font-medium text-gray-800 capitalize">{donation.donation_type} Donation</p>
+                                                                    <p className="text-sm text-gray-600">
+                                                                        {donation.location} - {new Date(donation.donation_date).toLocaleDateString()}
+                                                                        {donation.quantity && ` - ${donation.quantity}`}
+                                                                    </p>
+                                                                </div>
+                                                                <div className={`font-medium ${donation.status === 'completed' ? 'text-green-600' :
+                                                                    donation.status === 'pending' ? 'text-yellow-600' :
+                                                                        'text-red-600'
+                                                                    }`}>
+                                                                    {donation.status.charAt(0).toUpperCase() + donation.status.slice(1)}
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-center py-8">
+                                                            <p className="text-gray-500 mb-4">No donations recorded yet</p>
+                                                            <button
+                                                                onClick={() => setShowCreateDonation(true)}
+                                                                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                                                            >
+                                                                Log Your First Donation
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Achievements */}
+                                            {donorDashboard.achievements.length > 0 && (
+                                                <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
+                                                    <h3 className="text-xl font-bold text-gray-800 mb-4">Your Achievements</h3>
+                                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        {donorDashboard.achievements.map((achievement) => (
+                                                            <div key={achievement.id} className="p-4 bg-gradient-to-r from-gold-50 to-gold-100 rounded-xl border border-gold-200">
+                                                                <div className="text-center">
+                                                                    <div className="w-16 h-16 bg-gold-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                                        <span className="text-white font-bold text-2xl">🏆</span>
+                                                                    </div>
+                                                                    <h4 className="font-bold text-gold-800 mb-1">{achievement.achievement_name}</h4>
+                                                                    <p className="text-gold-700 text-sm mb-2">{achievement.description}</p>
+                                                                    <p className="text-gold-600 text-xs">Earned {new Date(achievement.earned_date).toLocaleDateString()}</p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Impact Summary */}
+                                            <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-2xl border border-emerald-200 p-6">
+                                                <h3 className="text-xl font-bold text-emerald-800 mb-4">Your Impact</h3>
+                                                <div className="grid md:grid-cols-2 gap-6">
+                                                    <div>
+                                                        <h4 className="font-bold text-emerald-700 mb-2">Lives Touched</h4>
+                                                        <p className="text-emerald-600 text-sm">
+                                                            Your {donorDashboard.stats.blood_donations} blood donations could have helped save up to {donorDashboard.stats.blood_donations * 3} lives.
+                                                            Each donation can help up to 3 patients.
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-emerald-700 mb-2">Community Recognition</h4>
+                                                        <p className="text-emerald-600 text-sm">
+                                                            You&apos;ve made {donorDashboard.stats.total_donations} total donations.
+                                                            Your commitment makes a real difference in the community.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
+                                            <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
+                                            <h3 className="text-2xl font-bold text-emerald-700 mb-2">Start Your Impact Journey</h3>
+                                            <p className="text-gray-600 mb-6">Log your first donation to begin tracking your contribution to the community.</p>
+                                            <button
+                                                onClick={() => setShowCreateDonation(true)}
+                                                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 flex items-center mx-auto"
+                                            >
+                                                <FaPlus className="mr-2" />
+                                                Log Your First Donation
+                                            </button>
                                         </div>
-
-                                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl border border-blue-200">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-lg font-bold text-blue-800">Availability</h3>
-                                                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                                                    <span className="text-white font-bold text-lg">✓</span>
-                                                </div>
-                                            </div>
-                                            <p className="text-blue-600 text-sm">Currently available</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Recent Activity */}
-                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
-                                        <h3 className="text-xl font-bold text-gray-800 mb-4">Recent Donation Activity</h3>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                                                    <span className="text-white font-bold text-sm">B+</span>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="font-medium text-gray-800">Blood Donation</p>
-                                                    <p className="text-sm text-gray-600">Kalutara General Hospital - 3 months ago</p>
-                                                </div>
-                                                <div className="text-green-600 font-medium">Completed</div>
-                                            </div>
-
-                                            <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                                                    <span className="text-white font-bold text-sm">P</span>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="font-medium text-gray-800">Platelet Donation</p>
-                                                    <p className="text-sm text-gray-600">National Blood Bank - 6 months ago</p>
-                                                </div>
-                                                <div className="text-green-600 font-medium">Completed</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Donation Tools */}
-                                    <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
-                                        <h3 className="text-xl font-bold text-gray-800 mb-4">Donation Tools</h3>
-                                        <div className="grid md:grid-cols-2 gap-4">
-                                            <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-                                                <h4 className="font-bold text-blue-800 mb-2">Donor Card Generator</h4>
-                                                <p className="text-blue-700 text-sm mb-3">Create professional cards to share your availability and help people find donors.</p>
-                                                <button
-                                                    onClick={() => setShowCardGenerator(true)}
-                                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
-                                                >
-                                                    <FaShare className="mr-2" />
-                                                    Create Card
-                                                </button>
-                                            </div>
-
-                                            <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
-                                                <h4 className="font-bold text-green-800 mb-2">Donation History</h4>
-                                                <p className="text-green-700 text-sm mb-3">Track your contribution history and see the impact you&apos;ve made.</p>
-                                                <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
-                                                    View History
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Impact Summary */}
-                                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-2xl border border-emerald-200 p-6">
-                                        <h3 className="text-xl font-bold text-emerald-800 mb-4">Your Impact</h3>
-                                        <div className="grid md:grid-cols-2 gap-6">
-                                            <div>
-                                                <h4 className="font-bold text-emerald-700 mb-2">Lives Touched</h4>
-                                                <p className="text-emerald-600 text-sm">Your 12 blood donations could have helped save up to 36 lives. Each donation can help up to 3 patients.</p>
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-emerald-700 mb-2">Community Recognition</h4>
-                                                <p className="text-emerald-600 text-sm">You are in the top 10% of donors in your area. Your commitment makes a real difference.</p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    )}
                                 </motion.div>
                             )}
 
@@ -617,6 +702,21 @@ export default function DonorDashboard() {
                     onClose={() => setShowCardGenerator(false)}
                     userType="donor"
                     userData={adaptedUser}
+                />
+                <CreateDonationModal
+                    isOpen={showCreateDonation}
+                    onClose={() => setShowCreateDonation(false)}
+                    onSuccess={() => {
+                        setShowCreateDonation(false);
+                        // Refresh dashboard data after successful donation
+                        if (user?.id && activeTab === 'donations') {
+                            setIsLoadingDashboard(true);
+                            getDonorDashboard(user.id)
+                                .then(response => setDonorDashboard(response.data))
+                                .catch(error => console.error("Error refreshing dashboard:", error))
+                                .finally(() => setIsLoadingDashboard(false));
+                        }
+                    }}
                 />
             </div>
         </MessagesProvider>
