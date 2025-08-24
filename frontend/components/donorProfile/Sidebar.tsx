@@ -2,8 +2,11 @@ import React from 'react'
 import { motion } from 'framer-motion';
 import { MdVerified } from 'react-icons/md';
 import { SidebarProps } from '../types';
+import { useMessages } from '@/contexts/MessagesContext';
 
 const Sidebar:React.FC<SidebarProps> = ({user, activeTab, setActiveTab}) => {
+  const { unreadCount } = useMessages();
+
   return (
     <div>
         <div className="lg:col-span-1">
@@ -80,12 +83,28 @@ const Sidebar:React.FC<SidebarProps> = ({user, activeTab, setActiveTab}) => {
                     </button>
                     <button
                         onClick={() => setActiveTab("messages")}
-                        className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === "messages"
+                        className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 relative ${activeTab === "messages"
                             ? "bg-teal-500 text-white shadow-lg"
                             : "text-teal-700 hover:bg-teal-50"
                             }`}
                     >
-                        Messages
+                        <span className="flex items-center justify-between">
+                            <span>Messages</span>
+                            {unreadCount > 0 && (
+                                <motion.span
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    exit={{ scale: 0 }}
+                                    className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-full min-w-[20px] h-5 ${
+                                        activeTab === "messages"
+                                            ? "bg-white text-teal-600"
+                                            : "bg-red-500 text-white"
+                                    }`}
+                                >
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </motion.span>
+                            )}
+                        </span>
                     </button>
                 </nav>
             </motion.div>
