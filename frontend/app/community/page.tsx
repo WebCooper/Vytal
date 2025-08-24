@@ -175,6 +175,14 @@ export default function CommunityPage() {
     fetchCommunityData();
   }, [fetchCommunityData]);
 
+  // Auto refresh community data periodically so approved posts appear without manual refresh
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchCommunityData();
+    }, 7000); // every 7 seconds
+    return () => clearInterval(intervalId);
+  }, [fetchCommunityData]);
+
   // Filter recipient posts based on selected filters
   const filteredRecipientPosts = recipientPosts.filter(post => {
     const categoryMatch = filterCategory === "all" || post.category === filterCategory;

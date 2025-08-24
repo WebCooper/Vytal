@@ -220,6 +220,7 @@ public isolated function getAllUsers() returns types:User[]|error {
 }
 
 # Count all users
+# + return - Number of users in the database or error if operation fails
 public isolated function countUsers() returns int|error {
     mysql:Client dbClientInstance = check getDbClient();
     stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(`SELECT COUNT(*) AS cnt FROM users`);
@@ -230,6 +231,8 @@ public isolated function countUsers() returns int|error {
 }
 
 # Count users by role
+# + role - The role to count users for
+# + return - Number of users with the specified role or error if operation fails
 public isolated function countUsersByRole(string role) returns int|error {
     mysql:Client dbClientInstance = check getDbClient();
     sql:ParameterizedQuery q = `SELECT COUNT(*) AS cnt FROM users WHERE role = ${role}`;
@@ -241,6 +244,8 @@ public isolated function countUsersByRole(string role) returns int|error {
 }
 
 # Count recipient posts by status (if status is null, count all)
+# + status - Post status to filter by, or null to count all posts
+# + return - Number of recipient posts matching the criteria or error if operation fails
 public isolated function countRecipientPostsByStatus(string? status = ()) returns int|error {
     mysql:Client dbClientInstance = check getDbClient();
     sql:ParameterizedQuery q;
@@ -257,6 +262,8 @@ public isolated function countRecipientPostsByStatus(string? status = ()) return
 }
 
 # Count donor posts by status (if status is null, count all)
+# + status - Post status to filter by, or null to count all posts
+# + return - Number of donor posts matching the criteria or error if operation fails
 public isolated function countDonorPostsByStatus(string? status = ()) returns int|error {
     mysql:Client dbClientInstance = check getDbClient();
     sql:ParameterizedQuery q;
