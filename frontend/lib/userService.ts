@@ -85,6 +85,14 @@ export const signIn = async (data: SignInData): Promise<AuthResponse> => {
 };
 
 export const logout = () => {
+  if (typeof window !== 'undefined') {
+    // Clear all vytal-related localStorage items
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('vytal_')) {
+        localStorage.removeItem(key)
+      }
+    })
+  }
   clearAuthorizationToken();
 };
 
