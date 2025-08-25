@@ -1,15 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
-  FaChartLine as FaTrendingUp, 
-  FaCalendarAlt, 
   FaHeart, 
   FaUsers, 
   FaChartLine,
   FaAward,
   FaTint as FaDroplet,
   FaDollarSign,
-  FaHandHoldingMedical,
   FaGift,
   FaArrowUp,
   FaArrowDown,
@@ -19,7 +16,11 @@ import {
 import { useAnalytics, useCurrentUser } from '@/hooks/useAnalytics';
 
 // Simple Bar Chart Component
-const SimpleBarChart = ({ data, height = 200, color = '#10b981' }) => {
+const SimpleBarChart = ({ data, height = 200, color = '#10b981' }: { 
+  data: Array<{ day: string; donations: number; height?: number }>; 
+  height?: number; 
+  color?: string;
+}) => {
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center text-gray-500" style={{ height: `${height}px` }}>
@@ -32,12 +33,12 @@ const SimpleBarChart = ({ data, height = 200, color = '#10b981' }) => {
   
   return (
     <div className="flex items-end justify-between space-x-2" style={{ height: `${height}px` }}>
-      {data.map((item, index) => (
-        <div key={index} className="flex flex-col items-center space-y-2 flex-1">
+      {data.map((item) => (
+        <div key={item.day} className="flex flex-col items-center space-y-2 flex-1">
           <motion.div
             initial={{ height: 0 }}
             animate={{ height: `${maxValue > 0 ? ((item.donations || 0) / maxValue) * (height - 40) : 0}px` }}
-            transition={{ duration: 0.8, delay: index * 0.1 }}
+            transition={{ duration: 0.8, delay: data.indexOf(item) * 0.1 }}
             className="w-full rounded-t-lg"
             style={{ backgroundColor: color, minHeight: (item.donations || 0) > 0 ? '8px' : '0' }}
           />
@@ -49,7 +50,7 @@ const SimpleBarChart = ({ data, height = 200, color = '#10b981' }) => {
 };
 
 // Simple Line Chart Component
-const SimpleLineChart = ({ data, color = '#3b82f6' }) => {
+const SimpleLineChart = ({ data, color = '#3b82f6' }: { data: number[]; color?: string }) => {
   if (!data || data.length === 0) {
     return (
       <div className="w-full h-32 flex items-center justify-center text-gray-500">
@@ -80,7 +81,7 @@ const SimpleLineChart = ({ data, color = '#3b82f6' }) => {
     <div className="relative w-full h-32">
       <svg viewBox="0 0 100 100" className="w-full h-full">
         <defs>
-          <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <linearGradient id={`gradient-${color?.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor={color} stopOpacity="0.3" />
             <stop offset="100%" stopColor={color} stopOpacity="0.1" />
           </linearGradient>
@@ -88,7 +89,7 @@ const SimpleLineChart = ({ data, color = '#3b82f6' }) => {
         
         <path
           d={`${pathD} L 100 100 L 0 100 Z`}
-          fill={`url(#gradient-${color.replace('#', '')})`}
+          fill={`url(#gradient-${color?.replace('#', '')})`}
         />
         
         <motion.path
@@ -119,7 +120,10 @@ const SimpleLineChart = ({ data, color = '#3b82f6' }) => {
 };
 
 // Donut Chart Component
-const SimpleDonutChart = ({ data, size = 120 }) => {
+const SimpleDonutChart = ({ data, size = 120 }: { 
+  data: Array<{ name: string; value: number; color: string }>; 
+  size?: number;
+}) => {
   if (!data || data.length === 0 || data.every(item => item.value === 0)) {
     return (
       <div className="flex items-center justify-center text-gray-500" style={{ width: size, height: size }}>
@@ -146,7 +150,7 @@ const SimpleDonutChart = ({ data, size = 120 }) => {
             stroke="#e5e7eb"
             strokeWidth="3"
           />
-          {data.filter(segment => segment.value > 0).map((segment, index) => {
+          {data.filter(segment => segment.value > 0).map((segment) => {
             const percentage = total > 0 ? segment.value / total : 0;
             const strokeDasharray = `${percentage * 100} ${100 - percentage * 100}`;
             const strokeDashoffset = -cumulativePercentage * 100;
@@ -166,7 +170,7 @@ const SimpleDonutChart = ({ data, size = 120 }) => {
                 transform="rotate(-90 21 21)"
                 initial={{ strokeDasharray: '0 100' }}
                 animate={{ strokeDasharray: strokeDasharray }}
-                transition={{ duration: 1, delay: index * 0.2 }}
+                transition={{ duration: 1, delay: data.indexOf(segment) * 0.2 }}
               />
             );
           })}
@@ -178,12 +182,12 @@ const SimpleDonutChart = ({ data, size = 120 }) => {
       </div>
       
       <div className="space-y-2">
-        {data.filter(segment => segment.value > 0).map((segment, index) => (
+        {data.filter(segment => segment.value > 0).map((segment) => (
           <motion.div
             key={segment.name}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: data.indexOf(segment) * 0.1 }}
             className="flex items-center space-x-2"
           >
             <div
@@ -334,7 +338,7 @@ const DonorAnalytics = () => {
 
       {/* Overview Stats */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {analyticsData.impactMetrics.map((metric, index) => {
+        {analyticsData.impactMetrics.map((metric) => {
           const IconComponent = iconMap[metric.icon as keyof typeof iconMap] || FaGift;
           const isPositiveTrend = metric.trend > 0;
           return (
@@ -367,8 +371,8 @@ const DonorAnalytics = () => {
           <h3 className="text-xl font-bold text-gray-800 mb-4">Blood Donation Trend</h3>
           <SimpleLineChart data={analyticsData.bloodDonationStats.monthlyTrend} color="#ef4444" />
           <div className="mt-4 flex justify-between text-sm text-gray-600">
-            {analyticsData.donationTrends.slice(0, 6).map((trend, index) => (
-              <span key={index}>{trend.month}</span>
+            {analyticsData.donationTrends.slice(0, 6).map((trend) => (
+              <span key={trend.month}>{trend.month}</span>
             ))}
           </div>
         </motion.div>
@@ -438,7 +442,7 @@ const DonorAnalytics = () => {
             <h3 className="text-xl font-bold text-yellow-800">Achievements</h3>
           </div>
           <div className="space-y-3">
-            {achievements.slice(0, 5).map((achievement, index) => (
+            {achievements.slice(0, 5).map((achievement) => (
               <div key={achievement.id} className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-yellow-800">{achievement.achievement_name}</span>
@@ -449,7 +453,7 @@ const DonorAnalytics = () => {
                     className="h-2 rounded-full bg-yellow-500"
                     initial={{ width: 0 }}
                     animate={{ width: '100%' }}
-                    transition={{ duration: 1, delay: index * 0.2 }}
+                    transition={{ duration: 1, delay: achievements.indexOf(achievement) * 0.2 }}
                   />
                 </div>
                 <p className="text-xs text-yellow-700">{achievement.description}</p>
@@ -475,7 +479,7 @@ const DonorAnalytics = () => {
             <FaChartLine className="text-2xl text-emerald-600 mb-2" />
             <h4 className="font-bold text-emerald-800 mb-1">Total Impact</h4>
             <p className="text-sm text-emerald-700">
-              You've made {stats.total_donations} donations potentially impacting {stats.blood_donations * 3} lives
+              You&apos;ve made {stats.total_donations} donations potentially impacting {stats.blood_donations * 3} lives
             </p>
           </div>
           <div className="bg-white/50 rounded-lg p-4">

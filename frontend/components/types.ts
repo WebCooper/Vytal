@@ -17,9 +17,9 @@ export enum UserType {
 }
 
 export interface SidebarProps {
-  user: User;
-  activeTab: string;
-  setActiveTab: React.Dispatch<React.SetStateAction<string>>;
+    user: User;
+    activeTab: string;
+    setActiveTab: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export interface Post {
@@ -89,45 +89,45 @@ export interface PostGridProps {
 // components/types.ts - Update your BloodCamp interface to match the API
 
 export interface BloodCamp {
-  id: number;
-  organizer_id: number;
-  name: string;
-  organizer: string;
-  location: string;
-  address: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  capacity: number;
-  contact: string;
-  description: string;
-  requirements?: string;
-  blood_types: string[];
-  facilities?: string[];
-  status: 'active' | 'upcoming' | 'completed';
-  coordinates: [number, number];
-  created_at?: string;
-  updated_at?: string;
-  // Computed properties for backward compatibility
-  time?: string; // Computed from start_time and end_time
-  bloodTypes?: string[]; // Alias for blood_types
+    id: number;
+    organizer_id: number;
+    name: string;
+    organizer: string;
+    location: string;
+    address: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+    capacity: number;
+    contact: string;
+    description: string;
+    requirements?: string;
+    blood_types: string[];
+    facilities?: string[];
+    status: 'active' | 'upcoming' | 'completed';
+    coordinates: [number, number];
+    created_at?: string;
+    updated_at?: string;
+    // Computed properties for backward compatibility
+    time?: string; // Computed from start_time and end_time
+    bloodTypes?: string[]; // Alias for blood_types
 }
 
 export interface BloodCampCreateRequest {
-  name: string;
-  organizer: string;
-  location: string;
-  address: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  capacity: number;
-  contact: string;
-  description: string;
-  requirements?: string;
-  blood_types: string[];
-  facilities?: string[];
-  coordinates: [number, number];
+    name: string;
+    organizer: string;
+    location: string;
+    address: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+    capacity: number;
+    contact: string;
+    description: string;
+    requirements?: string;
+    blood_types: string[];
+    facilities?: string[];
+    coordinates: [number, number];
 }
 
 export interface SriLankaMapProps {
@@ -162,11 +162,11 @@ export interface MapSectionProps {
 }
 
 export interface CampsSectionProps {
-  bloodCamps: BloodCamp[];
-  setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
-  showBloodCampForm: boolean;
-  setShowBloodCampForm: React.Dispatch<React.SetStateAction<boolean>>;
-  onCampCreated?: () => void | Promise<void>; // Add this line
+    bloodCamps: BloodCamp[];
+    setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
+    showBloodCampForm: boolean;
+    setShowBloodCampForm: React.Dispatch<React.SetStateAction<boolean>>;
+    onCampCreated?: () => void | Promise<void>; // Add this line
 }
 
 export interface CampsListProps {
@@ -223,6 +223,15 @@ export interface Achievement {
     target: number; // Target to reach for the achievement
     reward: string; // Reward for completing the achievement
 }
+export interface GamificationAchievement {
+    id: number;
+    title: string;
+    description: string;
+    progress: number;
+    target: number;
+    reward: string;
+}
+
 
 export interface LeaderboardDetails {
     rank: number;
@@ -235,58 +244,58 @@ export interface LeaderboardDetails {
 }
 
 export interface AnalyticsData {
-  overview: {
-    totalDonations: number;
-    totalImpact: number;
-    monthlyGrowth: number;
-    currentStreak: number;
-    totalValue: number;
-  };
-  donationTrends: {
-    month: string;
-    blood: number;
-    medicines: number;
-    supplies: number;
-    fundraiser: number;
-  }[];
-  categoryDistribution: {
-    name: string;
-    value: number;
-    color: string;
-  }[];
-  impactMetrics: {
-    metric: string;
-    value: number | string;
-    icon: any;
-    color: string;
-    bg: string;
-    trend: number;
-  }[];
-  bloodDonationStats: {
-    totalDonations: number;
-    totalVolume: number;
-    lastDonation: string;
-    nextEligible: string;
-    bloodType: string;
-    avgHemoglobin: number;
-    monthlyTrend: number[];
-  };
-  achievementProgress: {
-    name: string;
-    completed: boolean;
-    progress: number;
-    color: string;
-  }[];
-  weeklyActivity: {
-    day: string;
-    donations: number;
-    height: number;
-  }[];
-  monthlyComparison: {
-    thisMonth: { donations: number; value: number };
-    lastMonth: { donations: number; value: number };
-    change: { donations: number; value: number };
-  };
+    overview: {
+        totalDonations: number;
+        totalImpact: number;
+        monthlyGrowth: number;
+        currentStreak: number;
+        totalValue: number;
+    };
+    donationTrends: {
+        month: string;
+        blood: number;
+        medicines: number;
+        supplies: number;
+        fundraiser: number;
+    }[];
+    categoryDistribution: {
+        name: string;
+        value: number;
+        color: string;
+    }[];
+    impactMetrics: {
+        metric: string;
+        value: number | string;
+        icon: string;
+        color: string;
+        bg: string;
+        trend: number;
+    }[];
+    bloodDonationStats: {
+        totalDonations: number;
+        totalVolume: number;
+        lastDonation: string;
+        nextEligible: string;
+        bloodType: string;
+        avgHemoglobin: number;
+        monthlyTrend: number[];
+    };
+    achievementProgress: {
+        name: string;
+        completed: boolean;
+        progress: number;
+        color: string;
+    }[];
+    weeklyActivity: {
+        day: string;
+        donations: number;
+        height: number;
+    }[];
+    monthlyComparison: {
+        thisMonth: { donations: number; value: number };
+        lastMonth: { donations: number; value: number };
+        change: { donations: number; value: number };
+    };
 }
 
 
@@ -368,16 +377,6 @@ export interface DonorStats {
     first_donation_date?: string;
 }
 
-export interface Achievement {
-    id: number;
-    donor_id: number;
-    achievement_type: string;
-    achievement_name: string;
-    description?: string;
-    earned_date: string;
-    metadata?: unknown;
-    created_at?: string;
-}
 
 export interface DonorDashboard {
     stats: DonorStats;
@@ -455,21 +454,4 @@ export interface TrendDataPoint {
     supplies: number;
     organs: number;
     fundraiser: number;
-}
-
-// API Response interfaces
-interface ApiResponse<T> {
-    data: T;
-    timestamp: string;
-    message?: string;
-    total?: number;
-}
-
-// Error handling helper
-interface ApiError {
-    response?: {
-        data?: {
-            error?: string;
-        };
-    };
 }

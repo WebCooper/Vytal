@@ -37,8 +37,8 @@ const GamificationDashboard = () => {
         )}
 
         {/* Achievements Tab */}
-        {activeTab === 'achievements' && (
-          <AchievementsTab achievements={achievements} />
+        {activeTab === 'GamificationAchievement' && (
+          <AchievementsTab GamificationAchievement={achievements} />
         )}
 
         {/* Leaderboard Tab */}

@@ -179,8 +179,8 @@ isolated function getCurrentDate() returns string {
 }
 # Get donor analytics data
 # + donorId - ID of the donor
-# + range - Time range for analytics (1month, 3months, 6months, 1year)  
-# + return - Analytics data in JSON format or error
+# + range - Time range for analytics (1month, 3months, 6months, 1year)
+# + return - Analytics data in JSON format or error if operation fails
 public isolated function getDonorAnalytics(int donorId, string range) returns json|error {
     // Get donor stats and donations
     types:DonorStats stats = check database:getDonorStats(donorId);
@@ -323,17 +323,19 @@ public isolated function getDonorTrends(int donorId) returns json[]|error {
     return trends;
 }
 
-# Helper functions for calculations
-
+# Get the number of months for a given time range
+# + range - Time range string (e.g., "1month", "3months", "6months", "1year")
+# + return - Number of months corresponding to the given range. Defaults to 6 if not matched.
 isolated function getMonthsFromRange(string range) returns int {
     match range {
         "1month" => { return 1; }
         "3months" => { return 3; }
         "6months" => { return 6; }
         "1year" => { return 12; }
-        _ => { return 6; }
+        _ => { return 6; } // default
     }
 }
+
 
 isolated function calculateDonationsForMonth(types:DonationResponse[] donations, string month) returns int {
     // Simple calculation - in a real implementation, you'd parse dates properly

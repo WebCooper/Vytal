@@ -1039,8 +1039,16 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
-    # Get donation trends for analytics
-    resource function get donations/analytics/[int donorId](@http:Header {name: "Authorization"} string? authorization, string? range = "6months") returns http:Response|error {
+    # Get donation analytics data for a donor
+    # + donorId - ID of the donor to retrieve analytics for
+    # + authorization - Bearer token passed in the Authorization header for authentication
+    # + range - Optional time range for analytics (defaults to "6months" if not provided).
+    # Supported values: "1month", "3months", "6months", "1year"
+    # + return - HTTP response containing analytics data in JSON or an error response
+    resource function get donations/analytics/[int donorId](
+            @http:Header {name: "Authorization"} string? authorization,
+            string? range = "6months"
+) returns http:Response|error {
         http:Response response = new;
 
         string|error email = token:validateToken(authorization);
@@ -1053,7 +1061,7 @@ service /api/v1 on new http:Listener(9091) {
             return response;
         }
 
-        // You'll need to implement this in your donationService
+        // Call donation service for donor analytics
         json|error result = donationService:getDonorAnalytics(donorId, range ?: "6months");
 
         if result is error {
@@ -1073,7 +1081,10 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
-    # Get donation trends over time
+    # Get donation trends over time for a donor
+    # + donorId - ID of the donor whose trends need to be retrieved
+    # + authorization - Bearer token passed in the Authorization header for authentication
+    # + return - HTTP response containing donor trends data in JSON or an error response
     resource function get donations/trends/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
 

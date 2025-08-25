@@ -112,8 +112,7 @@ interface ApiResponse<T> {
     total?: number;
 }
 
-// Error handling helper
-interface ApiError {
+interface CustomApiError {
     response?: {
         data?: {
             error?: string;
@@ -122,7 +121,7 @@ interface ApiError {
 }
 
 const handleApiError = (error: unknown, defaultMessage: string): never => {
-    const apiError = error as ApiError;
+    const apiError = error as CustomApiError;
     throw new Error(apiError.response?.data?.error || defaultMessage);
 };
 
@@ -195,9 +194,8 @@ export const getDonorAchievements = async (donorId: number): Promise<{ data: Ach
 
 
 // New Analytics API Functions
-export const getDonorAnalytics = async (donorId: number, range: string = '6months'): Promise<{ data: any }> => {
-    try {
-        const response = await axiosInstance.get<ApiResponse<any>>(`/donations/analytics/${donorId}`, {
+export const getDonorAnalytics = async (donorId: number, range: string = '6months'): Promise<{ data: AnalyticsData }> => {    try {
+        const response = await axiosInstance.get<ApiResponse<AnalyticsData>>(`/donations/analytics/${donorId}`, {
             params: { range }
         });
         return { data: response.data.data };
