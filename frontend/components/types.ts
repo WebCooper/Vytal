@@ -233,3 +233,243 @@ export interface LeaderboardDetails {
     donations: number; // Total donations made
     isUser?: boolean; // Whether this entry is for the current user
 }
+
+export interface AnalyticsData {
+  overview: {
+    totalDonations: number;
+    totalImpact: number;
+    monthlyGrowth: number;
+    currentStreak: number;
+    totalValue: number;
+  };
+  donationTrends: {
+    month: string;
+    blood: number;
+    medicines: number;
+    supplies: number;
+    fundraiser: number;
+  }[];
+  categoryDistribution: {
+    name: string;
+    value: number;
+    color: string;
+  }[];
+  impactMetrics: {
+    metric: string;
+    value: number | string;
+    icon: any;
+    color: string;
+    bg: string;
+    trend: number;
+  }[];
+  bloodDonationStats: {
+    totalDonations: number;
+    totalVolume: number;
+    lastDonation: string;
+    nextEligible: string;
+    bloodType: string;
+    avgHemoglobin: number;
+    monthlyTrend: number[];
+  };
+  achievementProgress: {
+    name: string;
+    completed: boolean;
+    progress: number;
+    color: string;
+  }[];
+  weeklyActivity: {
+    day: string;
+    donations: number;
+    height: number;
+  }[];
+  monthlyComparison: {
+    thisMonth: { donations: number; value: number };
+    lastMonth: { donations: number; value: number };
+    change: { donations: number; value: number };
+  };
+}
+
+
+export interface DonationCreate {
+    recipient_id?: number | null;
+    post_id?: number | null;
+    donation_type: 'blood' | 'organs' | 'medicines' | 'supplies' | 'fundraiser';
+    amount?: number | null;
+    quantity?: string | null;
+    description?: string | null;
+    donation_date: string;
+    location?: string | null;
+    notes?: string | null;
+    // Blood donation specific
+    blood_type?: string | null;
+    volume_ml?: number | null;
+    hemoglobin_level?: number | null;
+    donation_center?: string | null;
+}
+
+export interface DonationUpdate {
+    status?: 'pending' | 'completed' | 'cancelled';
+    amount?: number;
+    quantity?: string;
+    description?: string;
+    location?: string;
+    notes?: string;
+}
+
+export interface BloodDonation {
+    id: number;
+    donation_id: number;
+    blood_type: string;
+    volume_ml: number;
+    hemoglobin_level?: number;
+    donation_center?: string;
+    next_eligible_date?: string;
+    created_at?: string;
+}
+
+export interface DonationResponse {
+    id: number;
+    donor_id: number;
+    recipient_id?: number;
+    post_id?: number;
+    donation_type: 'blood' | 'organs' | 'medicines' | 'supplies' | 'fundraiser';
+    amount?: number;
+    quantity?: string;
+    description?: string;
+    donation_date: string;
+    status: 'pending' | 'completed' | 'cancelled';
+    location?: string;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+    recipient?: {
+        id: number;
+        name: string;
+        email: string;
+        role: string;
+    };
+    post?: {
+        id: number;
+        title: string;
+        category: string;
+    };
+    blood_details?: BloodDonation;
+}
+
+export interface DonorStats {
+    donor_id: number;
+    total_donations: number;
+    blood_donations: number;
+    organ_donations: number;
+    medicine_donations: number;
+    supply_donations: number;
+    total_fundraiser_amount: number;
+    last_donation_date?: string;
+    first_donation_date?: string;
+}
+
+export interface Achievement {
+    id: number;
+    donor_id: number;
+    achievement_type: string;
+    achievement_name: string;
+    description?: string;
+    earned_date: string;
+    metadata?: unknown;
+    created_at?: string;
+}
+
+export interface DonorDashboard {
+    stats: DonorStats;
+    recent_donations: DonationResponse[];
+    achievements: Achievement[];
+    availability: {
+        can_donate_blood: boolean;
+        next_eligible_date?: string;
+        last_donation_date?: string;
+    };
+}
+
+// New Analytics Types
+export interface AnalyticsData {
+    overview: {
+        totalDonations: number;
+        totalImpact: number;
+        monthlyGrowth: number;
+        currentStreak: number;
+        totalValue: number;
+    };
+    donationTrends: {
+        month: string;
+        blood: number;
+        medicines: number;
+        supplies: number;
+        fundraiser: number;
+    }[];
+    categoryDistribution: {
+        name: string;
+        value: number;
+        color: string;
+    }[];
+    impactMetrics: {
+        metric: string;
+        value: number | string;
+        icon: string;
+        color: string;
+        bg: string;
+        trend: number;
+    }[];
+    bloodDonationStats: {
+        totalDonations: number;
+        totalVolume: number;
+        lastDonation: string;
+        nextEligible: string;
+        bloodType: string;
+        avgHemoglobin: number;
+        monthlyTrend: number[];
+    };
+    achievementProgress: {
+        name: string;
+        completed: boolean;
+        progress: number;
+        color: string;
+    }[];
+    weeklyActivity: {
+        day: string;
+        donations: number;
+        height: number;
+    }[];
+    monthlyComparison: {
+        thisMonth: { donations: number; value: number };
+        lastMonth: { donations: number; value: number };
+        change: { donations: number; value: number };
+    };
+}
+
+export interface TrendDataPoint {
+    month: string;
+    donations: number;
+    amount: number;
+    blood: number;
+    medicines: number;
+    supplies: number;
+    organs: number;
+    fundraiser: number;
+}
+
+// API Response interfaces
+interface ApiResponse<T> {
+    data: T;
+    timestamp: string;
+    message?: string;
+    total?: number;
+}
+
+// Error handling helper
+interface ApiError {
+    response?: {
+        data?: {
+            error?: string;
+        };
+    };
+}

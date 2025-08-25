@@ -22,8 +22,10 @@ import { BloodCamp } from "@/components/types";
 import { getDonorPostsByUser, DonorPost } from "@/lib/donorPosts";
 import DonorMessagesTab from "@/components/messages/DonorMessagesTab";
 import { MessagesProvider } from '@/contexts/MessagesContext';
-import { getDonorDashboard, type DonorDashboard} from '@/lib/donationApi';
+import { getDonorDashboard, type DonorDashboard } from '@/lib/donationApi';
 import CreateDonationModal from '@/components/donorProfile/CreateDonationModal';
+// Add this import at the top with your other imports
+import DonorAnalytics from "@/components/donorProfile/analytics/DonorAnalytics";
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
     // Map category string to Category enum
@@ -636,12 +638,9 @@ export default function DonorDashboard() {
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8"
+                                    className="space-y-6"
                                 >
-                                    <h2 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-6">
-                                        Messages
-                                    </h2>
-                                    <p className="text-gray-600 text-lg">Coming soon! Communicate directly with recipients.</p>
+                                    <DonorAnalytics />
                                 </motion.div>
                             )}
 
