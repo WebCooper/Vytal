@@ -27,11 +27,11 @@ import {
   getUserInitials 
 } from '@/components/messages/utils/messageUtils';
 
-interface DonorMessagesTabProps {
+interface RecipientMessagesTabProps {
   userId: number;
 }
 
-const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
+const RecipientMessagesTab: React.FC<RecipientMessagesTabProps> = ({ userId }) => {
   const { user } = useAuth();
   const { decrementUnreadCount, refreshUnreadCount } = useMessages();
   
@@ -44,6 +44,15 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
   const [replyText, setReplyText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Message interaction handlers
   const handleMarkAsRead = async (messageId: number) => {
@@ -76,7 +85,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
   const fetchMessages = useCallback(async (mode: 'inbox' | 'sent') => {
     try {
       setIsLoading(true);
-      const response = mode === 'inbox' 
+      const response = mode === 'inbox'
         ? await getUserMessages(userId)
         : await getSentMessages(userId);
       setMessages(response.data);
@@ -92,7 +101,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
       setIsLoading(true);
       const response = await getConversation(userId, otherUserId);
       setMessages(response.data);
-      
+
       await markConversationAsRead(userId, otherUserId);
       refreshUnreadCount();
     } catch (error) {
@@ -107,7 +116,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
     setViewMode(mode);
     setSelectedConversation(null);
     setMessages([]);
-    
+
     switch (mode) {
       case 'conversations':
         fetchConversations();
@@ -129,11 +138,11 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user || !selectedConversation || !replyText.trim()) return;
-    
+
     setIsSending(true);
-    
+
     try {
       await sendMessage({
         sender_id: user.id,
@@ -143,7 +152,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
         content: replyText,
         message_type: 'general'
       });
-      
+
       setReplyText('');
       fetchConversationThread(selectedConversation.other_user.id);
     } catch (error) {
@@ -178,7 +187,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
         conversations={conversations}
         messages={messages}
         onViewChange={handleViewChange}
-        userType="donor"
+        userType="recipient"
       />
 
       <div className="flex-1 overflow-hidden">
@@ -188,7 +197,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
             onConversationSelect={handleConversationSelect}
             formatTime={formatTime}
             getUserInitials={getUserInitials}
-            userType="donor"
+            userType="recipient"
           />
         )}
 
@@ -200,7 +209,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
             formatTime={formatTime}
             getUserInitials={getUserInitials}
             onMarkAsRead={handleMarkAsRead}
-            userType="donor"
+            userType="recipient"
           />
         )}
 
@@ -218,7 +227,7 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
             formatTime={formatTime}
             getUserInitials={getUserInitials}
             messagesEndRef={messagesEndRef}
-            userType="donor"
+            userType="recipient"
           />
         )}
       </div>
@@ -226,4 +235,4 @@ const DonorMessagesTab: React.FC<DonorMessagesTabProps> = ({ userId }) => {
   );
 };
 
-export default DonorMessagesTab;
+export default RecipientMessagesTab;

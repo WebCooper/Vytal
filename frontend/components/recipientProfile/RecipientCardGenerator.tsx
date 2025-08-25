@@ -1,30 +1,31 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FaDownload, FaShare, FaTimes, FaHeartbeat, FaMapMarkerAlt, FaPhone, FaCopy, FaWhatsapp, FaQrcode, FaGift } from 'react-icons/fa';
-import { MdBloodtype, MdVolunteerActivism } from 'react-icons/md';
+import { FaDownload, FaShare, FaTimes, FaHeartbeat, FaMapMarkerAlt, FaPhone, FaCopy, FaWhatsapp, FaQrcode, FaHandHoldingHeart } from 'react-icons/fa';
+import { MdBloodtype, MdLocalHospital, MdEmergency } from 'react-icons/md';
 
-interface DonorCardGeneratorProps {
+interface RecipientCardGeneratorProps {
   isOpen: boolean;
   onClose: () => void;
   userType: 'donor' | 'recipient';
   userData: unknown;
 }
 
-const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose }) => {
+const RecipientCardGenerator: React.FC<RecipientCardGeneratorProps> = ({ isOpen, onClose }) => {
   const [cardData, setCardData] = useState({
-    donorName: 'Rangana Viranin',
-    bloodType: 'B+',
-    donationType: 'Blood Donation',
-    availability: 'Available Now',
-    location: 'Kalutara, Sri Lanka',
-    contactPerson: 'Rangana Viranin',
-    primaryPhone: '094-869-624',
-    secondaryPhone: '078-471-7407',
+    recipientName: 'Sarah Johnson',
+    bloodType: 'O-',
+    requestType: 'Blood Donation',
+    urgency: 'high',
+    location: 'Colombo General Hospital, Sri Lanka',
+    patientName: 'Sarah Johnson',
+    primaryPhone: '094-123-456',
+    secondaryPhone: '077-987-654',
     relationship: 'Self',
-    message: 'Willing to donate blood to help save lives. Available for emergency donations.',
-    lastDonation: '3 months ago',
-    donationCount: '12',
-    urgency: 'available'
+    message: 'Urgently need blood donation for surgery. Any help would be greatly appreciated.',
+    hospital: 'Colombo General Hospital',
+    roomNumber: 'Ward 12, Bed 5',
+    goalAmount: '500000',
+    category: 'blood'
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -33,7 +34,7 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
 
   if (!isOpen) return null;
 
-  const generateDonorCard = async () => {
+  const generateRecipientCard = async () => {
     if (!cardRef.current) return;
     
     setIsGenerating(true);
@@ -52,14 +53,14 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
       
       ctx.scale(scale, scale);
       
-      await drawDonorCard(ctx);
+      await drawRecipientCard(ctx);
       
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `donor-card-${cardData.donorName.replace(/\s+/g, '-')}-${Date.now()}.png`;
+          link.download = `help-needed-card-${cardData.recipientName.replace(/\s+/g, '-')}-${Date.now()}.png`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -69,13 +70,13 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
       }, 'image/png', 1.0);
       
     } catch (error) {
-      console.error('Error generating donor card:', error);
+      console.error('Error generating recipient card:', error);
       setIsGenerating(false);
       alert('Error generating card. Please try taking a screenshot instead.');
     }
   };
 
-  const drawDonorCard = async (ctx: CanvasRenderingContext2D) => {
+  const drawRecipientCard = async (ctx: CanvasRenderingContext2D) => {
     const width = 400;
     const height = 500;
     
@@ -88,58 +89,73 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, width, height);
     
-    // Header section (Green gradient for donor)
+    // Header section (Red gradient for urgent help)
     const headerGradient = ctx.createLinearGradient(0, 0, width, 80);
-    headerGradient.addColorStop(0, '#059669');
-    headerGradient.addColorStop(1, '#047857');
+    if (cardData.urgency === 'high') {
+      headerGradient.addColorStop(0, '#dc2626');
+      headerGradient.addColorStop(1, '#b91c1c');
+    } else if (cardData.urgency === 'medium') {
+      headerGradient.addColorStop(0, '#f59e0b');
+      headerGradient.addColorStop(1, '#d97706');
+    } else {
+      headerGradient.addColorStop(0, '#059669');
+      headerGradient.addColorStop(1, '#047857');
+    }
     ctx.fillStyle = headerGradient;
     ctx.fillRect(0, 0, width, 80);
     
-    // Header donor icon (white circle)
+    // Header help icon (white circle)
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(35, 40, 18, 0, 2 * Math.PI);
     ctx.fill();
     
-    // Donor icon (heart symbol)
-    ctx.fillStyle = '#059669';
+    // Help icon (heart with hands symbol)
+    const urgencyColor = cardData.urgency === 'high' ? '#dc2626' : cardData.urgency === 'medium' ? '#f59e0b' : '#059669';
+    ctx.fillStyle = urgencyColor;
     ctx.font = 'bold 20px Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('♥', 35, 47);
+    ctx.fillText('🤲', 35, 47);
     
-    // Gift icon (top right)
+    // Emergency icon (top right)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.beginPath();
     ctx.arc(365, 40, 15, 0, 2 * Math.PI);
     ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 16px Arial, sans-serif';
-    ctx.fillText('🎁', 365, 46);
+    ctx.fillText('🚨', 365, 46);
     
     // Header text
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 18px Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('Donation Offer Available', 65, 35);
+    ctx.fillText('HELP NEEDED', 65, 35);
     ctx.font = '12px Arial, sans-serif';
-    ctx.fillText('Ready to Help & Save Lives', 65, 52);
+    ctx.fillText(`${cardData.urgency.toUpperCase()} PRIORITY - Please Help`, 65, 52);
     
-    // Donor name (large, bold)
+    // Patient name (large, bold)
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold 28px Arial, sans-serif';
-    ctx.fillText(cardData.donorName, 25, 125);
+    ctx.fillText(cardData.recipientName, 25, 125);
     
-    // Blood type badge (circular, green for donor)
-    ctx.fillStyle = '#059669';
+    // Blood type/category badge (circular)
+    ctx.fillStyle = urgencyColor;
     ctx.beginPath();
     ctx.arc(350, 115, 30, 0, 2 * Math.PI);
     ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 10px Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('DONOR', 350, 105);
+    ctx.fillText('NEEDS', 350, 105);
     ctx.font = 'bold 20px Arial, sans-serif';
-    ctx.fillText(cardData.bloodType, 350, 125);
+    if (cardData.category === 'blood') {
+      ctx.fillText(cardData.bloodType, 350, 125);
+    } else if (cardData.category === 'fundraiser') {
+      ctx.fillText('💰', 350, 125);
+    } else {
+      ctx.fillText('🏥', 350, 125);
+    }
     
     // Message text
     ctx.fillStyle = '#6b7280';
@@ -150,64 +166,75 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
     // Info grid section
     let currentY = 185;
     
-    // Donation type (with icon)
-    ctx.fillStyle = '#059669';
+    // Request type (with icon)
+    ctx.fillStyle = urgencyColor;
     ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.fillText('🎁', 25, currentY);
+    ctx.fillText('🆘', 25, currentY);
     ctx.fillStyle = '#6b7280';
     ctx.font = '11px Arial, sans-serif';
-    ctx.fillText('Offering', 45, currentY);
+    ctx.fillText('Needed', 45, currentY);
     ctx.fillStyle = '#374151';
     ctx.font = 'bold 13px Arial, sans-serif';
-    ctx.fillText(cardData.donationType, 45, currentY + 15);
+    ctx.fillText(cardData.requestType, 45, currentY + 15);
     
     // Location info (with icon)
-    ctx.fillStyle = '#059669';
+    ctx.fillStyle = urgencyColor;
     ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.fillText('📍', 220, currentY);
+    ctx.fillText('🏥', 220, currentY);
     ctx.fillStyle = '#6b7280';
     ctx.font = '11px Arial, sans-serif';
     ctx.fillText('Location', 240, currentY);
     ctx.fillStyle = '#374151';
     ctx.font = 'bold 13px Arial, sans-serif';
-    ctx.fillText(cardData.location, 240, currentY + 15);
+    ctx.fillText(cardData.hospital, 240, currentY + 15);
     
     currentY += 50;
     
-    // Availability (with icon)
-    ctx.fillStyle = '#059669';
+    // Urgency (with icon)
+    ctx.fillStyle = urgencyColor;
     ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.fillText('🕐', 25, currentY);
+    ctx.fillText('⏰', 25, currentY);
     ctx.fillStyle = '#6b7280';
     ctx.font = '11px Arial, sans-serif';
-    ctx.fillText('Availability', 45, currentY);
+    ctx.fillText('Urgency', 45, currentY);
     ctx.fillStyle = '#374151';
     ctx.font = 'bold 13px Arial, sans-serif';
-    ctx.fillText(cardData.availability, 45, currentY + 15);
+    ctx.fillText(`${cardData.urgency.toUpperCase()} Priority`, 45, currentY + 15);
     
-    // Donation count (with icon)
-    ctx.fillStyle = '#059669';
+    // Room/Goal (with icon)
+    ctx.fillStyle = urgencyColor;
     ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.fillText('🏆', 220, currentY);
-    ctx.fillStyle = '#6b7280';
-    ctx.font = '11px Arial, sans-serif';
-    ctx.fillText('Donations Made', 240, currentY);
-    ctx.fillStyle = '#374151';
-    ctx.font = 'bold 13px Arial, sans-serif';
-    ctx.fillText(`${cardData.donationCount} times`, 240, currentY + 15);
+    if (cardData.category === 'fundraiser') {
+      ctx.fillText('💰', 220, currentY);
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '11px Arial, sans-serif';
+      ctx.fillText('Goal Amount', 240, currentY);
+      ctx.fillStyle = '#374151';
+      ctx.font = 'bold 13px Arial, sans-serif';
+      ctx.fillText(`LKR ${parseInt(cardData.goalAmount).toLocaleString()}`, 240, currentY + 15);
+    } else {
+      ctx.fillText('🛏️', 220, currentY);
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '11px Arial, sans-serif';
+      ctx.fillText('Room Details', 240, currentY);
+      ctx.fillStyle = '#374151';
+      ctx.font = 'bold 13px Arial, sans-serif';
+      ctx.fillText(cardData.roomNumber, 240, currentY + 15);
+    }
     
-    // Contact section background (green box)
-    ctx.fillStyle = '#f0fdf4';
+    // Contact section background (urgent color box)
+    const contactBgColor = cardData.urgency === 'high' ? '#fef2f2' : cardData.urgency === 'medium' ? '#fffbeb' : '#f0fdf4';
+    ctx.fillStyle = contactBgColor;
     ctx.fillRect(15, 280, width - 30, 130);
-    ctx.strokeStyle = '#059669';
+    ctx.strokeStyle = urgencyColor;
     ctx.lineWidth = 1;
     ctx.strokeRect(15, 280, width - 30, 130);
     
     // Contact header
-    ctx.fillStyle = '#047857';
+    ctx.fillStyle = urgencyColor;
     ctx.font = 'bold 16px Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('📞 Contact for Donation', 25, 305);
+    ctx.fillText('📞 Contact to Help', 25, 305);
     
     // Contact person
     ctx.fillStyle = '#6b7280';
@@ -215,7 +242,7 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
     ctx.fillText('Contact Person', 25, 330);
     ctx.fillStyle = '#374151';
     ctx.font = 'bold 13px Arial, sans-serif';
-    ctx.fillText(cardData.contactPerson, 25, 345);
+    ctx.fillText(cardData.patientName, 25, 345);
     ctx.fillStyle = '#6b7280';
     ctx.font = '10px Arial, sans-serif';
     ctx.fillText(`(${cardData.relationship})`, 25, 358);
@@ -251,7 +278,7 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
     ctx.textAlign = 'center';
     ctx.fillText('⬜', 335, 380);
     ctx.font = '8px Arial, sans-serif';
-    ctx.fillText('Scan to contact', 335, 395);
+    ctx.fillText('Scan to help', 335, 395);
     
     // Footer section
     ctx.fillStyle = '#f9fafb';
@@ -261,7 +288,7 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
     ctx.strokeRect(0, 420, width, 80);
     
     // Vytal logo
-    ctx.fillStyle = '#059669';
+    ctx.fillStyle = urgencyColor;
     ctx.fillRect(15, 435, 35, 35);
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px Arial, sans-serif';
@@ -274,16 +301,16 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
     ctx.textAlign = 'left';
     ctx.fillText('Powered by Vytal', 60, 447);
     ctx.font = '9px Arial, sans-serif';
-    ctx.fillText(`ID: DON-${Math.floor(Math.random() * 10000)}`, 60, 460);
+    ctx.fillText(`ID: REQ-${Math.floor(Math.random() * 10000)}`, 60, 460);
     
     // Watermark (subtle)
-    ctx.fillStyle = 'rgba(5, 150, 105, 0.03)';
+    ctx.fillStyle = `rgba(${cardData.urgency === 'high' ? '220, 38, 38' : cardData.urgency === 'medium' ? '245, 158, 11' : '5, 150, 105'}, 0.03)`;
     ctx.font = 'bold 60px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.save();
     ctx.translate(width/2, height/2);
     ctx.rotate(-Math.PI/6);
-    ctx.fillText('DONOR', 0, 0);
+    ctx.fillText('HELP', 0, 0);
     ctx.restore();
   };
 
@@ -301,7 +328,7 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
       canvas.height = 500 * scale;
       ctx.scale(scale, scale);
       
-      await drawDonorCard(ctx);
+      await drawRecipientCard(ctx);
       
       return new Promise((resolve) => {
         canvas.toBlob((blob) => {
@@ -315,28 +342,30 @@ const DonorCardGenerator: React.FC<DonorCardGeneratorProps> = ({ isOpen, onClose
   };
 
   const generateShareContent = () => {
+    const urgencyText = cardData.urgency === 'high' ? '🚨 URGENT' : cardData.urgency === 'medium' ? '⚠️ PRIORITY' : '📢 HELP NEEDED';
+    
     return {
-      title: `${cardData.bloodType} Blood Donor Available - ${cardData.donorName}`,
-      text: `*BLOOD DONOR AVAILABLE*
+      title: `${urgencyText} - ${cardData.requestType} Needed for ${cardData.recipientName}`,
+      text: `*${urgencyText} - HELP NEEDED*
 
-*Donor:* ${cardData.donorName}
-*Blood Type:* ${cardData.bloodType}
+*Patient:* ${cardData.recipientName}
+${cardData.category === 'blood' ? `*Blood Type:* ${cardData.bloodType}` : ''}
 *Location:* ${cardData.location}
-*Offering:* ${cardData.donationType}
-*Availability:* ${cardData.availability}
-*Previous Donations:* ${cardData.donationCount} times
-*Last Donation:* ${cardData.lastDonation}
+*Needed:* ${cardData.requestType}
+*Urgency:* ${cardData.urgency.toUpperCase()} Priority
+*Hospital:* ${cardData.hospital}
+${cardData.category !== 'fundraiser' ? `*Room:* ${cardData.roomNumber}` : `*Goal Amount:* LKR ${parseInt(cardData.goalAmount).toLocaleString()}`}
 
 *Contact Information:*
-${cardData.contactPerson} (${cardData.relationship})
+${cardData.patientName} (${cardData.relationship})
 Primary: ${cardData.primaryPhone}
 Secondary: ${cardData.secondaryPhone}
 
 *Message:* ${cardData.message}
 
-Ready to help save lives! Contact me if you need blood donation.
+${cardData.urgency === 'high' ? '🚨 Time is critical! Please help if you can.' : 'Please help if you are able to contribute.'}
 
-#BloodDonor #SaveALife #${cardData.bloodType}Blood #Vytal #LifeSaver
+#HelpNeeded #${cardData.category === 'blood' ? cardData.bloodType + 'Blood' : cardData.category} #Vytal #SaveALife #Emergency
 
 Generated via Vytal - Community Donation Platform`
     };
@@ -346,7 +375,7 @@ Generated via Vytal - Community Donation Platform`
     const shareContent = generateShareContent();
     try {
       await navigator.clipboard.writeText(shareContent.text);
-      alert('Donor card details copied to clipboard!');
+      alert('Help request details copied to clipboard!');
       setShowShareMenu(false);
     } catch (error) {
       alert(`Please copy the details manually - ERROR: ${error}`);
@@ -360,7 +389,7 @@ Generated via Vytal - Community Donation Platform`
       const url = URL.createObjectURL(cardBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `donor-card-${cardData.donorName.replace(/\s+/g, '-')}.png`;
+      link.download = `help-needed-card-${cardData.recipientName.replace(/\s+/g, '-')}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -370,10 +399,10 @@ Generated via Vytal - Community Donation Platform`
       try {
         await navigator.clipboard.writeText(shareContent.text);
         
-        alert(`✅ READY FOR WHATSAPP!\n\n📥 Donor card image downloaded\n📋 Text copied to your clipboard\n\nNow:\n1. Open WhatsApp\n2. Select a chat or group\n3. Paste the text (Ctrl/Cmd+V)\n4. Click the attachment button (📎)\n5. Select the downloaded image\n6. Send both together!\n\nImage name: donor-card-${cardData.donorName.replace(/\s+/g, '-')}.png`);
+        alert(`✅ READY FOR WHATSAPP!\n\n📥 Help request card downloaded\n📋 Text copied to your clipboard\n\nNow:\n1. Open WhatsApp\n2. Select a chat or group\n3. Paste the text (Ctrl/Cmd+V)\n4. Click the attachment button (📎)\n5. Select the downloaded image\n6. Send both together!\n\nImage name: help-needed-card-${cardData.recipientName.replace(/\s+/g, '-')}.png`);
         
       } catch (error) {
-        alert(`✅ Image downloaded!\n\nImage saved as: donor-card-${cardData.donorName.replace(/\s+/g, '-')}.png\n\nFor WhatsApp:\n1. Copy the text from the form\n2. Open WhatsApp\n3. Paste text and attach the downloaded image ERROR : ${error}`);
+        alert(`✅ Image downloaded!\n\nImage saved as: help-needed-card-${cardData.recipientName.replace(/\s+/g, '-')}.png\n\nFor WhatsApp:\n1. Copy the text from the form\n2. Open WhatsApp\n3. Paste text and attach the downloaded image ERROR : ${error}`);
       }
     } else {
       const shareContent = generateShareContent();
@@ -389,7 +418,7 @@ Generated via Vytal - Community Donation Platform`
       const url = URL.createObjectURL(cardBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `donor-card-${cardData.donorName.replace(/\s+/g, '-')}.png`;
+      link.download = `help-needed-card-${cardData.recipientName.replace(/\s+/g, '-')}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -408,10 +437,10 @@ Generated via Vytal - Community Donation Platform`
         
         modal.innerHTML = `
           <div style="background: white; padding: 30px; border-radius: 20px; max-width: 500px; text-align: center;">
-            <h2 style="color: #059669; margin-bottom: 20px;">🎉 Ready to Share!</h2>
-            <div style="background: #f0f9ff; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-              <p style="margin: 0; font-weight: bold; color: #0369a1;">✅ Donor card image downloaded</p>
-              <p style="margin: 5px 0 0 0; font-weight: bold; color: #0369a1;">✅ Text copied to clipboard</p>
+            <h2 style="color: #dc2626; margin-bottom: 20px;">🚨 Ready to Share Help Request!</h2>
+            <div style="background: #fef2f2; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+              <p style="margin: 0; font-weight: bold; color: #b91c1c;">✅ Help request card downloaded</p>
+              <p style="margin: 5px 0 0 0; font-weight: bold; color: #b91c1c;">✅ Text copied to clipboard</p>
             </div>
             <div style="text-align: left; background: #f9fafb; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
               <p style="font-weight: bold; margin: 0 0 10px 0;">📱 How to share on WhatsApp:</p>
@@ -420,12 +449,12 @@ Generated via Vytal - Community Donation Platform`
               <p style="margin: 5px 0;">3. Paste the text (Ctrl+V or Cmd+V)</p>
               <p style="margin: 5px 0;">4. Click the attachment button (📎)</p>
               <p style="margin: 5px 0;">5. Choose "Photos & Media"</p>
-              <p style="margin: 5px 0;">6. Select the downloaded donor card image</p>
+              <p style="margin: 5px 0;">6. Select the downloaded help request card</p>
               <p style="margin: 5px 0;">7. Send both message and image together!</p>
             </div>
             <button onclick="this.parentElement.parentElement.remove()" 
-                    style="background: #059669; color: white; padding: 12px 24px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
-              Got it! 👍
+                    style="background: #dc2626; color: white; padding: 12px 24px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
+              Got it! 🆘
             </button>
           </div>
         `;
@@ -433,7 +462,7 @@ Generated via Vytal - Community Donation Platform`
         document.body.appendChild(modal);
         
       } catch (error) {
-        alert(`📥 Donor card image downloaded!\n\nCheck your Downloads folder for the image file.\nThen manually copy the text and share both on WhatsApp. ERROR : ${error}`);
+        alert(`📥 Help request card downloaded!\n\nCheck your Downloads folder for the image file.\nThen manually copy the text and share both on WhatsApp. ERROR : ${error}`);
       }
     }
     setShowShareMenu(false);
@@ -446,6 +475,16 @@ Generated via Vytal - Community Donation Platform`
     setShowShareMenu(false);
   };
 
+  const getUrgencyColor = () => {
+    switch (cardData.urgency) {
+      case 'high': return { bg: 'bg-red-500', text: 'text-red-500', gradient: 'from-red-500 to-red-700' };
+      case 'medium': return { bg: 'bg-yellow-500', text: 'text-yellow-500', gradient: 'from-yellow-500 to-yellow-700' };
+      default: return { bg: 'bg-emerald-500', text: 'text-emerald-500', gradient: 'from-emerald-500 to-emerald-700' };
+    }
+  };
+
+  const urgencyColors = getUrgencyColor();
+
   return (
     <>
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -455,11 +494,11 @@ Generated via Vytal - Community Donation Platform`
           className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden max-h-[95vh] flex flex-col"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-800 p-4 text-white flex-shrink-0">
+          <div className={`bg-gradient-to-r ${urgencyColors.gradient} p-4 text-white flex-shrink-0`}>
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-bold">Donor Card Generator</h2>
-                <p className="text-emerald-100 text-sm">Create professional donor offer cards to share your willingness to help</p>
+                <h2 className="text-xl font-bold">Help Request Card Generator</h2>
+                <p className="text-white/90 text-sm">Create urgent help request cards to spread awareness about your need</p>
               </div>
               <button
                 onClick={onClose}
@@ -473,62 +512,68 @@ Generated via Vytal - Community Donation Platform`
           <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
             {/* Form Section */}
             <div className="lg:w-2/5 p-4 overflow-y-auto border-r border-gray-200">
-              <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Donor Information</h3>
+              <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Request Information</h3>
               
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Donor Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name *</label>
                   <input
                     type="text"
-                    value={cardData.donorName}
-                    onChange={(e) => setCardData({...cardData, donorName: e.target.value})}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="e.g., Rangana Viranin"
+                    value={cardData.recipientName}
+                    onChange={(e) => setCardData({...cardData, recipientName: e.target.value})}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    placeholder="e.g., Sarah Johnson"
                   />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Blood Type *</label>
-                    <div className="relative">
-                      <select
-                        value={cardData.bloodType}
-                        onChange={(e) => setCardData({...cardData, bloodType: e.target.value})}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 appearance-none"
-                      >
-                        <option value="A+">A+</option>
-                        <option value="A-">A-</option>
-                        <option value="B+">B+</option>
-                        <option value="B-">B-</option>
-                        <option value="O+">O+</option>
-                        <option value="O-">O-</option>
-                        <option value="AB+">AB+</option>
-                        <option value="AB-">AB-</option>
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                        <MdBloodtype className="text-lg text-emerald-500" />
-                      </div>
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                    <select
+                      value={cardData.category}
+                      onChange={(e) => setCardData({...cardData, category: e.target.value})}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                      <option value="blood">Blood</option>
+                      <option value="organs">Organs</option>
+                      <option value="fundraiser">Fundraiser</option>
+                      <option value="medicines">Medicines</option>
+                      <option value="supplies">Supplies</option>
+                    </select>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Donation Count</label>
-                    <input
-                      type="text"
-                      value={cardData.donationCount}
-                      onChange={(e) => setCardData({...cardData, donationCount: e.target.value})}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                      placeholder="e.g., 12"
-                    />
-                  </div>
+                  {cardData.category === 'blood' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Blood Type *</label>
+                      <div className="relative">
+                        <select
+                          value={cardData.bloodType}
+                          onChange={(e) => setCardData({...cardData, bloodType: e.target.value})}
+                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 appearance-none"
+                        >
+                          <option value="A+">A+</option>
+                          <option value="A-">A-</option>
+                          <option value="B+">B+</option>
+                          <option value="B-">B-</option>
+                          <option value="O+">O+</option>
+                          <option value="O-">O-</option>
+                          <option value="AB+">AB+</option>
+                          <option value="AB-">AB-</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                          <MdBloodtype className={`text-lg ${urgencyColors.text}`} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Donation Type *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Request Type *</label>
                   <select
-                    value={cardData.donationType}
-                    onChange={(e) => setCardData({...cardData, donationType: e.target.value})}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    value={cardData.requestType}
+                    onChange={(e) => setCardData({...cardData, requestType: e.target.value})}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   >
                     <option value="Blood Donation">Blood Donation</option>
                     <option value="Platelet Donation">Platelet Donation</option>
@@ -542,17 +587,44 @@ Generated via Vytal - Community Donation Platform`
                 </div>
                 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Urgency Level *</label>
+                  <select
+                    value={cardData.urgency}
+                    onChange={(e) => setCardData({...cardData, urgency: e.target.value})}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  >
+                    <option value="high">🚨 HIGH - Critical/Emergency</option>
+                    <option value="medium">⚠️ MEDIUM - Priority</option>
+                    <option value="low">📢 LOW - Standard Request</option>
+                  </select>
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
                   <textarea
                     value={cardData.message}
                     onChange={(e) => setCardData({...cardData, message: e.target.value})}
                     rows={2}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
-                    placeholder="e.g., Willing to donate blood to help save lives. Available for emergency donations."
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                    placeholder="e.g., Urgently need blood donation for surgery. Any help would be greatly appreciated."
                   />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hospital *</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={cardData.hospital}
+                        onChange={(e) => setCardData({...cardData, hospital: e.target.value})}
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 pl-8"
+                        placeholder="e.g., Colombo General Hospital"
+                      />
+                      <MdLocalHospital className="absolute left-2 top-2.5 text-gray-500 text-sm" />
+                    </div>
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
                     <div className="relative">
@@ -560,48 +632,46 @@ Generated via Vytal - Community Donation Platform`
                         type="text"
                         value={cardData.location}
                         onChange={(e) => setCardData({...cardData, location: e.target.value})}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pl-8"
-                        placeholder="e.g., Kalutara, Sri Lanka"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 pl-8"
+                        placeholder="e.g., Colombo, Sri Lanka"
                       />
                       <FaMapMarkerAlt className="absolute left-2 top-2.5 text-gray-500 text-sm" />
                     </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
-                    <select
-                      value={cardData.availability}
-                      onChange={(e) => setCardData({...cardData, availability: e.target.value})}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    >
-                      <option value="Available Now">Available Now</option>
-                      <option value="Available This Week">Available This Week</option>
-                      <option value="Available Weekends">Available Weekends</option>
-                      <option value="Emergency Only">Emergency Only</option>
-                      <option value="By Appointment">By Appointment</option>
-                    </select>
-                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Donation</label>
-                  <input
-                    type="text"
-                    value={cardData.lastDonation}
-                    onChange={(e) => setCardData({...cardData, lastDonation: e.target.value})}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="e.g., 3 months ago"
-                  />
-                </div>
+                {cardData.category === 'fundraiser' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Goal Amount (LKR)</label>
+                    <input
+                      type="text"
+                      value={cardData.goalAmount}
+                      onChange={(e) => setCardData({...cardData, goalAmount: e.target.value})}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder="e.g., 500000"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Room/Ward Details</label>
+                    <input
+                      type="text"
+                      value={cardData.roomNumber}
+                      onChange={(e) => setCardData({...cardData, roomNumber: e.target.value})}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder="e.g., Ward 12, Bed 5"
+                    />
+                  </div>
+                )}
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person *</label>
                   <input
                     type="text"
-                    value={cardData.contactPerson}
-                    onChange={(e) => setCardData({...cardData, contactPerson: e.target.value})}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="e.g., Rangana Viranin"
+                    value={cardData.patientName}
+                    onChange={(e) => setCardData({...cardData, patientName: e.target.value})}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    placeholder="e.g., Sarah Johnson"
                   />
                 </div>
                 
@@ -613,8 +683,8 @@ Generated via Vytal - Community Donation Platform`
                         type="tel"
                         value={cardData.primaryPhone}
                         onChange={(e) => setCardData({...cardData, primaryPhone: e.target.value})}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pl-8"
-                        placeholder="094-869-624"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 pl-8"
+                        placeholder="094-123-456"
                       />
                       <FaPhone className="absolute left-2 top-2.5 text-gray-500 text-sm" />
                     </div>
@@ -627,8 +697,8 @@ Generated via Vytal - Community Donation Platform`
                         type="tel"
                         value={cardData.secondaryPhone}
                         onChange={(e) => setCardData({...cardData, secondaryPhone: e.target.value})}
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pl-8"
-                        placeholder="078-471-7407"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 pl-8"
+                        placeholder="077-987-654"
                       />
                       <FaPhone className="absolute left-2 top-2.5 text-gray-500 text-sm" />
                     </div>
@@ -640,7 +710,7 @@ Generated via Vytal - Community Donation Platform`
                   <select
                     value={cardData.relationship}
                     onChange={(e) => setCardData({...cardData, relationship: e.target.value})}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   >
                     <option value="Self">Self</option>
                     <option value="Family Member">Family Member</option>
@@ -660,9 +730,9 @@ Generated via Vytal - Community Donation Platform`
             </div>
 
             {/* Preview Section */}
-            <div className="lg:w-3/5 p-4 bg-gradient-to-br from-emerald-50 to-gray-50 flex flex-col">
+            <div className="lg:w-3/5 p-4 bg-gradient-to-br from-red-50 to-gray-50 flex flex-col">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-lg font-bold text-gray-800">Professional Donor Card</h3>
+                <h3 className="text-lg font-bold text-gray-800">Professional Help Request Card</h3>
                 <div className="text-xs text-gray-500">
                   High-Quality PNG Download
                 </div>
@@ -676,17 +746,17 @@ Generated via Vytal - Community Donation Platform`
                     style={{ aspectRatio: '4/5' }}
                   >
                     {/* Card Header */}
-                    <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 p-3 relative">
+                    <div className={`bg-gradient-to-r ${urgencyColors.gradient} p-3 relative`}>
                       <div className="absolute top-3 right-3 bg-white/20 p-1.5 rounded-full">
-                        <FaGift className="text-white text-lg" />
+                        <MdEmergency className="text-white text-lg" />
                       </div>
                       <div className="flex items-center">
                         <div className="bg-white p-1.5 rounded-lg mr-2">
-                          <MdVolunteerActivism className="text-emerald-600 text-xl" />
+                          <FaHandHoldingHeart className={`${urgencyColors.text} text-xl`} />
                         </div>
                         <div>
-                          <h3 className="text-white font-bold text-sm">Donation Offer Available</h3>
-                          <p className="text-emerald-100 text-xs">Ready to Help & Save Lives</p>
+                          <h3 className="text-white font-bold text-sm">HELP NEEDED</h3>
+                          <p className="text-white/90 text-xs">{cardData.urgency.toUpperCase()} PRIORITY - Please Help</p>
                         </div>
                       </div>
                     </div>
@@ -695,69 +765,79 @@ Generated via Vytal - Community Donation Platform`
                     <div className="p-3 relative">
                       {/* Subtle watermark */}
                       <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-                        <FaHeartbeat className="text-6xl text-emerald-500" />
+                        <FaHeartbeat className={`text-6xl ${urgencyColors.text}`} />
                       </div>
                       
-                      {/* Donor Info */}
+                      {/* Patient Info */}
                       <div className="relative z-10">
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1 pr-2">
-                            <h2 className="text-lg font-bold text-gray-800 leading-tight">{cardData.donorName}</h2>
+                            <h2 className="text-lg font-bold text-gray-800 leading-tight">{cardData.recipientName}</h2>
                             <p className="text-gray-600 text-xs mt-1">{cardData.message}</p>
                           </div>
                           
-                          {/* Blood Type Badge */}
-                          <div className="bg-emerald-500 text-white rounded-full w-12 h-12 flex flex-col items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-semibold">DONOR</span>
-                            <span className="text-sm font-bold">{cardData.bloodType}</span>
+                          {/* Need Badge */}
+                          <div className={`${urgencyColors.bg} text-white rounded-full w-12 h-12 flex flex-col items-center justify-center flex-shrink-0`}>
+                            <span className="text-xs font-semibold">NEEDS</span>
+                            <span className="text-sm font-bold">
+                              {cardData.category === 'blood' ? cardData.bloodType : 
+                               cardData.category === 'fundraiser' ? '💰' : '🏥'}
+                            </span>
                           </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                           <div className="flex items-start">
-                            <FaGift className="text-emerald-600 mt-0.5 mr-1 flex-shrink-0" />
+                            <FaHandHoldingHeart className={`${urgencyColors.text} mt-0.5 mr-1 flex-shrink-0`} />
                             <div>
-                              <p className="text-gray-500 font-medium">Offering</p>
-                              <p className="font-semibold text-gray-800 leading-tight">{cardData.donationType}</p>
+                              <p className="text-gray-500 font-medium">Needed</p>
+                              <p className="font-semibold text-gray-800 leading-tight">{cardData.requestType}</p>
                             </div>
                           </div>
                           
                           <div className="flex items-start">
-                            <FaMapMarkerAlt className="text-emerald-600 mt-0.5 mr-1 flex-shrink-0" />
+                            <MdLocalHospital className={`${urgencyColors.text} mt-0.5 mr-1 flex-shrink-0`} />
                             <div>
-                              <p className="text-gray-500 font-medium">Location</p>
-                              <p className="font-semibold text-gray-800 leading-tight">{cardData.location}</p>
+                              <p className="text-gray-500 font-medium">Hospital</p>
+                              <p className="font-semibold text-gray-800 leading-tight">{cardData.hospital}</p>
                             </div>
                           </div>
                           
                           <div className="flex items-start">
-                            <FaHeartbeat className="text-emerald-500 mt-0.5 mr-1 flex-shrink-0" />
+                            <MdEmergency className={`${urgencyColors.text} mt-0.5 mr-1 flex-shrink-0`} />
                             <div>
-                              <p className="text-gray-500 font-medium">Availability</p>
-                              <p className="font-semibold text-emerald-600">{cardData.availability}</p>
+                              <p className="text-gray-500 font-medium">Urgency</p>
+                              <p className={`font-semibold ${urgencyColors.text}`}>{cardData.urgency.toUpperCase()} Priority</p>
                             </div>
                           </div>
                           
                           <div className="flex items-start">
-                            <MdVolunteerActivism className="text-emerald-500 mt-0.5 mr-1 flex-shrink-0" />
+                            <FaMapMarkerAlt className={`${urgencyColors.text} mt-0.5 mr-1 flex-shrink-0`} />
                             <div>
-                              <p className="text-gray-500 font-medium">Donations Made</p>
-                              <p className="font-semibold text-emerald-600">{cardData.donationCount} times</p>
+                              <p className="text-gray-500 font-medium">
+                                {cardData.category === 'fundraiser' ? 'Goal Amount' : 'Room Details'}
+                              </p>
+                              <p className={`font-semibold ${urgencyColors.text}`}>
+                                {cardData.category === 'fundraiser' 
+                                  ? `LKR ${parseInt(cardData.goalAmount || '0').toLocaleString()}`
+                                  : cardData.roomNumber
+                                }
+                              </p>
                             </div>
                           </div>
                         </div>
                         
                         {/* Contact Section */}
-                        <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
-                          <h4 className="font-bold text-emerald-700 mb-2 flex items-center text-sm">
+                        <div className={`p-2.5 ${cardData.urgency === 'high' ? 'bg-red-50 border-red-100' : cardData.urgency === 'medium' ? 'bg-yellow-50 border-yellow-100' : 'bg-emerald-50 border-emerald-100'} rounded-lg border`}>
+                          <h4 className={`font-bold ${urgencyColors.text} mb-2 flex items-center text-sm`}>
                             <FaPhone className="mr-1.5 text-xs" />
-                            Contact for Donation
+                            Contact to Help
                           </h4>
                           
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div>
                               <p className="text-gray-600 font-medium">Contact Person</p>
-                              <p className="font-semibold text-gray-800 leading-tight">{cardData.contactPerson}</p>
+                              <p className="font-semibold text-gray-800 leading-tight">{cardData.patientName}</p>
                               <p className="text-gray-500 text-xs">({cardData.relationship})</p>
                             </div>
                             
@@ -787,12 +867,12 @@ Generated via Vytal - Community Donation Platform`
                     {/* Card Footer */}
                     <div className="bg-gray-50 p-2 border-t border-gray-200 flex justify-between items-center text-xs">
                       <div className="flex items-center">
-                        <div className="bg-emerald-600 text-white rounded w-6 h-6 flex items-center justify-center mr-1.5 font-bold">
+                        <div className={`${urgencyColors.bg} text-white rounded w-6 h-6 flex items-center justify-center mr-1.5 font-bold`}>
                           V
                         </div>
                         <p className="text-gray-600 font-medium">Powered by Vytal</p>
                       </div>
-                      <p className="text-gray-500">ID: DON-{Math.floor(Math.random() * 10000)}</p>
+                      <p className="text-gray-500">ID: REQ-{Math.floor(Math.random() * 10000)}</p>
                     </div>
                   </div>
                 </div>
@@ -800,12 +880,12 @@ Generated via Vytal - Community Donation Platform`
                 {/* Action Buttons */}
                 <div className="w-full max-w-sm mx-auto space-y-2">
                   <button
-                    onClick={generateDonorCard}
-                    disabled={isGenerating || !cardData.donorName || !cardData.primaryPhone}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    onClick={generateRecipientCard}
+                    disabled={isGenerating || !cardData.recipientName || !cardData.primaryPhone}
+                    className={`w-full px-4 py-3 bg-gradient-to-r ${urgencyColors.gradient} text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
                   >
                     <FaDownload className="mr-2" />
-                    {isGenerating ? 'Generating PNG...' : 'Download Donor Card'}
+                    {isGenerating ? 'Generating PNG...' : 'Download Help Request Card'}
                   </button>
                   
                   <button
@@ -813,14 +893,14 @@ Generated via Vytal - Community Donation Platform`
                     className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-200 flex items-center justify-center"
                   >
                     <FaShare className="mr-2" />
-                    Share Donor Details
+                    Share Help Request
                   </button>
                 </div>
                 
                 {/* Instructions */}
-                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg max-w-sm mx-auto">
-                  <p className="text-sm text-emerald-800 text-center">
-                    <strong>✨ Perfect Match:</strong> The downloaded PNG will look exactly like the preview above - professional, clean, and ready for sharing your donation offer!
+                <div className={`mt-3 p-3 ${cardData.urgency === 'high' ? 'bg-red-50 border-red-200' : cardData.urgency === 'medium' ? 'bg-yellow-50 border-yellow-200' : 'bg-emerald-50 border-emerald-200'} border rounded-lg max-w-sm mx-auto`}>
+                  <p className={`text-sm ${cardData.urgency === 'high' ? 'text-red-800' : cardData.urgency === 'medium' ? 'text-yellow-800' : 'text-emerald-800'} text-center`}>
+                    <strong>Important:</strong> The downloaded PNG will look exactly like the preview above - designed to quickly communicate your urgent need for help!
                   </p>
                 </div>
               </div>
@@ -838,7 +918,7 @@ Generated via Vytal - Community Donation Platform`
             className="bg-white rounded-2xl shadow-2xl border border-white/30 p-6 w-full max-w-md"
           >
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800">Share Donor Offer</h3>
+              <h3 className="text-xl font-bold text-gray-800">Share Help Request</h3>
               <button
                 onClick={() => setShowShareMenu(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -850,15 +930,15 @@ Generated via Vytal - Community Donation Platform`
             <div className="space-y-3">
               <button
                 onClick={shareImageAndText}
-                className="w-full flex items-center space-x-3 p-4 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors border-2 border-emerald-200"
+                className={`w-full flex items-center space-x-3 p-4 ${cardData.urgency === 'high' ? 'bg-red-50 hover:bg-red-100 border-red-200' : cardData.urgency === 'medium' ? 'bg-yellow-50 hover:bg-yellow-100 border-yellow-200' : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200'} rounded-xl transition-colors border-2`}
               >
                 <div className="flex items-center space-x-1">
-                  <FaDownload className="text-emerald-600 text-sm" />
-                  <FaCopy className="text-emerald-600 text-sm" />
+                  <FaDownload className={`${urgencyColors.text} text-sm`} />
+                  <FaCopy className={`${urgencyColors.text} text-sm`} />
                 </div>
                 <div className="text-left">
-                  <span className="font-bold text-emerald-800 block">Download Image + Copy Text</span>
-                  <span className="text-emerald-600 text-xs">Best for WhatsApp sharing</span>
+                  <span className={`font-bold ${cardData.urgency === 'high' ? 'text-red-800' : cardData.urgency === 'medium' ? 'text-yellow-800' : 'text-emerald-800'} block`}>Download Image + Copy Text</span>
+                  <span className={`${cardData.urgency === 'high' ? 'text-red-600' : cardData.urgency === 'medium' ? 'text-yellow-600' : 'text-emerald-600'} text-xs`}>Best for WhatsApp sharing</span>
                 </div>
               </button>
 
@@ -893,9 +973,9 @@ Generated via Vytal - Community Donation Platform`
               </button>
             </div>
 
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>💡 Pro Tip:</strong> Use &ldquo;Download Image + Copy Text&rdquo; → Follow the step-by-step instructions → Share both image and text on WhatsApp to let people know you&rsquo;re available to help!
+            <div className={`mt-4 p-3 ${cardData.urgency === 'high' ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'} border rounded-lg`}>
+              <p className={`text-sm ${cardData.urgency === 'high' ? 'text-red-800' : 'text-blue-800'}`}>
+                <strong>Emergency Tip:</strong> Use &quot;Download Image + Copy Text&quot; then follow the step-by-step instructions to share both image and text on WhatsApp to spread awareness about your urgent need for help!
               </p>
             </div>
           </motion.div>
@@ -905,4 +985,4 @@ Generated via Vytal - Community Donation Platform`
   );
 };
 
-export default DonorCardGenerator;
+export default RecipientCardGenerator;
