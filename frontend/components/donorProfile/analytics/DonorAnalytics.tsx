@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  FaHeart, 
-  FaUsers, 
+import {
+  FaHeart,
+  FaUsers,
   FaChartLine,
   FaAward,
   FaTint as FaDroplet,
@@ -16,9 +16,9 @@ import {
 import { useAnalytics, useCurrentUser } from '@/hooks/useAnalytics';
 
 // Simple Bar Chart Component
-const SimpleBarChart = ({ data, height = 200, color = '#10b981' }: { 
-  data: Array<{ day: string; donations: number; height?: number }>; 
-  height?: number; 
+const SimpleBarChart = ({ data, height = 200, color = '#10b981' }: {
+  data: Array<{ day: string; donations: number; height?: number }>;
+  height?: number;
   color?: string;
 }) => {
   if (!data || data.length === 0) {
@@ -30,7 +30,7 @@ const SimpleBarChart = ({ data, height = 200, color = '#10b981' }: {
   }
 
   const maxValue = Math.max(...data.map(item => item.donations || 0));
-  
+
   return (
     <div className="flex items-end justify-between space-x-2" style={{ height: `${height}px` }}>
       {data.map((item) => (
@@ -50,6 +50,7 @@ const SimpleBarChart = ({ data, height = 200, color = '#10b981' }: {
 };
 
 // Simple Line Chart Component
+// Fixed Simple Line Chart Component
 const SimpleLineChart = ({ data, color = '#3b82f6' }: { data: number[]; color?: string }) => {
   if (!data || data.length === 0) {
     return (
@@ -68,47 +69,53 @@ const SimpleLineChart = ({ data, color = '#3b82f6' }: { data: number[]; color?: 
     );
   }
 
+  // Fixed: Better spacing calculation for 6 data points
   const points = data.map((value, index) => ({
-    x: (index / (data.length - 1)) * 100,
-    y: 100 - (value / maxValue) * 80
+    x: 10 + (index * 80) / (data.length - 1), // Start at 10%, end at 90%
+    y: 90 - (value / maxValue) * 70 // Use 70% of height, start from 90%
   }));
-  
+
   const pathD = points.reduce((path, point, index) => {
     return path + (index === 0 ? `M ${point.x} ${point.y}` : ` L ${point.x} ${point.y}`);
   }, '');
 
   return (
     <div className="relative w-full h-32">
-      <svg viewBox="0 0 100 100" className="w-full h-full">
+      <svg viewBox="0 0 100 100" className="w-full h-full" preserveAspectRatio="none">
         <defs>
           <linearGradient id={`gradient-${color?.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor={color} stopOpacity="0.3" />
             <stop offset="100%" stopColor={color} stopOpacity="0.1" />
           </linearGradient>
         </defs>
-        
+
+        {/* Fill area under the curve */}
         <path
-          d={`${pathD} L 100 100 L 0 100 Z`}
+          d={`${pathD} L 90 100 L 10 100 Z`}
           fill={`url(#gradient-${color?.replace('#', '')})`}
         />
-        
+
+        {/* Main line */}
         <motion.path
           d={pathD}
           fill="none"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="1.5"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
           transition={{ duration: 1.5 }}
         />
-        
+
+        {/* Data points */}
         {points.map((point, index) => (
           <motion.circle
             key={index}
             cx={point.x}
             cy={point.y}
-            r="3"
+            r="2"
             fill={color}
+            stroke="white"
+            strokeWidth="1"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -120,8 +127,8 @@ const SimpleLineChart = ({ data, color = '#3b82f6' }: { data: number[]; color?: 
 };
 
 // Donut Chart Component
-const SimpleDonutChart = ({ data, size = 120 }: { 
-  data: Array<{ name: string; value: number; color: string }>; 
+const SimpleDonutChart = ({ data, size = 120 }: {
+  data: Array<{ name: string; value: number; color: string }>;
   size?: number;
 }) => {
   if (!data || data.length === 0 || data.every(item => item.value === 0)) {
@@ -180,7 +187,7 @@ const SimpleDonutChart = ({ data, size = 120 }: {
           <span className="text-xs text-gray-600">Total</span>
         </div>
       </div>
-      
+
       <div className="space-y-2">
         {data.filter(segment => segment.value > 0).map((segment) => (
           <motion.div
@@ -205,16 +212,16 @@ const SimpleDonutChart = ({ data, size = 120 }: {
 
 const DonorAnalytics = () => {
   const { userId } = useCurrentUser();
-  const { 
-    analyticsData, 
+  const {
+    analyticsData,
     stats,
     achievements,
-    loading, 
-    error, 
-    refresh, 
-    setTimeRange, 
-    timeRange 
-  } = useAnalytics({ 
+    loading,
+    error,
+    refresh,
+    setTimeRange,
+    timeRange
+  } = useAnalytics({
     userId,
     refreshInterval: 5 * 60 * 1000 // Refresh every 5 minutes
   });
@@ -265,7 +272,7 @@ const DonorAnalytics = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center bg-red-50 p-8 rounded-lg border border-red-200 max-w-md">
           <p className="text-red-600 mb-4">{error}</p>
-          <button 
+          <button
             onClick={refresh}
             className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
           >
@@ -284,7 +291,7 @@ const DonorAnalytics = () => {
           <div className="text-6xl mb-4">📈</div>
           <p className="text-gray-600 mb-4">No analytics data available</p>
           <p className="text-sm text-gray-500 mb-4">Start making donations to see your analytics</p>
-          <button 
+          <button
             onClick={refresh}
             className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
           >
@@ -294,7 +301,7 @@ const DonorAnalytics = () => {
       </div>
     );
   }
-
+  console.log("Weekly Activity Data:", JSON.stringify(analyticsData.weeklyActivity));
   return (
     <motion.div
       variants={containerVariants}
@@ -303,7 +310,7 @@ const DonorAnalytics = () => {
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div 
+      <motion.div
         variants={itemVariants}
         className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6"
       >
@@ -364,21 +371,26 @@ const DonorAnalytics = () => {
       {/* Main Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Trends */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6"
         >
           <h3 className="text-xl font-bold text-gray-800 mb-4">Blood Donation Trend</h3>
-          <SimpleLineChart data={analyticsData.bloodDonationStats.monthlyTrend} color="#ef4444" />
-          <div className="mt-4 flex justify-between text-sm text-gray-600">
-            {analyticsData.donationTrends.slice(0, 6).map((trend) => (
-              <span key={trend.month}>{trend.month}</span>
+          <div className="px-4"> {/* Added padding to align chart with labels */}
+            <SimpleLineChart data={analyticsData.bloodDonationStats.monthlyTrend} color="#ef4444" />
+          </div>
+          {/* Fixed: Ensure labels align with data points */}
+          <div className="mt-4 px-4 flex justify-between text-sm text-gray-600">
+            {analyticsData.donationTrends.map((trend) => (
+              <span key={trend.month} className="text-center flex-1">
+                {trend.month}
+              </span>
             ))}
           </div>
         </motion.div>
 
         {/* Category Distribution */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6"
         >
@@ -390,7 +402,7 @@ const DonorAnalytics = () => {
       {/* Secondary Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Blood Donation Details */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-gradient-to-br from-red-50 to-red-100 rounded-3xl shadow-2xl border border-red-200 p-6"
         >
@@ -410,8 +422,8 @@ const DonorAnalytics = () => {
             <div className="flex justify-between items-center">
               <span className="text-red-700">Last Donation</span>
               <span className="font-bold text-red-900">
-                {stats.last_donation_date 
-                  ? new Date(stats.last_donation_date).toLocaleDateString() 
+                {stats.last_donation_date
+                  ? new Date(stats.last_donation_date).toLocaleDateString()
                   : 'Never'
                 }
               </span>
@@ -424,7 +436,7 @@ const DonorAnalytics = () => {
         </motion.div>
 
         {/* Weekly Activity */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6"
         >
@@ -433,7 +445,7 @@ const DonorAnalytics = () => {
         </motion.div>
 
         {/* Achievement Progress */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-3xl shadow-2xl border border-yellow-200 p-6"
         >
@@ -469,7 +481,7 @@ const DonorAnalytics = () => {
       </div>
 
       {/* Key Insights */}
-      <motion.div 
+      <motion.div
         variants={itemVariants}
         className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-3xl shadow-2xl border border-emerald-200 p-6"
       >
@@ -486,10 +498,10 @@ const DonorAnalytics = () => {
             <FaHeart className="text-2xl text-red-600 mb-2" />
             <h4 className="font-bold text-emerald-800 mb-1">Primary Category</h4>
             <p className="text-sm text-emerald-700">
-              {stats.blood_donations > 0 ? 'Blood donations' : 
-               stats.medicine_donations > 0 ? 'Medicine donations' : 
-               stats.supply_donations > 0 ? 'Supply donations' :
-               stats.organ_donations > 0 ? 'Organ donations' : 'Fundraising'} 
+              {stats.blood_donations > 0 ? 'Blood donations' :
+                stats.medicine_donations > 0 ? 'Medicine donations' :
+                  stats.supply_donations > 0 ? 'Supply donations' :
+                    stats.organ_donations > 0 ? 'Organ donations' : 'Fundraising'}
               {' '}is your main contribution type
             </p>
           </div>
