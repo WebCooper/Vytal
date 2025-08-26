@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FaPlus, FaHeart, FaShare } from "react-icons/fa";
+import { FaPlus, FaHeart } from "react-icons/fa";
 import ProfileHeader from "@/components/shared/ProfileHeader";
 import { myDonorPosts } from "../mockData";
 import { getAllPosts, RecipientPost } from "@/lib/recipientPosts";

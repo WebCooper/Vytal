@@ -22,26 +22,6 @@ const DonorDonations: React.FC<DonorDonationsProps> = ({
   setShowCreateDonation,
   setShowCardGenerator
 }) => {
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 }
-    }
-  };
 
   // Loading state
   if (isLoadingDashboard) {
@@ -439,7 +419,7 @@ const DonorDonations: React.FC<DonorDonationsProps> = ({
           >
             <h4 className="font-bold text-emerald-700 mb-2">Community Recognition</h4>
             <p className="text-emerald-600 text-sm">
-              You've made {donorDashboard.stats.total_donations} total donations.
+              You&apos;ve made {donorDashboard.stats.total_donations} total donations.
               Your commitment makes a real difference in the community.
             </p>
           </motion.div>
