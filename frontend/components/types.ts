@@ -455,3 +455,44 @@ export interface TrendDataPoint {
     organs: number;
     fundraiser: number;
 }
+export interface BloodCampRegistration {
+  id: number;
+  camp_id: number;
+  donor_id: number;
+  registration_date: string;
+  status: 'registered' | 'confirmed' | 'attended' | 'cancelled' | 'no_show';
+  blood_type: string;
+  last_donation_date?: string;
+  health_status: 'eligible' | 'pending_review' | 'not_eligible';
+  contact_phone: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  medical_conditions?: string;
+  medications?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  camp?: {
+    id: number;
+    name: string;
+    date: string;
+    location: string;
+  };
+  donor?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
+export interface BloodCampRegistrationCreate {
+  camp_id: number;
+  blood_type: string;
+  last_donation_date?: string;
+  contact_phone: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  medical_conditions?: string;
+  medications?: string;
+  notes?: string;
+}

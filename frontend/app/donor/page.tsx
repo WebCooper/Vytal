@@ -27,6 +27,7 @@ import CreateDonationModal from '@/components/donorProfile/CreateDonationModal';
 // Add this import at the top with your other imports
 import DonorAnalytics from "@/components/donorProfile/analytics/DonorAnalytics";
 import DonorDonations from "@/components/donorProfile/myDonations/DonorDonations";
+
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
     // Map category string to Category enum
@@ -517,6 +518,10 @@ export default function DonorDashboard() {
                 <CampDetailsModal
                     selectedCamp={selectedCamp}
                     setSelectedCamp={setSelectedCamp}
+                    userId={user.id}
+                    onRegistrationSuccess={() => {
+                        // Handle success
+                    }}
                 />
                 <DonorCardGenerator
                     isOpen={showCardGenerator}

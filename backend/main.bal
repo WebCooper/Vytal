@@ -1117,6 +1117,363 @@ service /api/v1 on new http:Listener(9091) {
         return response;
     }
 
+    # Register for blood camp endpoint
+    resource function post blood\-camps/register(@http:Header {name: "Authorization"} string? authorization, types:BloodCampRegistrationCreate request) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:UserResponse|error userResult = userService:getUserProfile(email);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Check if user is eligible to donate
+        types:EligibilityResponse|error eligibilityResult = donationService:checkDonationEligibility(userResult.id);
+        if eligibilityResult is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "Failed to check eligibility: " + eligibilityResult.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        if !eligibilityResult.eligible {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "You are not eligible to donate at this time",
+                "reason": eligibilityResult.reason,
+                "next_eligible_date": eligibilityResult.next_eligible_date,
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Check if already registered for this camp
+        boolean|error alreadyRegistered = database:checkExistingRegistration(userResult.id, request.camp_id);
+        if alreadyRegistered is error {
+            response.statusCode = 500;
+            response.setJsonPayload({
+                "error": "Failed to check existing registration",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        if alreadyRegistered {
+            response.statusCode
+            = 400;
+            response.setJsonPayload({
+                "error": "You are already registered for this blood camp",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Check camp capacity
+        types:CampCapacityInfo|error capacityResult = database:checkCampCapacity(request.camp_id);
+        if capacityResult is error {
+            response.statusCode = 500;
+            response.setJsonPayload({
+                "error": "Failed to check camp capacity",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        if capacityResult.is_full {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "Blood camp is at full capacity",
+                "available_spots": 0,
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        int|error registrationId = database:createBloodCampRegistration(userResult.id, request);
+        if registrationId is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": registrationId.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            types:BloodCampRegistrationResponse|error registrationResult = database:getBloodCampRegistrationById(registrationId);
+            if registrationResult is error {
+                response.statusCode = 201;
+                response.setJsonPayload({
+                    "message": "Registration successful",
+                    "id": registrationId,
+                    "timestamp": time:utcNow()
+                });
+            } else {
+                response.statusCode
+= 201;
+                response.setJsonPayload({
+                    "message": "Registration successful",
+                    "id": registrationId,
+                    "registration": registrationResult.toJson(),
+                    "timestamp": time:utcNow()
+                });
+            }
+        }
+
+        return response;
+    }
+
+    # Get donor registrations endpoint
+    resource function get blood\-camps/registrations/donor/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:BloodCampRegistrationResponse[]|error result = database:getRegistrationsByDonor(donorId);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "total": result.length(),
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    # Get camp registrations endpoint
+    resource function get blood\-camps/[int campId]/registrations(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:BloodCampRegistrationResponse[]|error result = database:getRegistrationsByCamp(campId);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "total": result.length(),
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    # Update registration endpoint
+    resource function put blood\-camps/registrations/[int registrationId](@http:Header {name: "Authorization"} string? authorization, types:BloodCampRegistrationUpdate request) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        boolean|error result = database:updateBloodCampRegistration(registrationId, request);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else if result {
+            types:BloodCampRegistrationResponse|error updatedRegistration = database:getBloodCampRegistrationById(registrationId);
+            if updatedRegistration is error {
+                response.statusCode = 200;
+                response.setJsonPayload({
+                    "message": "Registration updated successfully",
+                    "timestamp": time:utcNow()
+                });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({
+                    "message": "Registration updated successfully",
+                    "registration": updatedRegistration.toJson(),
+                    "timestamp": time:utcNow()
+                });
+            }
+        } else {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "Registration not found",
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    # Cancel registration endpoint
+    resource function delete blood\-camps/registrations/[int registrationId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Get current user to verify ownership
+        types:UserResponse|error userResult = userService:getUserProfile(email);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Verify registration belongs to user
+        types:BloodCampRegistrationResponse|error registrationResult = database:getBloodCampRegistrationById(registrationId);
+        if registrationResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "Registration not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        if registrationResult.registration.donor_id != userResult.id {
+            response.statusCode = 403;
+            response.setJsonPayload({
+                "error": "You can only cancel your own registrations",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Update status to cancelled instead of deleting
+        types:BloodCampRegistrationUpdate cancelRequest = {
+            status: "cancelled",
+            health_status: (),
+            contact_phone: (),
+            emergency_contact_name: (),
+            emergency_contact_phone: (),
+            medical_conditions: (),
+            medications: (),
+            notes: ()
+        };
+        boolean|error result = database:updateBloodCampRegistration(registrationId, cancelRequest);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else if result {
+            response.statusCode
+            = 200;
+            response.setJsonPayload({
+                "message": "Registration cancelled successfully",
+                "timestamp": time:utcNow()
+            });
+        }
+        else {
+            response.statusCode = 404;
+            response.setJsonPayload
+({
+                "error": "Registration not found",
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    # Check donation eligibility endpoint
+    resource function get blood\-camps/eligibility/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:EligibilityResponse|error result = donationService:checkDonationEligibility(donorId);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "eligible": result.eligible,
+                "reason": result.reason,
+                "next_eligible_date": result.next_eligible_date,
+                "last_donation_date": result.last_donation_date,
+                "blood_type": result.blood_type,
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
 }
 
 // Function to handle shutdown

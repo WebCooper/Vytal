@@ -1,14 +1,50 @@
-import React from 'react'
+import React, { useState } from 'react';
 import { FaClock, FaUser, FaCalendarAlt, FaTimes, FaPhone, FaExternalLinkAlt } from "react-icons/fa";
 import { MdBloodtype, MdLocationOn } from "react-icons/md";
 import { motion, AnimatePresence } from "framer-motion";
-import { CampDetailsModalProps } from '../types';
+import { BloodCamp } from '../types';
+import BloodCampRegistrationForm from './BloodCampRegistrationForm';
 
-const CampDetailsModal: React.FC<CampDetailsModalProps> = ({selectedCamp, setSelectedCamp}) => {
+interface UpdatedCampDetailsModalProps {
+  selectedCamp: BloodCamp | null;
+  setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
+  userId: number;
+  onRegistrationSuccess?: () => void;
+}
+
+const CampDetailsModal: React.FC<UpdatedCampDetailsModalProps> = ({
+  selectedCamp, 
+  setSelectedCamp,
+  userId,
+  onRegistrationSuccess
+}) => {
+  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+
+  const handleRegisterClick = () => {
+    setShowRegistrationForm(true);
+  };
+
+  const handleRegistrationSuccess = () => {
+    setShowRegistrationForm(false);
+    if (onRegistrationSuccess) {
+      onRegistrationSuccess();
+    }
+  };
+
+  const handleCloseRegistration = () => {
+    setShowRegistrationForm(false);
+  };
+
+  const canRegister = (camp: BloodCamp) => {
+    const campDate = new Date(camp.date);
+    const currentDate = new Date();
+    return camp.status === 'upcoming' || (camp.status === 'active' && campDate >= currentDate);
+  };
+
   return (
     <div>
       <AnimatePresence>
-        {selectedCamp && (
+        {selectedCamp && !showRegistrationForm && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -29,9 +65,11 @@ const CampDetailsModal: React.FC<CampDetailsModalProps> = ({selectedCamp, setSel
               >
                 <FaTimes />
               </button>
+              
               <div className="flex items-center space-x-3 mb-4">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                  selectedCamp.status === 'active' ? 'bg-red-500' : 'bg-yellow-500'
+                  selectedCamp.status === 'active' ? 'bg-red-500' : 
+                  selectedCamp.status === 'upcoming' ? 'bg-yellow-500' : 'bg-gray-500'
                 }`}>
                   <MdBloodtype className="text-white text-2xl" />
                 </div>
@@ -43,6 +81,7 @@ const CampDetailsModal: React.FC<CampDetailsModalProps> = ({selectedCamp, setSel
                   </p>
                 </div>
               </div>
+              
               <div className="space-y-2 mb-4">
                 <div className="flex items-center text-gray-700">
                   <FaCalendarAlt className="mr-2 text-emerald-500" />
@@ -50,17 +89,18 @@ const CampDetailsModal: React.FC<CampDetailsModalProps> = ({selectedCamp, setSel
                 </div>
                 <div className="flex items-center text-gray-700">
                   <FaClock className="mr-2 text-emerald-500" />
-                  <span>{selectedCamp.time}</span>
+                  <span>{selectedCamp.start_time} - {selectedCamp.end_time}</span>
                 </div>
                 <div className="flex items-center text-gray-700">
                   <FaUser className="mr-2 text-emerald-500" />
-                  <span>{selectedCamp.capacity}</span>
+                  <span>{selectedCamp.capacity} capacity</span>
                 </div>
               </div>
+              
               <div className="mb-4">
                 <p className="text-sm text-gray-600 mb-2">Accepting blood types:</p>
                 <div className="flex flex-wrap gap-1">
-                  {selectedCamp.bloodTypes?.map((type, idx) => (
+                  {selectedCamp.blood_types?.map((type, idx) => (
                     <span key={idx} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">
                       {type}
                     </span>
@@ -71,23 +111,86 @@ const CampDetailsModal: React.FC<CampDetailsModalProps> = ({selectedCamp, setSel
                   )}
                 </div>
               </div>
-              <div className="text-sm text-gray-600 mb-4">
+              
+              {selectedCamp.description && (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-1">Description:</p>
+                  <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                    {selectedCamp.description}
+                  </p>
+                </div>
+              )}
+              
+              {selectedCamp.requirements && (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-1">Requirements:</p>
+                  <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    {selectedCamp.requirements}
+                  </p>
+                </div>
+              )}
+              
+              {selectedCamp.facilities && selectedCamp.facilities.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">Facilities available:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedCamp.facilities.map((facility, idx) => (
+                      <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                        {facility}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="text-sm text-gray-600 mb-6">
                 <p className="font-semibold">{selectedCamp.organizer}</p>
                 <p className="flex items-center mt-1">
                   <FaPhone className="mr-1 text-emerald-500" />
                   {selectedCamp.contact}
                 </p>
               </div>
-              <button className="w-full px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-lg font-semibold hover:scale-105 transition flex items-center justify-center">
-                Register
-                <FaExternalLinkAlt className="ml-2 text-sm" />
-              </button>
+              
+              {/* Status Badge */}
+              <div className="mb-4">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  selectedCamp.status === 'active' ? 'bg-green-100 text-green-800' :
+                  selectedCamp.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {selectedCamp.status.charAt(0).toUpperCase() + selectedCamp.status.slice(1)}
+                </span>
+              </div>
+              
+              {canRegister(selectedCamp) ? (
+                <button 
+                  onClick={handleRegisterClick}
+                  className="w-full px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-lg font-semibold hover:scale-105 transition flex items-center justify-center"
+                >
+                  Register for Camp
+                  <FaExternalLinkAlt className="ml-2 text-sm" />
+                </button>
+              ) : (
+                <div className="w-full px-4 py-2 bg-gray-300 text-gray-600 rounded-lg font-semibold text-center cursor-not-allowed">
+                  {selectedCamp.status === 'completed' ? 'Camp Completed' : 'Registration Closed'}
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  )
-}
 
-export default CampDetailsModal
+      {/* Registration Form */}
+      {showRegistrationForm && selectedCamp && (
+        <BloodCampRegistrationForm
+          selectedCamp={selectedCamp}
+          onClose={handleCloseRegistration}
+          onSuccess={handleRegistrationSuccess}
+          userId={userId}
+        />
+      )}
+    </div>
+  );
+};
+
+export default CampDetailsModal;
