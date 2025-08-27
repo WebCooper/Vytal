@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaPlus, FaHeart } from "react-icons/fa";
 import ProfileHeader from "@/components/shared/ProfileHeader";
-import { myDonorPosts } from "../mockData";
 import { getAllPosts, RecipientPost } from "@/lib/recipientPosts";
 import { useAuth } from "@/contexts/AuthContext";
 import { Category, Post, UserType } from "@/components/types";
@@ -24,13 +23,12 @@ import DonorMessagesTab from "@/components/messages/DonorMessagesTab";
 import { MessagesProvider } from '@/contexts/MessagesContext';
 import { getDonorDashboard, type DonorDashboard } from '@/lib/donationApi';
 import CreateDonationModal from '@/components/donorProfile/CreateDonationModal';
-// Add this import at the top with your other imports
 import DonorAnalytics from "@/components/donorProfile/analytics/DonorAnalytics";
 import DonorDonations from "@/components/donorProfile/myDonations/DonorDonations";
+import BloodCampOrganizerDashboard from "@/components/bloodCamps/BloodCampOrganizerDashboard";
 
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
-    // Map category string to Category enum
     const mapCategory = (category: string): Category => {
         switch (category) {
             case 'blood': return Category.BLOOD;
@@ -57,7 +55,7 @@ const mapRecipientPostToPost = (post: RecipientPost): Post => {
             id: post.user.id,
             name: post.user.name,
             email: post.user.email,
-            avatar: post.user.name.substring(0, 2).toUpperCase(), // Using initials as avatar
+            avatar: post.user.name.substring(0, 2).toUpperCase(),
             verified: true,
             joinedDate: new Date().toISOString().split('T')[0],
             type: userType
@@ -70,7 +68,6 @@ const mapRecipientPostToPost = (post: RecipientPost): Post => {
 
 // Helper function to map DonorPost to Post type
 const mapDonorPostToPost = (post: DonorPost, user: { id: number; name: string; email: string; role?: string }): Post => {
-    // Map category enum to Category enum
     const mapCategory = (category: string): Category => {
         switch (category) {
             case 'blood': return Category.BLOOD;
@@ -102,10 +99,9 @@ const mapDonorPostToPost = (post: DonorPost, user: { id: number; name: string; e
         },
         contact: post.contact,
         location: post.location,
-        // Add fundraiser details if available
         fundraiserDetails: post.fundraiserOffering ? {
             goal: post.fundraiserOffering.maxAmount,
-            received: 0, // Default since API doesn't provide this
+            received: 0,
         } : undefined
     };
 };
@@ -124,29 +120,26 @@ export default function DonorDashboard() {
     const [donorPosts, setDonorPosts] = useState<Post[]>([]);
     const [isLoadingPosts, setIsLoadingPosts] = useState(true);
     const [isLoadingDonorPosts, setIsLoadingDonorPosts] = useState(true);
-
-    // Blood camps state
     const [bloodCamps, setBloodCamps] = useState<BloodCamp[]>([]);
     const [isLoadingCamps, setIsLoadingCamps] = useState(true);
-
     const [donorDashboard, setDonorDashboard] = useState<DonorDashboard | null>(null);
     const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
     const [showCreateDonation, setShowCreateDonation] = useState(false);
+    const [hasCreatedCamps, setHasCreatedCamps] = useState(false); // New state to track if donor has created camps
+
     useEffect(() => {
-        // Protect the donor page
         if (!isLoading && (!isAuthenticated || user?.role !== 'donor')) {
             router.push('/auth/signin');
         }
     }, [isLoading, isAuthenticated, user, router]);
 
-    // Fetch recipient posts from API
+    // Fetch recipient posts
     useEffect(() => {
         const fetchPosts = async () => {
             try {
                 setIsLoadingPosts(true);
                 const response = await getAllPosts();
                 if (response && response.data) {
-                    // Map the API response to the Post type expected by our components
                     const mappedPosts = response.data.map(post => mapRecipientPostToPost(post));
                     setRecipientPosts(mappedPosts);
                 }
@@ -162,7 +155,7 @@ export default function DonorDashboard() {
         }
     }, [isAuthenticated, user]);
 
-    // Fetch donor posts from API when user navigates to "myposts" tab
+    // Fetch donor posts
     useEffect(() => {
         const fetchDonorPosts = async () => {
             if (activeTab !== 'myposts' || !user?.id) return;
@@ -171,7 +164,6 @@ export default function DonorDashboard() {
                 setIsLoadingDonorPosts(true);
                 const response = await getDonorPostsByUser(user.id);
                 if (response && response.data) {
-                    // Map the API response to the Post type expected by our components
                     const mappedPosts = response.data.map(post => mapDonorPostToPost(post, user));
                     setDonorPosts(mappedPosts);
                 }
@@ -187,13 +179,17 @@ export default function DonorDashboard() {
         }
     }, [isAuthenticated, user, activeTab]);
 
-    // Fetch blood camps from API
+    // Fetch blood camps and check if donor has created any
     useEffect(() => {
         const fetchBloodCamps = async () => {
             try {
                 setIsLoadingCamps(true);
                 const response = await getAllBloodCamps();
-                setBloodCamps(response.data);
+                const camps = response.data;
+                setBloodCamps(camps);
+                // Check if the donor has created any camps
+                const hasCamps = camps.some(camp => camp.organizer_id === user?.id);
+                setHasCreatedCamps(hasCamps);
             } catch (error) {
                 console.error('Error fetching blood camps:', error);
             } finally {
@@ -205,6 +201,8 @@ export default function DonorDashboard() {
             fetchBloodCamps();
         }
     }, [isAuthenticated, user]);
+
+    // Fetch donor dashboard
     useEffect(() => {
         const fetchDonorDashboard = async () => {
             if (activeTab !== 'donations' || !user?.id) return;
@@ -224,17 +222,21 @@ export default function DonorDashboard() {
             fetchDonorDashboard();
         }
     }, [isAuthenticated, user, activeTab]);
+
     // Handle blood camp creation success
     const handleBloodCampCreated = async () => {
         try {
             const response = await getAllBloodCamps();
-            setBloodCamps(response.data);
+            const camps = response.data;
+            setBloodCamps(camps);
+            // Update hasCreatedCamps if the donor created a new camp
+            const hasCamps = camps.some(camp => camp.organizer_id === user?.id);
+            setHasCreatedCamps(hasCamps);
         } catch (error) {
             console.error('Error refreshing blood camps:', error);
         }
     };
 
-    // Show loading state or return null while checking authentication
     if (isLoading || !user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
@@ -243,16 +245,14 @@ export default function DonorDashboard() {
         );
     }
 
-    // Adapt the user data to match the expected format
     const adaptedUser = {
         ...user,
-        avatar: 'AV', // You can set a default avatar or get it from user data
-        verified: true, // You can set this based on your user data
-        joinedDate: new Date().toISOString().split('T')[0], // You can get this from user data if available
-        type: user.role === 'donor' ? UserType.DONOR : UserType.RECIPIENT // Map role to specific UserType
+        avatar: 'AV',
+        verified: true,
+        joinedDate: new Date().toISOString().split('T')[0],
+        type: user.role === 'donor' ? UserType.DONOR : UserType.RECIPIENT
     };
 
-    // Filter functions
     const filteredDonorPosts = filterCategory === "all"
         ? donorPosts
         : donorPosts.filter(post => post.category === filterCategory);
@@ -270,9 +270,13 @@ export default function DonorDashboard() {
 
                 <div className="max-w-7xl mx-auto px-4 py-8">
                     <div className="grid lg:grid-cols-4 gap-8">
-                        <Sidebar user={adaptedUser} activeTab={activeTab} setActiveTab={setActiveTab} />
+                        <Sidebar
+                            user={adaptedUser}
+                            activeTab={activeTab}
+                            setActiveTab={setActiveTab}
+                            showMyCampsTab={hasCreatedCamps} // Pass flag to show/hide my-camps tab
+                        />
 
-                        {/* Main Content */}
                         <div className="lg:col-span-3">
                             {activeTab === "explore" && (
                                 <motion.div
@@ -280,7 +284,6 @@ export default function DonorDashboard() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="space-y-6"
                                 >
-                                    {/* Header */}
                                     <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
                                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                             <div>
@@ -310,7 +313,6 @@ export default function DonorDashboard() {
                                     ) : (
                                         <>
                                             <PostsGrid posts={recipientPosts} filterCategory={filterCategory} />
-
                                             {filteredRecipientPosts.length === 0 && (
                                                 <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
                                                     <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
@@ -338,7 +340,6 @@ export default function DonorDashboard() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="space-y-6"
                                 >
-                                    {/* Header */}
                                     <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
                                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                             <div>
@@ -355,16 +356,14 @@ export default function DonorDashboard() {
                                                 Create Donor Post
                                             </button>
                                         </div>
-
                                         <Filterbar
-                                            posts={myDonorPosts}
+                                            posts={donorPosts}
                                             filterCategory={filterCategory}
                                             setFilterCategory={setFilterCategory}
                                             urgencyFilter={urgencyFilter}
                                             setUrgencyFilter={setUrgencyFilter}
                                         />
                                     </div>
-
                                     {isLoadingDonorPosts ? (
                                         <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
                                             <div className="animate-pulse w-16 h-16 rounded-full bg-emerald-400 mx-auto mb-4"></div>
@@ -374,7 +373,6 @@ export default function DonorDashboard() {
                                     ) : (
                                         <>
                                             <PostsGrid posts={donorPosts} filterCategory={filterCategory} />
-
                                             {filteredDonorPosts.length === 0 && (
                                                 <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
                                                     <FaHeart className="text-6xl text-emerald-400 mx-auto mb-4" />
@@ -400,7 +398,6 @@ export default function DonorDashboard() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="space-y-6"
                                 >
-                                    {/* Header */}
                                     <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
                                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                             <div>
@@ -420,7 +417,6 @@ export default function DonorDashboard() {
                                             </div>
                                         </div>
                                     </div>
-
                                     {isLoadingCamps ? (
                                         <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-12 text-center">
                                             <div className="animate-pulse w-16 h-16 rounded-full bg-red-400 mx-auto mb-4"></div>
@@ -435,10 +431,20 @@ export default function DonorDashboard() {
                                                 setSelectedCamp={setSelectedCamp}
                                                 showBloodCampForm={showBloodCampForm}
                                                 setShowBloodCampForm={setShowBloodCampForm}
-                                                onCampCreated={handleBloodCampCreated} // Make sure this is passed
+                                                onCampCreated={handleBloodCampCreated}
                                             />
                                         </>
                                     )}
+                                </motion.div>
+                            )}
+
+                            {activeTab === "my-camps" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="space-y-6"
+                                >
+                                    <BloodCampOrganizerDashboard userId={user.id} />
                                 </motion.div>
                             )}
 
@@ -490,13 +496,10 @@ export default function DonorDashboard() {
                     </div>
                 </div>
 
-                {/* Modal Components - Place these at the very end, outside all other content */}
                 <CreateDonorPost
                     isOpen={showDonorPostForm}
                     onClose={() => {
                         setShowDonorPostForm(false);
-
-                        // Refresh donor posts when modal is closed (in case a new post was created)
                         if (user?.id && activeTab === 'myposts') {
                             setIsLoadingDonorPosts(true);
                             getDonorPostsByUser(user.id)
@@ -534,7 +537,6 @@ export default function DonorDashboard() {
                     onClose={() => setShowCreateDonation(false)}
                     onSuccess={() => {
                         setShowCreateDonation(false);
-                        // Refresh dashboard data after successful donation
                         if (user?.id && activeTab === 'donations') {
                             setIsLoadingDashboard(true);
                             getDonorDashboard(user.id)
