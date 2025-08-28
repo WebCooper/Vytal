@@ -14,9 +14,46 @@ interface OrganizerDashboardProps {
   userId: number;
 }
 
+// Updated interfaces to match your API response structure
+interface RegistrationData {
+  id: number;
+  camp_id: number;
+  donor_id: number;
+  registration_date: string;
+  status: 'registered' | 'confirmed' | 'attended' | 'cancelled' | 'no_show';
+  blood_type: string;
+  last_donation_date?: string;
+  health_status: 'eligible' | 'pending_review' | 'not_eligible';
+  contact_phone: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  medical_conditions?: string;
+  medications?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RegistrationResponse {
+  registration: RegistrationData;
+  camp: {
+    id: number;
+    name: string;
+    location: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+  };
+  donor: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
 const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId }) => {
   const [camps, setCamps] = useState<BloodCamp[]>([]);
-  const [registrations, setRegistrations] = useState<Record<number, BloodCampRegistration[]>>({});
+  const [registrations, setRegistrations] = useState<Record<number, RegistrationResponse[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedCamp, setSelectedCamp] = useState<BloodCamp | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -37,12 +74,12 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
     setLoading(true);
     try {
       const campsResponse = await getAllBloodCamps();
-      // Filter camps by organizer_id - you may need to adjust this based on your data structure
+      // Filter camps by organizer_id
       const myCamps = campsResponse.data.filter(camp => camp.organizer_id === userId);
       setCamps(myCamps);
 
       // Load registrations for each camp
-      const regsMap: Record<number, BloodCampRegistration[]> = {};
+      const regsMap: Record<number, RegistrationResponse[]> = {};
       const loadingMap: Record<number, boolean> = {};
       let totalRegs = 0;
 
@@ -52,10 +89,13 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
           console.log(`Loading registrations for camp ${camp.id}...`);
           const regsResponse = await getCampRegistrations(camp.id);
           console.log(`Raw API response for camp ${camp.id}:`, regsResponse);
-          console.log(`Registration data for camp ${camp.id}:`, regsResponse.data);
-          regsMap[camp.id] = regsResponse.data || [];
-          totalRegs += regsResponse.data?.length || 0;
-          console.log(`Registrations for camp ${camp.id}:`, regsResponse.data); // Debug log
+          
+          // Handle the nested data structure from your API
+          const registrationData = regsResponse.data || [];
+          console.log(`Registration data for camp ${camp.id}:`, registrationData);
+          
+          regsMap[camp.id] = registrationData;
+          totalRegs += registrationData.length;
         } catch (error) {
           console.error(`Error loading registrations for camp ${camp.id}:`, error);
           regsMap[camp.id] = [];
@@ -131,7 +171,6 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
     const campRegistrations = registrations[selectedCamp.id] || [];
     const isLoadingRegs = loadingRegistrations[selectedCamp.id];
 
-    // Debug: Check what data the modal is receiving
     console.log('Modal opened for camp:', selectedCamp.id);
     console.log('Available registrations state:', registrations);
     console.log('Camp registrations for this camp:', campRegistrations);
@@ -204,130 +243,136 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-6">
-                    {campRegistrations.map((reg, index) => (
-                      <motion.div
-                        key={reg.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow"
-                      >
-                        {/* Registration Header */}
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex items-center">
-                            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mr-3">
-                              <FaUser className="text-emerald-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-gray-800">
-                                {reg.donor?.name || 'Anonymous Donor'}
-                              </h4>
-                              <p className="text-sm text-gray-600">
-                                Reg ID: {reg.id}
-                              </p>
-                            </div>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(reg?.status)}`}>
-                            {reg?.status ? reg.status.replace('_', ' ').toUpperCase() : 'PENDING'}
-                          </span>
-                        </div>
-
-                        {/* Registration Details */}
-                        <div className="space-y-3">
-                          {/* Blood Type & Health Status */}
-                          <div className="grid grid-cols-2 gap-4">
+                    {campRegistrations.map((regResponse, index) => {
+                      // Extract the registration data from the nested structure
+                      const reg = regResponse.registration;
+                      const donor = regResponse.donor;
+                      
+                      return (
+                        <motion.div
+                          key={reg.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow"
+                        >
+                          {/* Registration Header */}
+                          <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center">
-                              <MdBloodtype className="mr-2 text-red-500 text-lg" />
-                              <span className="font-semibold text-red-600">
-                                {reg.blood_type || 'Not specified'}
-                              </span>
-                            </div>
-                            <div className="flex items-center">
-                              <span className={`text-sm font-medium ${getHealthStatusColor(reg.health_status)}`}>
-                                {getHealthStatusIcon(reg.health_status)}
-                                {reg.health_status ? reg.health_status.replace('_', ' ').toUpperCase() : 'PENDING'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Contact Information */}
-                          <div className="space-y-2">
-                            {reg.contact_phone && (
-                              <div className="flex items-center text-sm text-gray-700">
-                                <FaPhone className="mr-2 text-emerald-500" />
-                                <span>{reg.contact_phone}</span>
+                              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mr-3">
+                                <FaUser className="text-emerald-600" />
                               </div>
-                            )}
-                            {reg.donor?.email && (
-                              <div className="flex items-center text-sm text-gray-700">
-                                <FaEnvelope className="mr-2 text-emerald-500" />
-                                <span>{reg.donor.email}</span>
+                              <div>
+                                <h4 className="font-bold text-gray-800">
+                                  {donor?.name || 'Anonymous Donor'}
+                                </h4>
+                                <p className="text-sm text-gray-600">
+                                  Reg ID: {reg.id}
+                                </p>
                               </div>
-                            )}
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(reg?.status)}`}>
+                              {reg?.status ? reg.status.replace('_', ' ').toUpperCase() : 'PENDING'}
+                            </span>
                           </div>
 
-                          {/* Registration Date */}
-                          <div className="flex items-center text-sm text-gray-600">
-                            <FaCalendarCheck className="mr-2 text-emerald-500" />
-                            <span>Registered: {formatDate(reg.registration_date)}</span>
-                          </div>
+                          {/* Registration Details */}
+                          <div className="space-y-3">
+                            {/* Blood Type & Health Status */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="flex items-center">
+                                <MdBloodtype className="mr-2 text-red-500 text-lg" />
+                                <span className="font-semibold text-red-600">
+                                  {reg.blood_type || 'Not specified'}
+                                </span>
+                              </div>
+                              <div className="flex items-center">
+                                <span className={`text-sm font-medium ${getHealthStatusColor(reg.health_status)}`}>
+                                  {getHealthStatusIcon(reg.health_status)}
+                                  {reg.health_status ? reg.health_status.replace('_', ' ').toUpperCase() : 'PENDING'}
+                                </span>
+                              </div>
+                            </div>
 
-                          {/* Last Donation */}
-                          {reg.last_donation_date && (
+                            {/* Contact Information */}
+                            <div className="space-y-2">
+                              {reg.contact_phone && (
+                                <div className="flex items-center text-sm text-gray-700">
+                                  <FaPhone className="mr-2 text-emerald-500" />
+                                  <span>{reg.contact_phone}</span>
+                                </div>
+                              )}
+                              {donor?.email && (
+                                <div className="flex items-center text-sm text-gray-700">
+                                  <FaEnvelope className="mr-2 text-emerald-500" />
+                                  <span>{donor.email}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Registration Date */}
                             <div className="flex items-center text-sm text-gray-600">
-                              <MdBloodtype className="mr-2 text-gray-400" />
-                              <span>Last donation: {formatDate(reg.last_donation_date)}</span>
+                              <FaCalendarCheck className="mr-2 text-emerald-500" />
+                              <span>Registered: {formatDate(reg.registration_date)}</span>
                             </div>
-                          )}
 
-                          {/* Emergency Contact */}
-                          {(reg.emergency_contact_name || reg.emergency_contact_phone) && (
-                            <div className="bg-gray-50 rounded-lg p-3 mt-3">
-                              <p className="text-xs font-semibold text-gray-600 mb-1">Emergency Contact:</p>
-                              <div className="text-sm text-gray-700">
-                                {reg.emergency_contact_name && (
-                                  <div className="flex items-center">
-                                    <FaUser className="mr-2 text-gray-400 text-xs" />
-                                    {reg.emergency_contact_name}
-                                  </div>
+                            {/* Last Donation */}
+                            {reg.last_donation_date && (
+                              <div className="flex items-center text-sm text-gray-600">
+                                <MdBloodtype className="mr-2 text-gray-400" />
+                                <span>Last donation: {formatDate(reg.last_donation_date)}</span>
+                              </div>
+                            )}
+
+                            {/* Emergency Contact */}
+                            {(reg.emergency_contact_name || reg.emergency_contact_phone) && (
+                              <div className="bg-gray-50 rounded-lg p-3 mt-3">
+                                <p className="text-xs font-semibold text-gray-600 mb-1">Emergency Contact:</p>
+                                <div className="text-sm text-gray-700">
+                                  {reg.emergency_contact_name && (
+                                    <div className="flex items-center">
+                                      <FaUser className="mr-2 text-gray-400 text-xs" />
+                                      {reg.emergency_contact_name}
+                                    </div>
+                                  )}
+                                  {reg.emergency_contact_phone && (
+                                    <div className="flex items-center">
+                                      <FaPhone className="mr-2 text-gray-400 text-xs" />
+                                      {reg.emergency_contact_phone}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Medical Information */}
+                            {(reg.medical_conditions || reg.medications) && (
+                              <div className="bg-yellow-50 rounded-lg p-3 mt-3">
+                                <p className="text-xs font-semibold text-yellow-800 mb-1">Medical Information:</p>
+                                {reg.medical_conditions && (
+                                  <p className="text-sm text-yellow-700 mb-1">
+                                    <strong>Conditions:</strong> {reg.medical_conditions}
+                                  </p>
                                 )}
-                                {reg.emergency_contact_phone && (
-                                  <div className="flex items-center">
-                                    <FaPhone className="mr-2 text-gray-400 text-xs" />
-                                    {reg.emergency_contact_phone}
-                                  </div>
+                                {reg.medications && (
+                                  <p className="text-sm text-yellow-700">
+                                    <strong>Medications:</strong> {reg.medications}
+                                  </p>
                                 )}
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Medical Information */}
-                          {(reg.medical_conditions || reg.medications) && (
-                            <div className="bg-yellow-50 rounded-lg p-3 mt-3">
-                              <p className="text-xs font-semibold text-yellow-800 mb-1">Medical Information:</p>
-                              {reg.medical_conditions && (
-                                <p className="text-sm text-yellow-700 mb-1">
-                                  <strong>Conditions:</strong> {reg.medical_conditions}
-                                </p>
-                              )}
-                              {reg.medications && (
-                                <p className="text-sm text-yellow-700">
-                                  <strong>Medications:</strong> {reg.medications}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Notes */}
-                          {reg.notes && (
-                            <div className="bg-blue-50 rounded-lg p-3 mt-3">
-                              <p className="text-xs font-semibold text-blue-800 mb-1">Notes:</p>
-                              <p className="text-sm text-blue-700">{reg.notes}</p>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
+                            {/* Notes */}
+                            {reg.notes && (
+                              <div className="bg-blue-50 rounded-lg p-3 mt-3">
+                                <p className="text-xs font-semibold text-blue-800 mb-1">Notes:</p>
+                                <p className="text-sm text-blue-700">{reg.notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
