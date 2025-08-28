@@ -20,7 +20,8 @@ public enum Status {
     PENDING = "pending",
     OPEN = "open",
     FULFILLED = "fulfilled",
-    CANCELLED = "cancelled"
+    CANCELLED = "cancelled",
+    REJECTED = "rejected"
 }
 
 public enum Urgency {

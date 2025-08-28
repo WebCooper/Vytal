@@ -180,6 +180,105 @@ public isolated function getUserByEmail(string email) returns types:User?|error 
     return result.value;
 }
 
+# Get all users (ordered by created_at desc)
+# + return - Array of users or error
+public isolated function getAllUsers() returns types:User[]|error {
+    mysql:Client|error dbClientResult = getDbClient();
+
+    // If database not available, use in-memory storage fallback
+    if dbClientResult is error {
+        map<types:User> store = storage:getUserStore();
+        types:User[] users = [];
+        foreach var [_, u] in store.entries() {
+            users.push(u);
+        }
+        return users;
+    }
+
+    mysql:Client dbClientInstance = dbClientResult;
+    sql:ParameterizedQuery query = `
+        SELECT id, name, phone_number, email, password, role, categories, created_at, updated_at
+        FROM users
+        ORDER BY created_at DESC
+    `;
+
+    stream<types:User, sql:Error?> resultStream = dbClientInstance->query(query);
+    types:User[] users = [];
+    while (true) {
+        record {|types:User value;|}|sql:Error? res = resultStream.next();
+        if res is sql:Error {
+            check resultStream.close();
+            return error("Error retrieving users: " + res.message());
+        } else if res is () {
+            break;
+        } else {
+            users.push(res.value);
+        }
+    }
+    check resultStream.close();
+    return users;
+}
+
+# Count all users
+# + return - Number of users in the database or error if operation fails
+public isolated function countUsers() returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(`SELECT COUNT(*) AS cnt FROM users`);
+    record {|record {int cnt;} value;|}? row = check rs.next();
+    check rs.close();
+    if row is () { return 0; }
+    return row.value.cnt;
+}
+
+# Count users by role
+# + role - The role to count users for
+# + return - Number of users with the specified role or error if operation fails
+public isolated function countUsersByRole(string role) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery q = `SELECT COUNT(*) AS cnt FROM users WHERE role = ${role}`;
+    stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(q);
+    record {|record {int cnt;} value;|}? row = check rs.next();
+    check rs.close();
+    if row is () { return 0; }
+    return row.value.cnt;
+}
+
+# Count recipient posts by status (if status is null, count all)
+# + status - Post status to filter by, or null to count all posts
+# + return - Number of recipient posts matching the criteria or error if operation fails
+public isolated function countRecipientPostsByStatus(string? status = ()) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery q;
+    if status is () {
+        q = `SELECT COUNT(*) AS cnt FROM recipient_posts`;
+    } else {
+        q = `SELECT COUNT(*) AS cnt FROM recipient_posts WHERE JSON_UNQUOTE(JSON_EXTRACT(status, '$')) = ${status}`;
+    }
+    stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(q);
+    record {|record {int cnt;} value;|}? row = check rs.next();
+    check rs.close();
+    if row is () { return 0; }
+    return row.value.cnt;
+}
+
+# Count donor posts by status (if status is null, count all)
+# + status - Post status to filter by, or null to count all posts
+# + return - Number of donor posts matching the criteria or error if operation fails
+public isolated function countDonorPostsByStatus(string? status = ()) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+    sql:ParameterizedQuery q;
+    if status is () {
+        q = `SELECT COUNT(*) AS cnt FROM donor_posts`;
+    } else {
+        q = `SELECT COUNT(*) AS cnt FROM donor_posts WHERE JSON_UNQUOTE(JSON_EXTRACT(status, '$')) = ${status}`;
+    }
+    stream<record {int cnt;}, sql:Error?> rs = dbClientInstance->query(q);
+    record {|record {int cnt;} value;|}? row = check rs.next();
+    check rs.close();
+    if row is () { return 0; }
+    return row.value.cnt;
+}
+
 # Check if user exists by email
 # + email - Email address to check for existence
 # + return - True if user exists, false if not, or error if operation fails
@@ -678,6 +777,11 @@ public isolated function updateDonorPost(int id, types:DonorPostUpdate request) 
 
     mysql:Client dbClientInstance = dbClientResult;
 
+    // Convert values to JSON strings where applicable (JSON columns expect valid JSON)
+    string? statusJson = request.status is () ? () : value:toJson(request.status).toJsonString();
+    string? categoryJson = request.category is () ? () : value:toJson(request.category).toJsonString();
+    string? urgencyJson = request.urgency is () ? () : value:toJson(request.urgency).toJsonString();
+
     // Convert complex objects to JSON strings if they exist
     string? bloodOfferingJson = request.bloodOffering is () ? () :
         value:toJson(request.bloodOffering).toJsonString();
@@ -688,18 +792,19 @@ public isolated function updateDonorPost(int id, types:DonorPostUpdate request) 
     string? organOfferingJson = request.organOffering is () ? () :
         value:toJson(request.organOffering).toJsonString();
 
+    // Match exactly with the database column names from the CREATE TABLE statement
     sql:ParameterizedQuery query = `UPDATE donor_posts SET 
         title = COALESCE(${request.title}, title),
-        category = COALESCE(${request.category}, category),
+        category = COALESCE(${categoryJson}, category),
         content = COALESCE(${request.content}, content),
-        status = COALESCE(${request.status}, status),
+        status = COALESCE(${statusJson}, status),
         location = COALESCE(${request.location}, location),
-        urgency = COALESCE(${request.urgency}, urgency),
+        urgency = COALESCE(${urgencyJson}, urgency),
         contact = COALESCE(${request.contact}, contact),
-        blood_offering = COALESCE(${bloodOfferingJson}, blood_offering),
-        fundraiser_offering = COALESCE(${fundraiserOfferingJson}, fundraiser_offering),
-        medicine_offering = COALESCE(${medicineOfferingJson}, medicine_offering),
-        organ_offering = COALESCE(${organOfferingJson}, organ_offering),
+        bloodOffering = COALESCE(${bloodOfferingJson}, bloodOffering),
+        fundraiserOffering = COALESCE(${fundraiserOfferingJson}, fundraiserOffering),
+        medicineOffering = COALESCE(${medicineOfferingJson}, medicineOffering),
+        organOffering = COALESCE(${organOfferingJson}, organOffering),
         updated_at = CURRENT_TIMESTAMP()
         WHERE id = ${id}`;
 

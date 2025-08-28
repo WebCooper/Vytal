@@ -14,7 +14,8 @@ public isolated function createRecipientPost(int userId, types:RecipientPostCrea
         title: request.title,
         content: request.content,
         category: request.category,
-        status: request.status,
+    // Always start as pending regardless of client input
+    status: "pending",
         location: request.location,
         urgency: request.urgency,
         contact: request.contact,
@@ -87,16 +88,19 @@ isolated function mapPostToResponse(types:RecipientPost post, types:UserResponse
 # + return - Array of all recipient posts or error
 public isolated function getAllRecipientPosts() returns types:RecipientPostResponse[]|error {
     types:RecipientPost[] posts = check database:getRecipientPosts();
+    // Only include approved (open) posts in public feed
+    types:RecipientPost[] approved = from types:RecipientPost p in posts
+        where p.status == "open"
+        select p;
+
     types:RecipientPostResponse[] responses = [];
-    
-    foreach types:RecipientPost post in posts {
+    foreach types:RecipientPost post in approved {
         types:UserResponse|error userResult = getUserById(post.recipient_id);
         if userResult is error {
             continue; // Skip posts where we can't get user info
         }
         responses.push(mapPostToResponse(post, userResult));
     }
-    
     return responses;
 }
 
@@ -105,8 +109,9 @@ public isolated function getAllRecipientPosts() returns types:RecipientPostRespo
 # + return - Array of recipient posts for the user or error
 public isolated function getRecipientPostsByUser(int userId) returns types:RecipientPostResponse[]|error {
     types:RecipientPost[] allPosts = check database:getRecipientPosts();
+    // Only show approved posts to user-facing views
     types:RecipientPost[] userPosts = from types:RecipientPost post in allPosts
-        where post.recipient_id == userId
+        where post.recipient_id == userId && post.status == "open"
         select post;
     
     // Get user info once since all posts are from same user
@@ -120,6 +125,101 @@ public isolated function getRecipientPostsByUser(int userId) returns types:Recip
         responses.push(mapPostToResponse(post, userResult));
     }
     return responses;
+}
+
+# List pending recipient posts (for admin moderation)
+# + return - Array of pending recipient posts or error
+public isolated function getPendingRecipientPosts() returns types:RecipientPostResponse[]|error {
+    types:RecipientPost[] posts = check database:getRecipientPosts();
+    types:RecipientPost[] pending = from types:RecipientPost p in posts
+        where p.status == "pending"
+        select p;
+
+    types:RecipientPostResponse[] responses = [];
+    foreach types:RecipientPost post in pending {
+        types:UserResponse|error userResult = getUserById(post.recipient_id);
+        if userResult is error {
+            continue;
+        }
+        responses.push(mapPostToResponse(post, userResult));
+    }
+    return responses;
+}
+
+# List rejected (not approved) recipient posts (for admin moderation)
+# + return - Array of rejected recipient posts or error
+public isolated function getRejectedRecipientPosts() returns types:RecipientPostResponse[]|error {
+    types:RecipientPost[] posts = check database:getRecipientPosts();
+    types:RecipientPost[] rejected = from types:RecipientPost p in posts
+        where p.status == "rejected"
+        select p;
+
+    types:RecipientPostResponse[] responses = [];
+    foreach types:RecipientPost post in rejected {
+        types:UserResponse|error userResult = getUserById(post.recipient_id);
+        if userResult is error {
+            continue;
+        }
+        responses.push(mapPostToResponse(post, userResult));
+    }
+    return responses;
+}
+
+# Approve a pending recipient post (set status to open)
+# + postId - ID of the post to approve
+# + return - Approved post response or error
+public isolated function approveRecipientPost(int postId) returns types:RecipientPostResponse|error {
+    types:RecipientPost? currentPost = check database:getRecipientPostById(postId);
+    if currentPost is () {
+        return error("Post not found");
+    }
+
+    if currentPost.status == "open" {
+        // Already approved; return current
+        types:UserResponse|error userResult = getUserById(currentPost.recipient_id);
+        if userResult is error {
+            return error("Failed to retrieve user details");
+        }
+        return mapPostToResponse(currentPost, userResult);
+    }
+
+    types:RecipientPostUpdate updateData = { status: "open" ,goal: (), urgency: (), contact: (), location: (), received: (), title: (), category: (), content: ()};
+    _ = check database:updateRecipientPost(postId, updateData);
+
+    // Re-fetch and return updated
+    types:RecipientPost? updated = check database:getRecipientPostById(postId);
+    if updated is () {
+        return error("Failed to load updated post");
+    }
+    types:UserResponse|error userResult = getUserById(updated.recipient_id);
+    if userResult is error {
+        return error("Failed to retrieve user details");
+    }
+    return mapPostToResponse(updated, userResult);
+}
+
+# Reject a recipient post (set status to rejected)
+# + postId - ID of the post to reject
+# + return - Updated post response or error
+public isolated function rejectRecipientPost(int postId) returns types:RecipientPostResponse|error {
+    types:RecipientPost? currentPost = check database:getRecipientPostById(postId);
+    if currentPost is () {
+        return error("Post not found");
+    }
+
+    types:RecipientPostUpdate updateData = { status: "rejected" ,goal: (), urgency: (), contact: (), location: (), received: (), title: (), category: (), content: ()};
+    _ = check database:updateRecipientPost(postId, updateData);
+
+    // Re-fetch and return updated
+    types:RecipientPost? updated = check database:getRecipientPostById(postId);
+    if updated is () {
+        return error("Failed to load updated post");
+    }
+    types:UserResponse|error userResult = getUserById(updated.recipient_id);
+    if userResult is error {
+        return error("Failed to retrieve user details");
+    }
+    return mapPostToResponse(updated, userResult);
 }
 
 # Update recipient post
@@ -173,4 +273,19 @@ public isolated function updateRecipientPost(int postId, types:RecipientPostUpda
 public isolated function deleteRecipientPost(int postId) returns error? {
     _ = check database:deleteRecipientPost(postId);
     return;
+}
+
+# Fetch single recipient post with full details (admin view)
+# + postId - ID of the post to fetch
+# + return - RecipientPostResponse with user details or error
+public isolated function getRecipientPostDetails(int postId) returns types:RecipientPostResponse|error {
+    types:RecipientPost? post = check database:getRecipientPostById(postId);
+    if post is () {
+        return error("Post not found");
+    }
+    types:UserResponse|error userResult = getUserById(post.recipient_id);
+    if userResult is error {
+        return error("Failed to retrieve user details");
+    }
+    return mapPostToResponse(post, userResult);
 }
