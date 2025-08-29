@@ -26,6 +26,7 @@ import CreateDonationModal from '@/components/donorProfile/CreateDonationModal';
 import DonorAnalytics from "@/components/donorProfile/analytics/DonorAnalytics";
 import DonorDonations from "@/components/donorProfile/myDonations/DonorDonations";
 import BloodCampOrganizerDashboard from "@/components/bloodCamps/BloodCampOrganizerDashboard";
+import BloodCampRegistrationForm from "@/components/bloodCamps/BloodCampRegistrationForm";
 
 // Helper function to map RecipientPost to Post type
 const mapRecipientPostToPost = (post: RecipientPost): Post => {
@@ -127,6 +128,12 @@ export default function DonorDashboard() {
     const [showCreateDonation, setShowCreateDonation] = useState(false);
     const [hasCreatedCamps, setHasCreatedCamps] = useState(false); // New state to track if donor has created camps
 
+    const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+
+    const handleRegisterClick = (camp: BloodCamp) => {
+        setSelectedCamp(camp);
+        setShowRegistrationForm(true);
+    }
     useEffect(() => {
         if (!isLoading && (!isAuthenticated || user?.role !== 'donor')) {
             router.push('/auth/signin');
@@ -432,7 +439,9 @@ export default function DonorDashboard() {
                                                 showBloodCampForm={showBloodCampForm}
                                                 setShowBloodCampForm={setShowBloodCampForm}
                                                 onCampCreated={handleBloodCampCreated}
+                                                onRegisterClick={handleRegisterClick}
                                             />
+
                                         </>
                                     )}
                                 </motion.div>
@@ -526,6 +535,22 @@ export default function DonorDashboard() {
                         // Handle success
                     }}
                 />
+                {/* Add this after the CampDetailsModal */}
+                {showRegistrationForm && selectedCamp && (
+                    <BloodCampRegistrationForm
+                        selectedCamp={selectedCamp}
+                        onClose={() => {
+                            setShowRegistrationForm(false);
+                            setSelectedCamp(null);
+                        }}
+                        onSuccess={() => {
+                            setShowRegistrationForm(false);
+                            setSelectedCamp(null);
+                            // Handle success (show success message, refresh data, etc.)
+                        }}
+                        userId={user.id}
+                    />
+                )}
                 <DonorCardGenerator
                     isOpen={showCardGenerator}
                     onClose={() => setShowCardGenerator(false)}

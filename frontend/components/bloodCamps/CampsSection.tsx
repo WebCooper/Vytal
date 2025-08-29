@@ -10,7 +10,8 @@ const CampsSection: React.FC<CampsSectionProps> = ({
   setSelectedCamp, 
   showBloodCampForm, 
   setShowBloodCampForm,
-  onCampCreated // Add this prop
+  onCampCreated, // Add this prop
+  onRegisterClick // Add this new prop for handling registration
 }) => {
   const activeCamps = bloodCamps.filter(camp => camp.status === "active");
   const upcomingCamps = bloodCamps.filter(camp => camp.status === "upcoming");
@@ -22,6 +23,13 @@ const CampsSection: React.FC<CampsSectionProps> = ({
     // Call the refresh callback to update the camps list
     if (onCampCreated) {
       onCampCreated();
+    }
+  };
+
+  const handleRegisterForCamp = (e: React.MouseEvent, camp: any) => {
+    e.stopPropagation();
+    if (onRegisterClick) {
+      onRegisterClick(camp);
     }
   };
 
@@ -77,10 +85,7 @@ const CampsSection: React.FC<CampsSectionProps> = ({
                                 </div>
                                 <div className="flex flex-col space-y-2 ml-4">
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            // Handle donate now action
-                                        }}
+                                        onClick={(e) => handleRegisterForCamp(e, camp)}
                                         className="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors text-sm"
                                     >
                                         Donate Now
@@ -169,10 +174,7 @@ const CampsSection: React.FC<CampsSectionProps> = ({
                             </div>
                             <div className="flex space-x-2">
                                 <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Handle register action
-                                    }}
+                                    onClick={(e) => handleRegisterForCamp(e, camp)}
                                     className="px-3 py-2 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors text-sm"
                                 >
                                     Register

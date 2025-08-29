@@ -163,11 +163,12 @@ export interface MapSectionProps {
 }
 
 export interface CampsSectionProps {
-    bloodCamps: BloodCamp[];
-    setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
-    showBloodCampForm: boolean;
-    setShowBloodCampForm: React.Dispatch<React.SetStateAction<boolean>>;
-    onCampCreated?: () => void | Promise<void>; // Add this line
+  bloodCamps: BloodCamp[];
+  setSelectedCamp: React.Dispatch<React.SetStateAction<BloodCamp | null>>;
+  showBloodCampForm: boolean;
+  setShowBloodCampForm: React.Dispatch<React.SetStateAction<boolean>>;
+  onCampCreated?: () => void;
+  onRegisterClick?: (camp: BloodCamp) => void; // Add this line
 }
 
 export interface CampsListProps {
