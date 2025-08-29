@@ -419,7 +419,7 @@ const parseRegistrationError = (error: unknown): RegistrationError => {
               </label>
               <input
                 type="date"
-                value={formData.last_donation_date || ''}
+                value={formData.last_donation_date || '2025-01-01'}
                 onChange={(e) => handleInputChange('last_donation_date', e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-700 mb-2"
               />
