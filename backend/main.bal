@@ -1118,6 +1118,9 @@ service /api/v1 on new http:Listener(9091) {
     }
 
     # Register for blood camp endpoint
+    # + authorization - JWT token for user authentication
+    # + request - Blood camp registration details
+    # + return - HTTP response with registration result or error message
     resource function post blood\-camps/register(@http:Header {name: "Authorization"} string? authorization, types:BloodCampRegistrationCreate request) returns http:Response|error {
         http:Response response = new;
 
@@ -1175,8 +1178,7 @@ service /api/v1 on new http:Listener(9091) {
         }
 
         if alreadyRegistered {
-            response.statusCode
-            = 400;
+            response.statusCode = 400;
             response.setJsonPayload({
                 "error": "You are already registered for this blood camp",
                 "timestamp": time:utcNow()
@@ -1222,8 +1224,7 @@ service /api/v1 on new http:Listener(9091) {
                     "timestamp": time:utcNow()
                 });
             } else {
-                response.statusCode
-= 201;
+                response.statusCode = 201;
                 response.setJsonPayload({
                     "message": "Registration successful",
                     "id": registrationId,
@@ -1237,6 +1238,9 @@ service /api/v1 on new http:Listener(9091) {
     }
 
     # Get donor registrations endpoint
+    # + donorId - ID of the donor to retrieve registrations for
+    # + authorization - JWT token for user authentication
+    # + return - HTTP response with donor's blood camp registrations or error message
     resource function get blood\-camps/registrations/donor/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
 
@@ -1271,6 +1275,9 @@ service /api/v1 on new http:Listener(9091) {
     }
 
     # Get camp registrations endpoint
+    # + campId - ID of the blood camp to retrieve registrations for
+    # + authorization - JWT token for user authentication
+    # + return - HTTP response with blood camp registrations or error message
     resource function get blood\-camps/[int campId]/registrations(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
 
@@ -1305,6 +1312,10 @@ service /api/v1 on new http:Listener(9091) {
     }
 
     # Update registration endpoint
+    # + registrationId - ID of the registration to update
+    # + authorization - JWT token for user authentication
+    # + request - Registration update data containing fields to modify
+    # + return - HTTP response with updated registration details or error message
     resource function put blood\-camps/registrations/[int registrationId](@http:Header {name: "Authorization"} string? authorization, types:BloodCampRegistrationUpdate request) returns http:Response|error {
         http:Response response = new;
 
@@ -1354,6 +1365,9 @@ service /api/v1 on new http:Listener(9091) {
     }
 
     # Cancel registration endpoint
+    # + registrationId - ID of the registration to cancel
+    # + authorization - JWT token for user authentication
+    # + return - HTTP response confirming cancellation or error message
     resource function delete blood\-camps/registrations/[int registrationId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
 
@@ -1418,17 +1432,14 @@ service /api/v1 on new http:Listener(9091) {
                 "timestamp": time:utcNow()
             });
         } else if result {
-            response.statusCode
-            = 200;
+            response.statusCode = 200;
             response.setJsonPayload({
                 "message": "Registration cancelled successfully",
                 "timestamp": time:utcNow()
             });
-        }
-        else {
+        } else {
             response.statusCode = 404;
-            response.setJsonPayload
-({
+            response.setJsonPayload({
                 "error": "Registration not found",
                 "timestamp": time:utcNow()
             });
@@ -1438,6 +1449,9 @@ service /api/v1 on new http:Listener(9091) {
     }
 
     # Check donation eligibility endpoint
+    # + donorId - ID of the donor to check eligibility for
+    # + authorization - JWT token for user authentication
+    # + return - HTTP response with eligibility status and details or error message
     resource function get blood\-camps/eligibility/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
         http:Response response = new;
 

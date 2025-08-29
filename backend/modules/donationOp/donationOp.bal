@@ -996,9 +996,7 @@ public isolated function checkDonationEligibility(int donorId) returns types:Eli
     // 1. Parse the last donation date
     // 2. Calculate days difference from current date
     // 3. Check if >= 56 days have passed
-
-    string today = "2025-01-20"; // This should be current date
-
+    
     return {
         eligible: true, // Simplified - should calculate based on actual dates
         reason: "Eligible for blood donation",

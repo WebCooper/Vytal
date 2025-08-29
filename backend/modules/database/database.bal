@@ -1892,14 +1892,15 @@ isolated function calculateNextEligibleDate(int daysToAdd) returns string {
 }
 
 # Create blood camp registration
+# + donorId - ID of the donor registering for the blood camp
+# + request - Registration data containing camp details and donor information
+# + return - ID of the created registration record or error if operation fails
 public isolated function createBloodCampRegistration(int donorId, types:BloodCampRegistrationCreate request) returns int|error {
     mysql:Client dbClientInstance = check getDbClient();
 
     // Determine initial health status based on last donation date
     types:HealthStatus healthStatus = "eligible";
-    if request.last_donation_date is
-string {
-        string lastDonationStr = <string>request.last_donation_date;
+    if request.last_donation_date is string {
         // Simple check - in real implementation, you'd calculate if enough time has passed
         // For blood donation, minimum 56 days (8 weeks) gap is required
         healthStatus = "eligible";
@@ -1917,10 +1918,12 @@ string {
 
     sql:ExecutionResult result = check dbClientInstance->execute(query);
     return <int>result.lastInsertId;
-
 }
 
 # Check if donor is already registered for a camp
+# + donorId - ID of the donor to check registration for
+# + campId - ID of the blood camp to check registration against
+# + return - True if donor is already registered, false otherwise, or error if operation fails
 public isolated function checkExistingRegistration(int donorId, int campId) returns boolean|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -1942,7 +1945,9 @@ public isolated function checkExistingRegistration(int donorId, int campId) retu
     return false;
 }
 
-# Check camp capacity
+# Check camp capacity and availability
+# + campId - ID of the blood camp to check capacity for
+# + return - Camp capacity information including current registrations and available spots, or error if operation fails
 public isolated function checkCampCapacity(int campId) returns types:CampCapacityInfo|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -1984,7 +1989,9 @@ public isolated function checkCampCapacity(int campId) returns types:CampCapacit
     };
 }
 
-# Get registrations by donor
+# Get registrations by donor with camp and donor details
+# + donorId - ID of the donor to retrieve registrations for
+# + return - Array of blood camp registration responses with full details, or error if operation fails
 public isolated function getRegistrationsByDonor(int donorId) returns types:BloodCampRegistrationResponse[]|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -2050,7 +2057,9 @@ public isolated function getRegistrationsByDonor(int donorId) returns types:Bloo
     return registrations;
 }
 
-# Get registrations by camp
+# Get registrations by camp with donor details
+# + campId - ID of the blood camp to retrieve registrations for
+# + return - Array of blood camp registration responses with donor details, or error if operation fails
 public isolated function getRegistrationsByCamp(int campId) returns types:BloodCampRegistrationResponse[]|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -2116,7 +2125,9 @@ public isolated function getRegistrationsByCamp(int campId) returns types:BloodC
     return registrations;
 }
 
-# Get registration by ID
+# Get registration by ID with full camp and donor details
+# + registrationId - ID of the registration to retrieve
+# + return - Complete blood camp registration response with camp and donor details, or error if not found
 public isolated function getBloodCampRegistrationById(int registrationId) returns types:BloodCampRegistrationResponse|error {
     mysql:Client dbClientInstance = check getDbClient();
 
@@ -2180,7 +2191,10 @@ public isolated function getBloodCampRegistrationById(int registrationId) return
     };
 }
 
-# Update blood camp registration
+# Update blood camp registration details
+# + registrationId - ID of the registration to update
+# + request - Registration update data containing fields to modify
+# + return - True if registration was updated successfully, false if not found, or error if operation fails
 public isolated function updateBloodCampRegistration(int registrationId, types:BloodCampRegistrationUpdate request) returns boolean|error {
     mysql:Client dbClientInstance = check getDbClient();
 
