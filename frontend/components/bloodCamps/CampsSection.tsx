@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion';
 import { MdBloodtype } from 'react-icons/md';
-import { CampsSectionProps } from '../types';
+import { BloodCamp, CampsSectionProps } from '../types';
 import { FaClock, FaMapMarkerAlt, FaPhone, FaPlus, FaUsers } from 'react-icons/fa';
 import CreateBloodCamp from './CreateBloodCamp';
 
@@ -26,7 +26,7 @@ const CampsSection: React.FC<CampsSectionProps> = ({
     }
   };
 
-  const handleRegisterForCamp = (e: React.MouseEvent, camp: any) => {
+  const handleRegisterForCamp = (e: React.MouseEvent, camp: BloodCamp) => {
     e.stopPropagation();
     if (onRegisterClick) {
       onRegisterClick(camp);
