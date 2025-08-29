@@ -48,7 +48,6 @@ function init() {
         allowOrigins: [
             "http://localhost:3000",
             "http://127.0.0.1:3000",
-            // Add your LAN dev server address to avoid CORS 'Network Error' during development
             "http://26.25.192.79:3000",
             "https://iwb25-198-nova.vercel.app"
         ],
