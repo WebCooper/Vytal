@@ -16,7 +16,7 @@ import { getAllBloodCamps } from "@/lib/bloodCampsApi";
 import { RecipientPostResponse, DonorPostResponse } from "@/lib/types";
 
 export default function CommunityPage() {
-  const { /* user removed to avoid unused variable */ } = useAuth();
+  const { user } = useAuth();
   const [recipientPosts, setRecipientPosts] = useState<Post[]>([]);
   const [donorPosts, setDonorPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,9 +30,9 @@ export default function CommunityPage() {
 
   const mapRecipientPostToPost = (recipientPost: unknown): Post => {
     const post = recipientPost as RecipientPostResponse;
-    
+
     const mapCategory = (category: string): Category => {
-      switch(category.toLowerCase()) {
+      switch (category.toLowerCase()) {
         case 'blood': return Category.BLOOD;
         case 'organs': return Category.ORGANS;
         case 'fundraiser': return Category.FUNDRAISER;
@@ -41,7 +41,7 @@ export default function CommunityPage() {
         default: return Category.SUPPLIES;
       }
     };
-    
+
     return {
       id: post.id,
       title: post.title,
@@ -76,9 +76,9 @@ export default function CommunityPage() {
 
   const mapDonorPostToPost = (donorPost: unknown): Post => {
     const post = donorPost as DonorPostResponse;
-    
+
     const mapCategory = (category: string): Category => {
-      switch(category.toLowerCase()) {
+      switch (category.toLowerCase()) {
         case 'blood': return Category.BLOOD;
         case 'organs': return Category.ORGANS;
         case 'fundraiser': return Category.FUNDRAISER;
@@ -87,7 +87,7 @@ export default function CommunityPage() {
         default: return Category.SUPPLIES;
       }
     };
-    
+
     return {
       id: post.id,
       title: post.title,
@@ -120,7 +120,8 @@ export default function CommunityPage() {
     try {
       setIsLoading(true);
       setError(null);
-      
+
+      // Fetch recipient posts, donor posts, and blood camps in parallel
       const [recipientResponse, donorResponse, bloodCampsResponse] = await Promise.all([
         getAllRecipientPosts().catch(err => {
           console.warn('Failed to fetch recipient posts:', err);
@@ -135,17 +136,18 @@ export default function CommunityPage() {
           return { data: [], total: 0, timestamp: '' };
         })
       ]);
-      
+
+      // Map and set posts
       const mappedRecipientPosts = recipientResponse.data.map((post) => mapRecipientPostToPost(post))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
+
       const mappedDonorPosts = donorResponse.data.map((post) => mapDonorPostToPost(post))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
+
       setRecipientPosts(mappedRecipientPosts);
       setDonorPosts(mappedDonorPosts);
       setBloodCampsList(bloodCampsResponse.data);
-      
+
     } catch (error) {
       console.error('Error fetching community data:', error);
       setError('Failed to load community data. Please try again later.');
@@ -158,12 +160,13 @@ export default function CommunityPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
-      
+
+      // Set active tab if a valid tab is provided in URL
       if (tabParam && ['requests', 'donations', 'camps'].includes(tabParam)) {
         setActiveTab(tabParam);
       }
     }
-    
+
     fetchCommunityData();
   }, [fetchCommunityData]);
 
@@ -180,7 +183,7 @@ export default function CommunityPage() {
     const urgencyMatch = filterUrgency === "all" || post.urgency === filterUrgency;
     return categoryMatch && urgencyMatch;
   });
-  
+
   // Filter donor posts based on selected filters
   const filteredDonorPosts = donorPosts.filter(post => {
     const categoryMatch = filterCategory === "all" || post.category === filterCategory;
@@ -191,7 +194,7 @@ export default function CommunityPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-white to-emerald-700">
       <Header />
-      
+
       <div className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -199,7 +202,7 @@ export default function CommunityPage() {
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mt-6">
               <p>{error}</p>
-              <button 
+              <button
                 onClick={fetchCommunityData}
                 className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
@@ -224,19 +227,19 @@ export default function CommunityPage() {
               <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
                 <h2 className="text-2xl font-bold text-emerald-800 mb-4">Help Requests</h2>
                 <p className="text-gray-600 mb-6">Browse requests from recipients who need your support</p>
-                
-                <Filterbar 
-                  filterCategory={filterCategory} 
-                  setFilterCategory={setFilterCategory} 
-                  urgencyFilter={filterUrgency} 
-                  setUrgencyFilter={setFilterUrgency} 
-                  posts={recipientPosts} 
+
+                <Filterbar
+                  filterCategory={filterCategory}
+                  setFilterCategory={setFilterCategory}
+                  urgencyFilter={filterUrgency}
+                  setUrgencyFilter={setFilterUrgency}
+                  posts={recipientPosts}
                 />
-                
+
                 {filteredRecipientPosts.length === 0 ? (
                   <div className="bg-white/70 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-8 text-center mt-6">
                     <p className="text-gray-600 text-lg">No help requests found matching your filters.</p>
-                    <button 
+                    <button
                       onClick={() => {
                         setFilterCategory("all");
                         setFilterUrgency("all");
@@ -262,19 +265,19 @@ export default function CommunityPage() {
               <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-6">
                 <h2 className="text-2xl font-bold text-emerald-800 mb-4">Available Donations</h2>
                 <p className="text-gray-600 mb-6">Browse donations from donors ready to help</p>
-                
-                <Filterbar 
-                  filterCategory={filterCategory} 
-                  setFilterCategory={setFilterCategory} 
-                  urgencyFilter={filterUrgency} 
-                  setUrgencyFilter={setFilterUrgency} 
-                  posts={donorPosts} 
+
+                <Filterbar
+                  filterCategory={filterCategory}
+                  setFilterCategory={setFilterCategory}
+                  urgencyFilter={filterUrgency}
+                  setUrgencyFilter={setFilterUrgency}
+                  posts={donorPosts}
                 />
-                
+
                 {filteredDonorPosts.length === 0 ? (
                   <div className="bg-white/70 backdrop-blur-md rounded-xl shadow-lg border border-white/30 p-8 text-center mt-6">
                     <p className="text-gray-600 text-lg">No donation offers found matching your filters.</p>
-                    <button 
+                    <button
                       onClick={() => {
                         setFilterCategory("all");
                         setFilterUrgency("all");
@@ -298,10 +301,10 @@ export default function CommunityPage() {
               className="space-y-6 mt-6"
             >
               <MapSection bloodCamps={bloodCampsList} setSelectedCamp={setSelectedCamp} />
-              <CampsSection 
-                bloodCamps={bloodCampsList} 
-                setSelectedCamp={setSelectedCamp} 
-                showBloodCampForm={showBloodCampForm} 
+              <CampsSection
+                bloodCamps={bloodCampsList}
+                setSelectedCamp={setSelectedCamp}
+                showBloodCampForm={showBloodCampForm}
                 setShowBloodCampForm={setShowBloodCampForm}
                 onCampCreated={fetchCommunityData}
               />
@@ -310,7 +313,12 @@ export default function CommunityPage() {
         </div>
       </div>
 
-  <CampDetailsModal selectedCamp={selectedCamp} setSelectedCamp={setSelectedCamp} />
+      <CampDetailsModal
+        selectedCamp={selectedCamp}
+        setSelectedCamp={setSelectedCamp}
+        userId={user?.id || 0}
+        onRegistrationSuccess={fetchCommunityData}
+      />
       <Footer />
     </div>
   );

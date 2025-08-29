@@ -1,18 +1,18 @@
 import React from 'react'
 import { motion } from 'framer-motion';
-import { Achievement } from '@/components/types';
+import { GamificationAchievement } from '@/components/types';
 
-const AchievementsTab = ({ achievements }: { achievements: Achievement[] }) => {
+const AchievementsTab = ({ GamificationAchievement }: { GamificationAchievement: GamificationAchievement[] }) => {
   return (
     <div>
         <motion.div
-        key="achievements"
+        key="GamificationAchievement"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         className="space-y-6"
         >
-        {achievements.map((achievement, index) => (
+        {GamificationAchievement.map((achievement, index) => (
             <motion.div
             key={achievement.id}
             initial={{ opacity: 0, x: -20 }}
