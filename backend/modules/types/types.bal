@@ -650,3 +650,194 @@ public type DonorDashboard record {|
         string? last_donation_date;
     |} availability;
 |};
+
+# Blood Camp Registration Types for Ballerina Backend
+
+public enum RegistrationStatus {
+    REGISTERED = "registered",
+    CONFIRMED = "confirmed", 
+    ATTENDED = "attended",
+    CANCELLED = "cancelled",
+    NO_SHOW = "no_show"
+}
+
+public enum HealthStatus {
+    ELIGIBLE = "eligible",
+    PENDING_REVIEW = "pending_review",
+    NOT_ELIGIBLE = "not_eligible"
+}
+
+# Blood Camp Registration record
+public type BloodCampRegistration record {|
+    # Unique registration ID
+    int id;
+    # ID of the blood camp
+    int camp_id;
+    # ID of the donor
+    int donor_id;
+    # Date when registration was made
+    string registration_date;
+    # Current status of registration
+    RegistrationStatus status;
+    # Donor's blood type
+    string blood_type;
+    # Last blood donation date (optional)
+    string? last_donation_date;
+    # Current health status for donation
+    HealthStatus health_status;
+    # Contact phone number
+    string contact_phone;
+    # Emergency contact name (optional)
+    string? emergency_contact_name;
+    # Emergency contact phone (optional)
+    string? emergency_contact_phone;
+    # Medical conditions (optional)
+    string? medical_conditions;
+    # Current medications (optional)
+    string? medications;
+    # Additional notes (optional)
+    string? notes;
+    # Timestamp when record was created
+    string? created_at;
+    # Timestamp when record was last updated
+    string? updated_at;
+|};
+
+# Registration create request
+public type BloodCampRegistrationCreate record {|
+    # ID of the blood camp to register for
+    int camp_id;
+    # Donor's blood type
+    string blood_type;
+    # Last blood donation date (optional)
+    string? last_donation_date;
+    # Contact phone number
+    string contact_phone;
+    # Emergency contact name (optional)
+    string? emergency_contact_name;
+    # Emergency contact phone (optional)
+    string? emergency_contact_phone;
+    # Medical conditions (optional)
+    string? medical_conditions;
+    # Current medications (optional)
+    string? medications;
+    # Additional notes (optional)
+    string? notes;
+|};
+
+# Registration update request
+public type BloodCampRegistrationUpdate record {|
+    # Updated registration status
+    RegistrationStatus? status;
+    # Updated health status
+    HealthStatus? health_status;
+    # Updated contact phone
+    string? contact_phone;
+    # Updated emergency contact name
+    string? emergency_contact_name;
+    # Updated emergency contact phone
+    string? emergency_contact_phone;
+    # Updated medical conditions
+    string? medical_conditions;
+    # Updated medications
+    string? medications;
+    # Updated notes
+    string? notes;
+|};
+
+# Registration response with related data
+public type BloodCampRegistrationResponse record {|
+    # Registration record
+    BloodCampRegistration registration;
+    # Related blood camp information
+    record {|
+        int id;
+        string name;
+        string location;
+        string date;
+        string start_time;
+        string end_time;
+    |} camp;
+    # Related donor information
+    record {|
+        int id;
+        string name;
+        string email;
+    |} donor;
+|};
+
+# Eligibility check response
+public type EligibilityResponse record {|
+    # Whether donor is eligible to donate
+    boolean eligible;
+    # Reason for eligibility status
+    string? reason;
+    # Next eligible donation date
+    string? next_eligible_date;
+    # Last donation date
+    string? last_donation_date;
+    # Blood type from last donation
+    string? blood_type;
+|};
+
+# Registration statistics for camps
+public type RegistrationStats record {|
+    # Blood camp ID
+    int camp_id;
+    # Total registrations
+    int total_registrations;
+    # Confirmed registrations
+    int confirmed_registrations;
+    # Attended registrations
+    int attended_registrations;
+    # Cancelled registrations
+    int cancelled_registrations;
+    # No-show registrations
+    int no_show_registrations;
+|};
+
+# Donor registration history
+public type DonorRegistrationHistory record {|
+    # Donor ID
+    int donor_id;
+    # List of all registrations
+    BloodCampRegistrationResponse[] registrations;
+    # Total camps registered
+    int total_registered;
+    # Total camps attended
+    int total_attended;
+    # Cancellation rate
+    decimal cancellation_rate;
+|};
+
+# Registration notification data
+public type RegistrationNotification record {|
+    # Registration ID
+    int registration_id;
+    # Notification type
+    string notification_type; # reminder, confirmation, cancellation
+    # Message to send
+    string message;
+    # Recipient contact info
+    string contact_info;
+    # Scheduled send time
+    string scheduled_time;
+    # Whether notification was sent
+    boolean sent;
+|};
+
+# Blood camp capacity check
+public type CampCapacityInfo record {|
+    # Camp ID
+    int camp_id;
+    # Maximum capacity
+    int max_capacity;
+    # Current registrations
+    int current_registrations;
+    # Available spots
+    int available_spots;
+    # Whether camp is full
+    boolean is_full;
+    # Waiting list size
+    int waiting_list_size;
+|};

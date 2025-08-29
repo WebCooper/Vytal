@@ -1594,22 +1594,23 @@ public isolated function getAllBloodCamps() returns types:BloodCamp[]|error {
     check resultStream.close();
     return camps;
 }
+
 # Insert donation record into database
 # + donationData - Donation data to be inserted
 # + return - ID of the inserted donation or error if operation fails
 public isolated function insertDonation(record {
-    int donor_id;
-    int? recipient_id;
-    int? post_id;
-    string donation_type;
-    decimal? amount;
-    string? quantity;
-    string? description;
-    string donation_date;
-    string status;
-    string? location;
-    string? notes;
-} donationData) returns int|error {
+            int donor_id;
+            int? recipient_id;
+            int? post_id;
+            string donation_type;
+            decimal? amount;
+            string? quantity;
+            string? description;
+            string donation_date;
+            string status;
+            string? location;
+            string? notes;
+        } donationData) returns int|error {
     mysql:Client dbClientInstance = check getDbClient();
 
     sql:ParameterizedQuery query = `INSERT INTO donations 
@@ -1628,15 +1629,14 @@ public isolated function insertDonation(record {
 # + bloodData - Blood donation specific data including donation_id, blood_type, volume_ml, hemoglobin_level, and donation_center
 # + return - SQL execution result or error if operation fails
 public isolated function insertBloodDonation(record {
-    int donation_id;
-    string blood_type;
-    int volume_ml;
-    decimal? hemoglobin_level;
-    string? donation_center;
-} bloodData) returns sql:ExecutionResult|error {
+            int donation_id;
+            string blood_type;
+            int volume_ml;
+            decimal? hemoglobin_level;
+            string? donation_center;
+        } bloodData) returns sql:ExecutionResult|error {
     mysql:Client dbClientInstance = check getDbClient();
 
-    
     string nextEligibleDate = calculateNextEligibleDate(56);
 
     sql:ParameterizedQuery query = `INSERT INTO blood_donations 
@@ -1783,13 +1783,13 @@ public isolated function getDonorStats(int donorId) returns types:DonorStats|err
         last_donation_date,
         first_donation_date
         FROM donor_stats WHERE donor_id = ${donorId}`;
-    
+
     stream<record {}, error?> resultStream = dbClientInstance->query(query);
     record {|record {} value;|}? result = check resultStream.next();
     check resultStream.close();
 
     if result is () {
-       
+
         return {
             donor_id: donorId,
             total_donations: 0,
@@ -1968,13 +1968,13 @@ public isolated function getLastBloodDonation(int donorId) returns types:BloodDo
 # + achievementData - Achievement data including donor_id, achievement_type, achievement_name, description, earned_date, and metadata
 # + return - ID of the inserted achievement record or error if operation fails
 public isolated function insertAchievement(record {
-    int donor_id;
-    string achievement_type;
-    string achievement_name;
-    string description;
-    string earned_date;
-    json? metadata;
-} achievementData) returns int|error {
+            int donor_id;
+            string achievement_type;
+            string achievement_name;
+            string description;
+            string earned_date;
+            json? metadata;
+        } achievementData) returns int|error {
     mysql:Client dbClientInstance = check getDbClient();
 
     string? metadataJson = achievementData.metadata is () ? () : achievementData.metadata.toJsonString();
@@ -1992,10 +1992,332 @@ public isolated function insertAchievement(record {
 # + daysToAdd - Number of days to add to current date for next eligibility
 # + return - Date string representing next eligible donation date
 isolated function calculateNextEligibleDate(int daysToAdd) returns string {
-    
+
     return "2025-03-15";
 }
 
+# Create blood camp registration
+# + donorId - ID of the donor registering for the blood camp
+# + request - Registration data containing camp details and donor information
+# + return - ID of the created registration record or error if operation fails
+public isolated function createBloodCampRegistration(int donorId, types:BloodCampRegistrationCreate request) returns int|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    // Determine initial health status based on last donation date
+    types:HealthStatus healthStatus = "eligible";
+    if request.last_donation_date is string {
+        // Simple check - in real implementation, you'd calculate if enough time has passed
+        // For blood donation, minimum 56 days (8 weeks) gap is required
+        healthStatus = "eligible";
+        // This would be calculated based on actual dates
+    }
+
+    sql:ParameterizedQuery query = `INSERT INTO blood_camp_registrations 
+        (camp_id, donor_id, blood_type, last_donation_date, health_status, 
+         contact_phone, emergency_contact_name, emergency_contact_phone,
+         medical_conditions, medications, notes, registration_date, status) 
+        VALUES (${request.camp_id}, ${donorId}, ${request.blood_type}, ${request.last_donation_date},
+                ${healthStatus}, ${request.contact_phone}, ${request.emergency_contact_name},
+                ${request.emergency_contact_phone}, ${request.medical_conditions},
+                ${request.medications}, ${request.notes}, CURDATE(), 'registered')`;
+
+    sql:ExecutionResult result = check dbClientInstance->execute(query);
+    return <int>result.lastInsertId;
+}
+
+# Check if donor is already registered for a camp
+# + donorId - ID of the donor to check registration for
+# + campId - ID of the blood camp to check registration against
+# + return - True if donor is already registered, false otherwise, or error if operation fails
+public isolated function checkExistingRegistration(int donorId, int campId) returns boolean|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `
+        SELECT COUNT(*) as count 
+        FROM blood_camp_registrations 
+        WHERE donor_id = ${donorId} AND camp_id = ${campId} 
+        AND status NOT IN ('cancelled')
+    `;
+
+    stream<record {int count;}, error?> resultStream = dbClientInstance->query(query);
+    record {|record {int count;} value;|}? result = check resultStream.next();
+    check resultStream.close();
+
+    if result is record {|record {int count;} value;|} {
+        return result.value.count > 0;
+    }
+
+    return false;
+}
+
+# Check camp capacity and availability
+# + campId - ID of the blood camp to check capacity for
+# + return - Camp capacity information including current registrations and available spots, or error if operation fails
+public isolated function checkCampCapacity(int campId) returns types:CampCapacityInfo|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    // Get camp capacity
+    sql:ParameterizedQuery capacityQuery = `
+        SELECT capacity FROM blood_camps WHERE id = ${campId}
+    `;
+    stream<record {int capacity;}, error?> capacityStream = dbClientInstance->query(capacityQuery);
+    record {|record {int capacity;} value;|}? capacityResult = check capacityStream.next();
+    check capacityStream.close();
+
+    if capacityResult is () {
+        return error("Blood camp not found");
+    }
+
+    int maxCapacity = capacityResult.value.capacity;
+
+    // Get current registrations count
+    sql:ParameterizedQuery registrationQuery = `
+        SELECT COUNT(*) as count 
+        FROM blood_camp_registrations 
+        WHERE camp_id = ${campId} AND status IN ('registered', 'confirmed')
+    `;
+    stream<record {int count;}, error?> registrationStream = dbClientInstance->query(registrationQuery);
+    record {|record {int count;} value;|}? registrationResult = check registrationStream.next();
+    check registrationStream.close();
+
+    int currentRegistrations = registrationResult is record {|record {int count;} value;|}
+        ? registrationResult.value.count : 0;
+
+    return {
+        camp_id: campId,
+        max_capacity: maxCapacity,
+        current_registrations: currentRegistrations,
+        available_spots: maxCapacity - currentRegistrations,
+        is_full: currentRegistrations >= maxCapacity,
+        waiting_list_size: 0
+        // Not implemented yet
+    };
+}
+
+# Get registrations by donor with camp and donor details
+# + donorId - ID of the donor to retrieve registrations for
+# + return - Array of blood camp registration responses with full details, or error if operation fails
+public isolated function getRegistrationsByDonor(int donorId) returns types:BloodCampRegistrationResponse[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `
+        SELECT 
+            r.id, r.camp_id, r.donor_id, r.registration_date, r.status,
+            r.blood_type, r.last_donation_date, r.health_status, r.contact_phone,
+            r.emergency_contact_name, r.emergency_contact_phone,
+            r.medical_conditions, r.medications, r.notes,
+            r.created_at, r.updated_at,
+            c.name as camp_name, c.location as camp_location, c.date as camp_date,
+            c.start_time, c.end_time,
+            u.name as donor_name, u.email as donor_email
+        FROM blood_camp_registrations r
+        JOIN blood_camps c ON r.camp_id = c.id
+        JOIN users u ON r.donor_id = u.id
+        WHERE r.donor_id = ${donorId}
+        ORDER BY c.date DESC, r.created_at DESC
+    `;
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    types:BloodCampRegistrationResponse[] registrations = [];
+
+    check from record {} row in resultStream
+        do {
+            types:BloodCampRegistrationResponse registration = {
+                registration: {
+                    id: <int>row["id"],
+                    camp_id: <int>row["camp_id"],
+                    donor_id: <int>row["donor_id"],
+                    registration_date: <string>row["registration_date"],
+                    status: <types:RegistrationStatus>row["status"],
+                    blood_type: <string>row["blood_type"],
+                    last_donation_date: row["last_donation_date"] is string ? <string>row["last_donation_date"] : (),
+                    health_status: <types:HealthStatus>row["health_status"],
+                    contact_phone: <string>row["contact_phone"],
+                    emergency_contact_name: row["emergency_contact_name"] is string ? <string>row["emergency_contact_name"] : (),
+                    emergency_contact_phone: row["emergency_contact_phone"] is string ? <string>row["emergency_contact_phone"] : (),
+                    medical_conditions: row["medical_conditions"] is string ? <string>row["medical_conditions"] : (),
+                    medications: row["medications"] is string ? <string>row["medications"] : (),
+                    notes: row["notes"] is string ? <string>row["notes"] : (),
+                    created_at: row["created_at"] is string ? <string>row["created_at"] : (),
+                    updated_at: row["updated_at"] is string ? <string>row["updated_at"] : ()
+                },
+                camp: {
+                    id: <int>row["camp_id"],
+                    name: <string>row["camp_name"],
+                    location: <string>row["camp_location"],
+                    date: <string>row["camp_date"],
+                    start_time: <string>row["start_time"],
+                    end_time: <string>row["end_time"]
+                },
+                donor: {
+                    id: <int>row["donor_id"],
+                    name: <string>row["donor_name"],
+                    email: <string>row["donor_email"]
+                }
+            };
+            registrations.push(registration);
+        };
+
+    check resultStream.close();
+    return registrations;
+}
+
+# Get registrations by camp with donor details
+# + campId - ID of the blood camp to retrieve registrations for
+# + return - Array of blood camp registration responses with donor details, or error if operation fails
+public isolated function getRegistrationsByCamp(int campId) returns types:BloodCampRegistrationResponse[]|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `
+        SELECT 
+            r.id, r.camp_id, r.donor_id, r.registration_date, r.status,
+            r.blood_type, r.last_donation_date, r.health_status, r.contact_phone,
+            r.emergency_contact_name, r.emergency_contact_phone,
+            r.medical_conditions, r.medications, r.notes,
+            r.created_at, r.updated_at,
+            c.name as camp_name, c.location as camp_location, c.date as camp_date,
+            c.start_time, c.end_time,
+            u.name as donor_name, u.email as donor_email
+        FROM blood_camp_registrations r
+        JOIN blood_camps c ON r.camp_id = c.id
+        JOIN users u ON r.donor_id = u.id
+        WHERE r.camp_id = ${campId}
+        ORDER BY r.registration_date ASC
+    `;
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    types:BloodCampRegistrationResponse[] registrations = [];
+
+    check from record {} row in resultStream
+        do {
+            types:BloodCampRegistrationResponse registration = {
+                registration: {
+                    id: <int>row["id"],
+                    camp_id: <int>row["camp_id"],
+                    donor_id: <int>row["donor_id"],
+                    registration_date: <string>row["registration_date"],
+                    status: <types:RegistrationStatus>row["status"],
+                    blood_type: <string>row["blood_type"],
+                    last_donation_date: row["last_donation_date"] is string ? <string>row["last_donation_date"] : (),
+                    health_status: <types:HealthStatus>row["health_status"],
+                    contact_phone: <string>row["contact_phone"],
+                    emergency_contact_name: row["emergency_contact_name"] is string ? <string>row["emergency_contact_name"] : (),
+                    emergency_contact_phone: row["emergency_contact_phone"] is string ? <string>row["emergency_contact_phone"] : (),
+                    medical_conditions: row["medical_conditions"] is string ? <string>row["medical_conditions"] : (),
+                    medications: row["medications"] is string ? <string>row["medications"] : (),
+                    notes: row["notes"] is string ? <string>row["notes"] : (),
+                    created_at: row["created_at"] is string ? <string>row["created_at"] : (),
+                    updated_at: row["updated_at"] is string ? <string>row["updated_at"] : ()
+                },
+                camp: {
+                    id: <int>row["camp_id"],
+                    name: <string>row["camp_name"],
+                    location: <string>row["camp_location"],
+                    date: <string>row["camp_date"],
+                    start_time: <string>row["start_time"],
+                    end_time: <string>row["end_time"]
+                },
+                donor: {
+                    id: <int>row["donor_id"],
+                    name: <string>row["donor_name"],
+                    email: <string>row["donor_email"]
+                }
+            };
+            registrations.push(registration);
+        };
+
+    check resultStream.close();
+    return registrations;
+}
+
+# Get registration by ID with full camp and donor details
+# + registrationId - ID of the registration to retrieve
+# + return - Complete blood camp registration response with camp and donor details, or error if not found
+public isolated function getBloodCampRegistrationById(int registrationId) returns types:BloodCampRegistrationResponse|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `
+        SELECT 
+            r.id, r.camp_id, r.donor_id, r.registration_date, r.status,
+            r.blood_type, r.last_donation_date, r.health_status, r.contact_phone,
+            r.emergency_contact_name, r.emergency_contact_phone,
+            r.medical_conditions, r.medications, r.notes,
+            r.created_at, r.updated_at,
+            c.name as camp_name, c.location as camp_location, c.date as camp_date,
+            c.start_time, c.end_time,
+            u.name as donor_name, u.email as donor_email
+        FROM blood_camp_registrations r
+        JOIN blood_camps c ON r.camp_id = c.id
+        JOIN users u ON r.donor_id = u.id
+        WHERE r.id = ${registrationId}
+    `;
+
+    stream<record {}, error?> resultStream = dbClientInstance->query(query);
+    record {|record {} value;|}? result = check resultStream.next();
+    check resultStream.close();
+
+    if result is () {
+        return error("Registration not found");
+    }
+
+    record {} row = result.value;
+    return {
+        registration: {
+            id: <int>row["id"],
+            camp_id: <int>row["camp_id"],
+            donor_id: <int>row["donor_id"],
+            registration_date: <string>row["registration_date"],
+            status: <types:RegistrationStatus>row["status"],
+            blood_type: <string>row["blood_type"],
+            last_donation_date: row["last_donation_date"] is string ? <string>row["last_donation_date"] : (),
+            health_status: <types:HealthStatus>row["health_status"],
+            contact_phone: <string>row["contact_phone"],
+            emergency_contact_name: row["emergency_contact_name"] is string ? <string>row["emergency_contact_name"] : (),
+            emergency_contact_phone: row["emergency_contact_phone"] is string ? <string>row["emergency_contact_phone"] : (),
+            medical_conditions: row["medical_conditions"] is string ? <string>row["medical_conditions"] : (),
+            medications: row["medications"] is string ? <string>row["medications"] : (),
+            notes: row["notes"] is string ? <string>row["notes"] : (),
+            created_at: row["created_at"] is string ? <string>row["created_at"] : (),
+            updated_at: row["updated_at"] is string ? <string>row["updated_at"] : ()
+        },
+        camp: {
+            id: <int>row["camp_id"],
+            name: <string>row["camp_name"],
+            location: <string>row["camp_location"],
+            date: <string>row["camp_date"],
+            start_time: <string>row["start_time"],
+            end_time: <string>row["end_time"]
+        },
+        donor: {
+            id: <int>row["donor_id"],
+            name: <string>row["donor_name"],
+            email: <string>row["donor_email"]
+        }
+    };
+}
+
+# Update blood camp registration details
+# + registrationId - ID of the registration to update
+# + request - Registration update data containing fields to modify
+# + return - True if registration was updated successfully, false if not found, or error if operation fails
+public isolated function updateBloodCampRegistration(int registrationId, types:BloodCampRegistrationUpdate request) returns boolean|error {
+    mysql:Client dbClientInstance = check getDbClient();
+
+    sql:ParameterizedQuery query = `UPDATE blood_camp_registrations SET 
+        status = COALESCE(${request.status}, status),
+        health_status = COALESCE(${request.health_status}, health_status),
+        contact_phone = COALESCE(${request.contact_phone}, contact_phone),
+        emergency_contact_name = COALESCE(${request.emergency_contact_name}, emergency_contact_name),
+        emergency_contact_phone = COALESCE(${request.emergency_contact_phone}, emergency_contact_phone),
+        medical_conditions = COALESCE(${request.medical_conditions}, medical_conditions),
+        medications = COALESCE(${request.medications}, medications),
+        notes = COALESCE(${request.notes}, notes),
+        updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${registrationId}`;
+
+    sql:ExecutionResult result = check dbClientInstance->execute(query);
+    return result.affectedRowCount > 0;
+}
 
 # Description.
 #
@@ -2196,6 +2518,33 @@ public isolated function setupDatabase(mysql:Client dbClient) returns error? {
     FROM donations 
     WHERE status = 'completed'
     GROUP BY donor_id`);
+
+    // Blood camp registrations table
+    _ = check dbClient->execute(`CREATE TABLE IF NOT EXISTS blood_camp_registrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        camp_id INT NOT NULL,
+        donor_id INT NOT NULL,
+        registration_date DATE NOT NULL,
+        status ENUM('registered', 'confirmed', 'attended', 'cancelled', 'no_show') DEFAULT 'registered',
+        blood_type VARCHAR(10) NOT NULL,
+        last_donation_date DATE,
+        health_status ENUM('eligible', 'pending_review', 'not_eligible') DEFAULT 'eligible',
+        contact_phone VARCHAR(20) NOT NULL,
+        emergency_contact_name VARCHAR(100),
+        emergency_contact_phone VARCHAR(20),
+        medical_conditions TEXT,
+        medications TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (camp_id) REFERENCES blood_camps(id) ON DELETE CASCADE,
+        FOREIGN KEY (donor_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_camp_id (camp_id),
+        INDEX idx_donor_id (donor_id),
+        INDEX idx_status (status),
+        INDEX idx_registration_date (registration_date),
+        UNIQUE KEY unique_donor_camp (donor_id, camp_id)
+    )`);
 
     io:println("✅ Database tables are ready");
 }

@@ -1,10 +1,21 @@
 import Link from 'next/link'
+import { useRouter } from "next/navigation";
 import React from 'react'
 import { FaBell } from 'react-icons/fa'
-import { MdVerified } from 'react-icons/md';
-import { ProfileHeaderProps, UserType } from '../types';
+import { MdVerified, MdLogout } from 'react-icons/md'
+import { ProfileHeaderProps, UserType } from '../types'
+import { logout } from '../../lib/userService' // Adjust import path as needed
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
+  const router = useRouter()
+
+  const handleLogout = () => {
+    // Clear the token from localStorage
+    logout()
+    
+    // Redirect to home page or login page
+    router.push('/') // Change to '/login' if you prefer
+  }
 
   return (
     <div>
@@ -32,7 +43,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
                   className="pl-10 pr-4 py-2 rounded-lg border border-emerald-200 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 bg-white/80"
                 />
               </div> */}
+              
               <FaBell className="text-2xl text-emerald-600 hover:text-emerald-500 cursor-pointer" />
+              
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors duration-200"
+                title="Logout"
+              >
+                <MdLogout className="text-xl" />
+                <span className="text-sm font-medium">Logout</span>
+              </button>
+
               <Link href="/me">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold">

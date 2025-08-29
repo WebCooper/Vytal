@@ -2,13 +2,14 @@
 
 import backend.database;
 import backend.auth;
+import backend.donationOp as donationService;
 import backend.donorPostOp as donorPostService;
 import backend.messages as msgModule;
 import backend.postOp as postService;
 import backend.token;
 import backend.types;
 import backend.userOp as userService;
-import backend.donationOp as donationService;
+
 import ballerina/http;
 import ballerina/io;
 import ballerina/time;
@@ -1260,242 +1261,693 @@ service /api/v1 on new http:Listener(9091) {
 
         return response;
     }
-# Create donation endpoint
-# + authorization - Authorization header containing bearer token
-# + request - Donation creation request data
-# + return - HTTP response with donation creation result or error
-resource function post donations(@http:Header {name: "Authorization"} string? authorization, types:DonationCreate request) returns http:Response|error {
-    http:Response response = new;
 
-    string|error email = token:validateToken(authorization);
-    if email is error {
-        response.statusCode = 401;
-        response.setJsonPayload({
-            "error": email.message(),
-            "timestamp": time:utcNow()
-        });
+    # Create donation endpoint
+    # + authorization - Authorization header containing bearer token
+    # + request - Donation creation request data
+    # + return - HTTP response with donation creation result or error
+    resource function post donations(@http:Header {name: "Authorization"} string? authorization, types:DonationCreate request) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:UserResponse|error userResult = userService:getUserProfile(email);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        int|error result = donationService:createDonation(userResult.id, request);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 201;
+            response.setJsonPayload({
+                "message": "Donation recorded successfully",
+                "id": result,
+                "timestamp": time:utcNow()
+            });
+        }
+
         return response;
     }
 
-    types:UserResponse|error userResult = userService:getUserProfile(email);
-    if userResult is error {
-        response.statusCode = 404;
-        response.setJsonPayload({
-            "error": "User not found",
-            "timestamp": time:utcNow()
-        });
+    # Get donor donations endpoint
+    # + donorId - ID of the donor to retrieve donations for
+    # + authorization - Authorization header containing bearer token
+    # + status - Optional status filter for donations
+    # + return - HTTP response with donor's donations or error
+    resource function get donations/donor/[int donorId](@http:Header {name: "Authorization"} string? authorization, string? status = ()) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:DonationResponse[]|error result = donationService:getDonationsByDonor(donorId, status);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "total": result.length(),
+                "timestamp": time:utcNow()
+            });
+        }
+
         return response;
     }
 
-    int|error result = donationService:createDonation(userResult.id, request);
+    # Update donation endpoint
+    # + donationId - ID of the donation to update
+    # + authorization - Authorization header containing bearer token
+    # + request - Donation update request containing fields to modify
+    # + return - HTTP response with update result or error
+    resource function put donations/[int donationId](@http:Header {name: "Authorization"} string? authorization, types:DonationUpdate request) returns http:Response|error {
+        http:Response response = new;
 
-    if result is error {
-        response.statusCode = 400;
-        response.setJsonPayload({
-            "error": result.message(),
-            "timestamp": time:utcNow()
-        });
-    } else {
-        response.statusCode = 201;
-        response.setJsonPayload({
-            "message": "Donation recorded successfully",
-            "id": result,
-            "timestamp": time:utcNow()
-        });
-    }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
 
-    return response;
-}
+        boolean|error result = donationService:updateDonation(donationId, request);
 
-# Get donor donations endpoint
-# + donorId - ID of the donor to retrieve donations for
-# + authorization - Authorization header containing bearer token
-# + status - Optional status filter for donations
-# + return - HTTP response with donor's donations or error
-resource function get donations/donor/[int donorId](@http:Header {name: "Authorization"} string? authorization, string? status = ()) returns http:Response|error {
-    http:Response response = new;
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else if result {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "message": "Donation updated successfully",
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "Donation not found",
+                "timestamp": time:utcNow()
+            });
+        }
 
-    string|error email = token:validateToken(authorization);
-    if email is error {
-        response.statusCode = 401;
-        response.setJsonPayload({
-            "error": email.message(),
-            "timestamp": time:utcNow()
-        });
         return response;
     }
 
-    types:DonationResponse[]|error result = donationService:getDonationsByDonor(donorId, status);
+    # Get donor dashboard endpoint
+    # + donorId - ID of the donor to retrieve dashboard data for
+    # + authorization - Authorization header containing bearer token
+    # + return - HTTP response with comprehensive dashboard data or error
+    resource function get donations/dashboard/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
 
-    if result is error {
-        response.statusCode = 400;
-        response.setJsonPayload({
-            "error": result.message(),
-            "timestamp": time:utcNow()
-        });
-    } else {
-        response.statusCode = 200;
-        response.setJsonPayload({
-            "data": result.toJson(),
-            "total": result.length(),
-            "timestamp": time:utcNow()
-        });
-    }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
 
-    return response;
-}
+        types:DonorDashboard|error result = donationService:getDonorDashboard(donorId);
 
-# Update donation endpoint
-# + donationId - ID of the donation to update
-# + authorization - Authorization header containing bearer token
-# + request - Donation update request containing fields to modify
-# + return - HTTP response with update result or error
-resource function put donations/[int donationId](@http:Header {name: "Authorization"} string? authorization, types:DonationUpdate request) returns http:Response|error {
-    http:Response response = new;
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
 
-    string|error email = token:validateToken(authorization);
-    if email is error {
-        response.statusCode = 401;
-        response.setJsonPayload({
-            "error": email.message(),
-            "timestamp": time:utcNow()
-        });
         return response;
     }
 
-    boolean|error result = donationService:updateDonation(donationId, request);
+    # Get donor statistics endpoint
+    # + donorId - ID of the donor to retrieve statistics for
+    # + authorization - Authorization header containing bearer token
+    # + return - HTTP response with donor statistics or error
+    resource function get donations/stats/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
 
-    if result is error {
-        response.statusCode = 400;
-        response.setJsonPayload({
-            "error": result.message(),
-            "timestamp": time:utcNow()
-        });
-    } else if result {
-        response.statusCode = 200;
-        response.setJsonPayload({
-            "message": "Donation updated successfully",
-            "timestamp": time:utcNow()
-        });
-    } else {
-        response.statusCode = 404;
-        response.setJsonPayload({
-            "error": "Donation not found",
-            "timestamp": time:utcNow()
-        });
-    }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
 
-    return response;
-}
+        types:DonorStats|error result = donationService:getDonorStats(donorId);
 
-# Get donor dashboard endpoint
-# + donorId - ID of the donor to retrieve dashboard data for
-# + authorization - Authorization header containing bearer token
-# + return - HTTP response with comprehensive dashboard data or error
-resource function get donations/dashboard/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
-    http:Response response = new;
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "timestamp": time:utcNow()
+            });
+        }
 
-    string|error email = token:validateToken(authorization);
-    if email is error {
-        response.statusCode = 401;
-        response.setJsonPayload({
-            "error": email.message(),
-            "timestamp": time:utcNow()
-        });
         return response;
     }
 
-    types:DonorDashboard|error result = donationService:getDonorDashboard(donorId);
+    # Get donor achievements endpoint
+    # + donorId - ID of the donor to retrieve achievements for
+    # + authorization - Authorization header containing bearer token
+    # + return - HTTP response with donor achievements list or error
+    resource function get donations/achievements/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
 
-    if result is error {
-        response.statusCode = 400;
-        response.setJsonPayload({
-            "error": result.message(),
-            "timestamp": time:utcNow()
-        });
-    } else {
-        response.statusCode = 200;
-        response.setJsonPayload({
-            "data": result.toJson(),
-            "timestamp": time:utcNow()
-        });
-    }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
 
-    return response;
-}
+        types:Achievement[]|error result = donationService:getDonorAchievements(donorId);
 
-# Get donor statistics endpoint
-# + donorId - ID of the donor to retrieve statistics for
-# + authorization - Authorization header containing bearer token
-# + return - HTTP response with donor statistics or error
-resource function get donations/stats/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
-    http:Response response = new;
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "total": result.length(),
+                "timestamp": time:utcNow()
+            });
+        }
 
-    string|error email = token:validateToken(authorization);
-    if email is error {
-        response.statusCode = 401;
-        response.setJsonPayload({
-            "error": email.message(),
-            "timestamp": time:utcNow()
-        });
         return response;
     }
 
-    types:DonorStats|error result = donationService:getDonorStats(donorId);
+    # Get donation analytics data for a donor
+    # + donorId - ID of the donor to retrieve analytics for
+    # + authorization - Bearer token passed in the Authorization header for authentication
+    # + range - Optional time range for analytics (defaults to "6months" if not provided).
+    # Supported values: "1month", "3months", "6months", "1year"
+    # + return - HTTP response containing analytics data in JSON or an error response
+    resource function get donations/analytics/[int donorId](
+            @http:Header {name: "Authorization"} string? authorization,
+            string? range = "6months"
+) returns http:Response|error {
+        http:Response response = new;
 
-    if result is error {
-        response.statusCode = 400;
-        response.setJsonPayload({
-            "error": result.message(),
-            "timestamp": time:utcNow()
-        });
-    } else {
-        response.statusCode = 200;
-        response.setJsonPayload({
-            "data": result.toJson(),
-            "timestamp": time:utcNow()
-        });
-    }
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
 
-    return response;
-}
+        // Call donation service for donor analytics
+        json|error result = donationService:getDonorAnalytics(donorId, range ?: "6months");
 
-# Get donor achievements endpoint
-# + donorId - ID of the donor to retrieve achievements for
-# + authorization - Authorization header containing bearer token
-# + return - HTTP response with donor achievements list or error
-resource function get donations/achievements/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
-    http:Response response = new;
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result,
+                "timestamp": time:utcNow()
+            });
+        }
 
-    string|error email = token:validateToken(authorization);
-    if email is error {
-        response.statusCode = 401;
-        response.setJsonPayload({
-            "error": email.message(),
-            "timestamp": time:utcNow()
-        });
         return response;
     }
 
-    types:Achievement[]|error result = donationService:getDonorAchievements(donorId);
+    # Get donation trends over time for a donor
+    # + donorId - ID of the donor whose trends need to be retrieved
+    # + authorization - Bearer token passed in the Authorization header for authentication
+    # + return - HTTP response containing donor trends data in JSON or an error response
+    resource function get donations/trends/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
 
-    if result is error {
-        response.statusCode = 400;
-        response.setJsonPayload({
-            "error": result.message(),
-            "timestamp": time:utcNow()
-        });
-    } else {
-        response.statusCode = 200;
-        response.setJsonPayload({
-            "data": result.toJson(),
-            "total": result.length(),
-            "timestamp": time:utcNow()
-        });
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        json[]|error result = donationService:getDonorTrends(donorId);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result,
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
     }
 
-    return response;
-}
+    # Register for blood camp endpoint
+    # + authorization - JWT token for user authentication
+    # + request - Blood camp registration details
+    # + return - HTTP response with registration result or error message
+    resource function post blood\-camps/register(@http:Header {name: "Authorization"} string? authorization, types:BloodCampRegistrationCreate request) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:UserResponse|error userResult = userService:getUserProfile(email);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Check if user is eligible to donate
+        types:EligibilityResponse|error eligibilityResult = donationService:checkDonationEligibility(userResult.id);
+        if eligibilityResult is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "Failed to check eligibility: " + eligibilityResult.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        if !eligibilityResult.eligible {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "You are not eligible to donate at this time",
+                "reason": eligibilityResult.reason,
+                "next_eligible_date": eligibilityResult.next_eligible_date,
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Check if already registered for this camp
+        boolean|error alreadyRegistered = database:checkExistingRegistration(userResult.id, request.camp_id);
+        if alreadyRegistered is error {
+            response.statusCode = 500;
+            response.setJsonPayload({
+                "error": "Failed to check existing registration",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        if alreadyRegistered {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "You are already registered for this blood camp",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Check camp capacity
+        types:CampCapacityInfo|error capacityResult = database:checkCampCapacity(request.camp_id);
+        if capacityResult is error {
+            response.statusCode = 500;
+            response.setJsonPayload({
+                "error": "Failed to check camp capacity",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        if capacityResult.is_full {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": "Blood camp is at full capacity",
+                "available_spots": 0,
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        int|error registrationId = database:createBloodCampRegistration(userResult.id, request);
+        if registrationId is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": registrationId.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            types:BloodCampRegistrationResponse|error registrationResult = database:getBloodCampRegistrationById(registrationId);
+            if registrationResult is error {
+                response.statusCode = 201;
+                response.setJsonPayload({
+                    "message": "Registration successful",
+                    "id": registrationId,
+                    "timestamp": time:utcNow()
+                });
+            } else {
+                response.statusCode = 201;
+                response.setJsonPayload({
+                    "message": "Registration successful",
+                    "id": registrationId,
+                    "registration": registrationResult.toJson(),
+                    "timestamp": time:utcNow()
+                });
+            }
+        }
+
+        return response;
+    }
+
+    # Get donor registrations endpoint
+    # + donorId - ID of the donor to retrieve registrations for
+    # + authorization - JWT token for user authentication
+    # + return - HTTP response with donor's blood camp registrations or error message
+    resource function get blood\-camps/registrations/donor/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:BloodCampRegistrationResponse[]|error result = database:getRegistrationsByDonor(donorId);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "total": result.length(),
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    # Get camp registrations endpoint
+    # + campId - ID of the blood camp to retrieve registrations for
+    # + authorization - JWT token for user authentication
+    # + return - HTTP response with blood camp registrations or error message
+    resource function get blood\-camps/[int campId]/registrations(@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:BloodCampRegistrationResponse[]|error result = database:getRegistrationsByCamp(campId);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "data": result.toJson(),
+                "total": result.length(),
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    # Update registration endpoint
+    # + registrationId - ID of the registration to update
+    # + authorization - JWT token for user authentication
+    # + request - Registration update data containing fields to modify
+    # + return - HTTP response with updated registration details or error message
+    resource function put blood\-camps/registrations/[int registrationId](@http:Header {name: "Authorization"} string? authorization, types:BloodCampRegistrationUpdate request) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        boolean|error result = database:updateBloodCampRegistration(registrationId, request);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else if result {
+            types:BloodCampRegistrationResponse|error updatedRegistration = database:getBloodCampRegistrationById(registrationId);
+            if updatedRegistration is error {
+                response.statusCode = 200;
+                response.setJsonPayload({
+                    "message": "Registration updated successfully",
+                    "timestamp": time:utcNow()
+                });
+            } else {
+                response.statusCode = 200;
+                response.setJsonPayload({
+                    "message": "Registration updated successfully",
+                    "registration": updatedRegistration.toJson(),
+                    "timestamp": time:utcNow()
+                });
+            }
+        } else {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "Registration not found",
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    # Cancel registration endpoint
+    # + registrationId - ID of the registration to cancel
+    # + authorization - JWT token for user authentication
+    # + return - HTTP response confirming cancellation or error message
+    resource function delete blood\-camps/registrations/[int registrationId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Get current user to verify ownership
+        types:UserResponse|error userResult = userService:getUserProfile(email);
+        if userResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "User not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Verify registration belongs to user
+        types:BloodCampRegistrationResponse|error registrationResult = database:getBloodCampRegistrationById(registrationId);
+        if registrationResult is error {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "Registration not found",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        if registrationResult.registration.donor_id != userResult.id {
+            response.statusCode = 403;
+            response.setJsonPayload({
+                "error": "You can only cancel your own registrations",
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        // Update status to cancelled instead of deleting
+        types:BloodCampRegistrationUpdate cancelRequest = {
+            status: "cancelled",
+            health_status: (),
+            contact_phone: (),
+            emergency_contact_name: (),
+            emergency_contact_phone: (),
+            medical_conditions: (),
+            medications: (),
+            notes: ()
+        };
+        boolean|error result = database:updateBloodCampRegistration(registrationId, cancelRequest);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else if result {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "message": "Registration cancelled successfully",
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 404;
+            response.setJsonPayload({
+                "error": "Registration not found",
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
+    # Check donation eligibility endpoint
+    # + donorId - ID of the donor to check eligibility for
+    # + authorization - JWT token for user authentication
+    # + return - HTTP response with eligibility status and details or error message
+    resource function get blood\-camps/eligibility/[int donorId](@http:Header {name: "Authorization"} string? authorization) returns http:Response|error {
+        http:Response response = new;
+
+        string|error email = token:validateToken(authorization);
+        if email is error {
+            response.statusCode = 401;
+            response.setJsonPayload({
+                "error": email.message(),
+                "timestamp": time:utcNow()
+            });
+            return response;
+        }
+
+        types:EligibilityResponse|error result = donationService:checkDonationEligibility(donorId);
+
+        if result is error {
+            response.statusCode = 400;
+            response.setJsonPayload({
+                "error": result.message(),
+                "timestamp": time:utcNow()
+            });
+        } else {
+            response.statusCode = 200;
+            response.setJsonPayload({
+                "eligible": result.eligible,
+                "reason": result.reason,
+                "next_eligible_date": result.next_eligible_date,
+                "last_donation_date": result.last_donation_date,
+                "blood_type": result.blood_type,
+                "timestamp": time:utcNow()
+            });
+        }
+
+        return response;
+    }
+
 }
 
 // Function to handle shutdown
