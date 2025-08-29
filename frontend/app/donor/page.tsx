@@ -468,6 +468,7 @@ export default function DonorDashboard() {
                                         isLoadingDashboard={isLoadingDashboard}
                                         setShowCreateDonation={setShowCreateDonation}
                                         setShowCardGenerator={setShowCardGenerator}
+                                        userId={user.id} // Add this line
                                     />
                                 </motion.div>
                             )}
