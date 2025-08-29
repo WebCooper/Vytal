@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  FaUser, FaTint, FaPhone, FaUserMd, FaPills, 
+  FaUser, FaPhone, FaUserMd, FaPills, 
   FaStickyNote, FaTimes, FaExclamationTriangle,
   FaCheckCircle, FaSpinner
 } from 'react-icons/fa';
 import { MdBloodtype, MdLocationOn, MdDateRange } from 'react-icons/md';
 import { BloodCamp, BloodCampRegistrationCreate } from '@/components/types';
 import { 
-  getDonorRegistrations, 
-  updateRegistration, 
-  cancelRegistration,
-  BloodCampRegistration, 
   checkEligibility,
   registerForBloodCamp
 } from '@/lib/bloodCampsApi';

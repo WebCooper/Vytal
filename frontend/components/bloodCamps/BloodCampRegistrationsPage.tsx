@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   FaCalendarAlt, FaMapMarkerAlt, FaClock, FaPhone, FaUser,
-  FaCheck, FaTimes, FaEye, FaEdit, FaTrash, FaSpinner,
+  FaTimes, FaEye, FaSpinner,
   FaExclamationTriangle, FaCheckCircle, FaUserMd
 } from 'react-icons/fa';
 import { MdBloodtype } from 'react-icons/md';
 import { 
   getDonorRegistrations, 
-  updateRegistration, 
   cancelRegistration,
   BloodCampRegistration 
 } from '../../lib/bloodCampsApi';
@@ -18,18 +17,16 @@ interface BloodCampRegistrationsPageProps {
   userId: number;
 }
 
+type FilterType = 'all' | 'upcoming' | 'completed' | 'cancelled';
+
 const BloodCampRegistrationsPage: React.FC<BloodCampRegistrationsPageProps> = ({ userId }) => {
   const [registrations, setRegistrations] = useState<BloodCampRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRegistration, setSelectedRegistration] = useState<BloodCampRegistration | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
+  const [filter, setFilter] = useState<FilterType>('all');
 
-  useEffect(() => {
-    loadRegistrations();
-  }, [userId]);
-
-  const loadRegistrations = async () => {
+  const loadRegistrations = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getDonorRegistrations(userId);
@@ -40,7 +37,11 @@ const BloodCampRegistrationsPage: React.FC<BloodCampRegistrationsPageProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadRegistrations();
+  }, [loadRegistrations]);
 
   const handleCancelRegistration = async (registrationId: number) => {
     if (!confirm('Are you sure you want to cancel this registration?')) return;
@@ -313,7 +314,7 @@ const BloodCampRegistrationsPage: React.FC<BloodCampRegistrationsPageProps> = ({
             ].map(filterOption => (
               <button
                 key={filterOption.key}
-                onClick={() => setFilter(filterOption.key as any)}
+                onClick={() => setFilter(filterOption.key as FilterType)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   filter === filterOption.key
                     ? 'bg-emerald-600 text-white'

@@ -20,6 +20,7 @@ export interface SidebarProps {
     user: User;
     activeTab: string;
     setActiveTab: React.Dispatch<React.SetStateAction<string>>;
+    showMyCampsTab?: boolean;
 }
 
 export interface Post {

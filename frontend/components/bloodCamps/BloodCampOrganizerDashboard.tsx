@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCampground, FaUsers, FaCalendarCheck, FaCalendarTimes, FaCalendarDay,
@@ -6,7 +6,7 @@ import {
   FaExclamationCircle, FaCheckCircle, FaEnvelope, FaUser
 } from 'react-icons/fa';
 import { MdBloodtype } from 'react-icons/md';
-import { getAllBloodCamps, getCampRegistrations, BloodCampRegistration } from '../../lib/bloodCampsApi';
+import { getAllBloodCamps, getCampRegistrations, CampRegistrationResponse } from '../../lib/bloodCampsApi';
 import { BloodCamp } from '../../components/types';
 import { toast } from 'react-hot-toast';
 
@@ -53,7 +53,7 @@ interface RegistrationResponse {
 
 const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId }) => {
   const [camps, setCamps] = useState<BloodCamp[]>([]);
-  const [registrations, setRegistrations] = useState<Record<number, RegistrationResponse[]>>({});
+  const [registrations, setRegistrations] = useState<Record<number, CampRegistrationResponse[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedCamp, setSelectedCamp] = useState<BloodCamp | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -66,11 +66,7 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
     totalRegistrations: 0,
   });
 
-  useEffect(() => {
-    loadData();
-  }, [userId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const campsResponse = await getAllBloodCamps();
@@ -79,7 +75,7 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
       setCamps(myCamps);
 
       // Load registrations for each camp
-      const regsMap: Record<number, RegistrationResponse[]> = {};
+      const regsMap: Record<number, CampRegistrationResponse[]> = {};
       const loadingMap: Record<number, boolean> = {};
       let totalRegs = 0;
 
@@ -94,7 +90,8 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
           const registrationData = regsResponse.data || [];
           console.log(`Registration data for camp ${camp.id}:`, registrationData);
           
-          regsMap[camp.id] = registrationData;
+          // The API already returns data in RegistrationResponse format, so no transformation needed
+          regsMap[camp.id] = registrationData as RegistrationResponse[];
           totalRegs += registrationData.length;
         } catch (error) {
           console.error(`Error loading registrations for camp ${camp.id}:`, error);
@@ -123,7 +120,11 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
@@ -460,7 +461,7 @@ const BloodCampOrganizerDashboard: React.FC<OrganizerDashboardProps> = ({ userId
           <div className="text-center py-12">
             <FaCampground className="text-6xl text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-600 mb-2">No Blood Camps Yet</h3>
-            <p className="text-gray-500">You haven't created any blood camps yet.</p>
+            <p className="text-gray-500">You haven&apos;t created any blood camps yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

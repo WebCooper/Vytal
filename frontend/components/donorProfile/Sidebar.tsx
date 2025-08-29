@@ -4,7 +4,7 @@ import { MdVerified } from 'react-icons/md';
 import { SidebarProps } from '../types';
 import { useMessages } from '@/contexts/MessagesContext';
 
-const Sidebar:React.FC<SidebarProps> = ({user, activeTab, setActiveTab}) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, activeTab, setActiveTab, showMyCampsTab = false }) => {
   const { unreadCount } = useMessages();
 
   return (
@@ -54,15 +54,20 @@ const Sidebar:React.FC<SidebarProps> = ({user, activeTab, setActiveTab}) => {
                     >
                         Blood Camps
                     </button>
-                    <button
-                        onClick={() => setActiveTab("my-camps")}
-                        className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === "my-camps"
-                            ? "bg-teal-500 text-white shadow-lg"
-                            : "text-teal-700 hover:bg-teal-50"
-                            }`}
-                    >
-                        My Camps
-                    </button>
+                    
+                    {/* Conditionally render My Camps tab only if donor has created camps */}
+                    {showMyCampsTab && (
+                        <button
+                            onClick={() => setActiveTab("my-camps")}
+                            className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === "my-camps"
+                                ? "bg-teal-500 text-white shadow-lg"
+                                : "text-teal-700 hover:bg-teal-50"
+                                }`}
+                        >
+                            My Camps
+                        </button>
+                    )}
+                    
                     <button
                         onClick={() => setActiveTab("donations")}
                         className={`cursor-pointer w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === "donations"
