@@ -173,7 +173,7 @@ export default function CommunityPage() {
   useEffect(() => {
     const intervalId = setInterval(() => {
       fetchCommunityData();
-    }, 7000); // every 7 seconds
+    }, 60000); // every 7 seconds
     return () => clearInterval(intervalId);
   }, [fetchCommunityData]);
 
