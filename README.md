@@ -111,7 +111,8 @@ To get started, ensure you have the following prerequisites and follow the insta
    ```js
    cd backend
    ```
-6. Run the Ballerina server
+6. Copy the config.example.toml to Config.toml and update with database credentials
+7. Run the Ballerina server
    ```sh
    bal run
    ```
