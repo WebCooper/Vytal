@@ -68,8 +68,10 @@ Vytal provides a unified medical support community, where patients and families 
 ### Built With
 
 - [![Next][Next.js]][Next-url]
+- [![Ballerina][Ballerina]][Ballerina-url]
 - [![TailwindCSS][TailwindCSS]][TailwindCSS-url]
 - [![Docker][Docker]][Docker-url]
+- [![MySQL][MySQL]][MySQL-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -169,7 +171,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 ## Acknowledgments
 
-We would like to express our gratitude to WSO2, for givign us the oppurtunity to develop this project for the Innovate with Ballerina Competition.
+We would like to express our gratitude to WSO2, for giving us the opportunity to develop this project for the Innovate with Ballerina Competition.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -195,4 +197,9 @@ We would like to express our gratitude to WSO2, for givign us the oppurtunity to
 [TailwindCSS-url]: https://tailwindcss.com/
 [JWT]: https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens
 [JWT-url]: https://jwt.io/
-[Postgres]: https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white
+[Docker]: https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white
+[Docker-url]: https://www.docker.com/
+[Ballerina]: https://img.shields.io/badge/ballerina-FF5000?style=for-the-badge&logo=ballerina&logoColor=white
+[Ballerina-url]: https://ballerina.io/
+[MySQL]: https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=white
+[MySQL-url]: https://www.mysql.com/
