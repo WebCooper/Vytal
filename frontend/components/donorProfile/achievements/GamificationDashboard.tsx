@@ -1,11 +1,10 @@
 // File: components/gamification/GamificationDashboard.tsx
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { badges, achievements, leaderboardDetails, donorStat } from '@/app/mockData';
+import { badges, achievements, donorStat } from '@/app/mockData';
 import DonorStatsCard from '@/components/donorProfile/achievements/DonorStatsCard';
 import BadgesTab from '@/components/donorProfile/achievements/BadgesTab';
 import AchievementsTab from './AchievementsTab';
-import LeaderboardTab from './LeaderboardTab';
 import TabNavigation from './TabNavigation';
 import ActionCards from './ActionCards';
 
@@ -45,7 +44,7 @@ const GamificationDashboard = () => {
         {activeTab === 'leaderboard' && (
           <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8 text-center">
             <h3 className="text-2xl font-bold text-emerald-700 mb-3">🏆 Leaderboard Coming Soon!</h3>
-            <p className="text-gray-600">We're working hard to bring you an exciting leaderboard feature. Stay tuned for updates!</p>
+            <p className="text-gray-600">We&apos;re working hard to bring you an exciting leaderboard feature. Stay tuned for updates!</p>
           </div>
         )}
       </AnimatePresence>
