@@ -43,7 +43,10 @@ const GamificationDashboard = () => {
 
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && (
-          <LeaderboardTab leaderboardDetails={leaderboardDetails} />
+          <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8 text-center">
+            <h3 className="text-2xl font-bold text-emerald-700 mb-3">🏆 Leaderboard Coming Soon!</h3>
+            <p className="text-gray-600">We're working hard to bring you an exciting leaderboard feature. Stay tuned for updates!</p>
+          </div>
         )}
       </AnimatePresence>
 

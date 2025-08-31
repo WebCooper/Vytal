@@ -18,6 +18,18 @@ export default function CreateRecipientPost({
   onPostCreated,
 }: CreateRecipientPostProps) {
   const { user } = useAuth();
+  
+  const initialFormData: CreatePostInput = {
+  recipient_id: user?.id || 0,
+  title: '',
+  content: '',
+  category: 'fundraiser',
+  status: 'pending',
+  location: '',
+  urgency: 'medium',
+  contact: '',
+  goal: undefined,
+};
 
   const [formData, setFormData] = useState<CreatePostInput>({
     recipient_id: user?.id || 0,
@@ -64,6 +76,7 @@ export default function CreateRecipientPost({
     setSubmitting(true);
     try {
       await createPost(formData);
+      setFormData(initialFormData);
       onPostCreated();
       onClose();
     } catch {
