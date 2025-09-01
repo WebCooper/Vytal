@@ -1,10 +1,9 @@
 // File: components/gamification/GamificationDashboard.tsx
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { badges, achievements, donorStat } from '@/app/mockData';
+import { badges, donorStat } from '@/app/mockData';
 import DonorStatsCard from '@/components/donorProfile/achievements/DonorStatsCard';
 import BadgesTab from '@/components/donorProfile/achievements/BadgesTab';
-import AchievementsTab from './AchievementsTab';
 import TabNavigation from './TabNavigation';
 import ActionCards from './ActionCards';
 
@@ -37,7 +36,10 @@ const GamificationDashboard = () => {
 
         {/* Achievements Tab */}
         {activeTab === 'GamificationAchievement' && (
-          <AchievementsTab GamificationAchievement={achievements} />
+          <div className="bg-white/70 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8 text-center">
+            <h3 className="text-2xl font-bold text-emerald-700 mb-3">🎯 Achievements Coming Soon!</h3>
+            <p className="text-gray-600">We&apos;re working on an exciting achievements system to reward your contributions. Stay tuned!</p>
+          </div>
         )}
 
         {/* Leaderboard Tab */}
